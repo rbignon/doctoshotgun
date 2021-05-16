@@ -92,7 +92,7 @@ class CenterBookingPage(JsonPage):
 
 
 class AvailabilitiesPage(JsonPage):
-    def find_better_slot(self, limit=True):
+    def find_best_slot(self, limit=True):
         for a in self.doc['availabilities']:
             if limit and parse_date(a['date']).date() > datetime.date.today() + relativedelta(days=1):
                 continue
@@ -233,12 +233,12 @@ class Doctolib(LoginBrowser):
             log('No availabilities in this center')
             return False
 
-        slot = self.page.find_better_slot()
+        slot = self.page.find_best_slot()
         if not slot:
             log('First slot not found :(')
             return False
 
-        log('Better slot found: %s', parse_date(slot['start_date']).strftime('%c'))
+        log('Best slot found: %s', parse_date(slot['start_date']).strftime('%c'))
 
         appointment = {'profile_id':    profile_id,
                        'source_action': 'profile',
@@ -267,7 +267,7 @@ class Doctolib(LoginBrowser):
                                                    'practice_ids': practice_id,
                                                    'limit': 3})
 
-        second_slot = self.page.find_better_slot(limit=False)
+        second_slot = self.page.find_best_slot(limit=False)
         if not second_slot:
             log('No second shot found')
             return False
