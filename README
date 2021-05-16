@@ -22,7 +22,7 @@ For example:
 $ ./doctoshotgun.py paris roger.philibert@gmail.com
 Password:
 ::: Trying to find a slot in Centre de Vaccination Covid 19 - Ville de Paris
-::: Better slot found: Mon May 17 11:00:00 2021
+::: Best slot found: Mon May 17 11:00:00 2021
 ::: Second shot: Fri Jun 25 15:20:00 2021
 ::: Booking for Roger Philibert...
 ::: Booking status: True
