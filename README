@@ -1,0 +1,29 @@
+                    DOCTOSHOTGUN
+                    ************
+
+This script let you automatically book a vaccine slot on Doctolib for today or
+tomorrow, following rules from the French Government.
+
+
+Python dependencies:
+
+* woob
+* cloudscraper
+* dateutil
+* termcolor
+
+
+How to use it:
+
+$ ./doctoshotgun.py CITY USERNAME [PASSWORD]
+
+For example:
+
+$ ./doctoshotgun.py paris roger.philibert@gmail.com
+Password:
+::: Trying to find a slot in Centre de Vaccination Covid 19 - Ville de Paris
+::: Better slot found: Mon May 17 11:00:00 2021
+::: Second shot: Fri Jun 25 15:20:00 2021
+::: Booking for Roger Philibert...
+::: Booking status: True
+::: Booked!
