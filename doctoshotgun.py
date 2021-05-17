@@ -326,7 +326,7 @@ class Doctolib(LoginBrowser):
 
         log('Booking status: %s', self.page.doc['confirmed'])
 
-        return True
+        return self.page.doc['confirmed']
 
 class Application:
     def main(self, argv):
