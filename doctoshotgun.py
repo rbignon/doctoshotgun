@@ -7,6 +7,7 @@ from time import sleep
 import json
 from urllib.parse import urlparse
 import datetime
+import getpass
 
 from dateutil.parser import parse as parse_date
 from dateutil.relativedelta import relativedelta
@@ -341,8 +342,7 @@ class Application:
         username = argv[2]
 
         if len(argv) < 4:
-            print('Password:', end=' ', flush=True)
-            password = sys.stdin.readline().strip()
+            password = getpass.getpass()
         else:
             password = argv[3]
 
