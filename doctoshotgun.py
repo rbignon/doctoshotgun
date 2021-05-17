@@ -350,6 +350,9 @@ class Application:
 
         while True:
             for center in docto.find_centers(city):
+                if center['city'].lower() != city:
+                    continue
+
                 log('Trying to find a slot in %s', center['name_with_title'])
 
                 if not docto.logged:
