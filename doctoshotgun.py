@@ -125,8 +125,8 @@ class AppointmentPostPage(JsonPage):
 
 
 class MasterPatientPage(JsonPage):
-    def get_patient(self):
-        return self.doc[0]
+    def get_patients(self):
+        return self.doc
 
     def get_name(self):
         return '%s %s' % (self.doc[0]['first_name'], self.doc[0]['last_name'])
@@ -165,6 +165,7 @@ class Doctolib(LoginBrowser):
         self.session.headers['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'
 
         self._logged = False
+        self.patient = None
 
     @property
     def logged(self):
@@ -193,6 +194,12 @@ class Doctolib(LoginBrowser):
             #    if len(a['slots']) > 0:
             #        yield page.doc['search_result']
             yield page.doc['search_result']
+
+    def get_patients(self):
+        self.master_patient.go()
+
+        return self.page.get_patients()
+
 
     def try_to_book(self, center):
         self.open(center['url'])
@@ -291,13 +298,10 @@ class Doctolib(LoginBrowser):
         a_id = self.page.doc['id']
 
         self.appointment_edit.go(id=a_id)
-        self.master_patient.go()
 
-        master_patient = self.page.get_patient()
+        log('Booking for %s %s...', self.patient['first_name'], self.patient['last_name'])
 
-        log('Booking for %s...', self.page.get_name())
-
-        self.appointment_edit.go(id=a_id, params={'master_patient_id': master_patient['id']})
+        self.appointment_edit.go(id=a_id, params={'master_patient_id': self.patient['id']})
 
         custom_fields = {}
         for field in self.page.get_custom_fields():
@@ -318,7 +322,7 @@ class Doctolib(LoginBrowser):
                                },
                 'bypass_mandatory_relative_contact_info': False,
                 'email': None,
-                'master_patient': master_patient,
+                'master_patient': self.patient,
                 'new_patient': True,
                 'patient': None,
                 'phone_number': None,
@@ -327,7 +331,7 @@ class Doctolib(LoginBrowser):
         self.appointment_post.go(id=a_id, data=json.dumps(data), headers=headers, method='PUT')
 
         if 'redirection' in self.page.doc:
-            log('Go on %s', 'https://www.doctolib.fr' + self.page.doc['redirection'])
+            log('Go on %s to complete', 'https://www.doctolib.fr' + self.page.doc['redirection'])
 
         self.appointment_post.go(id=a_id)
 
@@ -357,6 +361,22 @@ class Application:
         if not docto.do_login():
             print('Wrong login/password')
             return 1
+
+        patients = docto.get_patients()
+        if len(patients) > 1:
+            print('Available patients are:')
+            for i, patient in enumerate(patients):
+                print('* [%s] %s %s' % (i, patient['first_name'], patient['last_name']))
+            while True:
+                print('You want to book a slot for whom patient?', end=' ', flush=True)
+                try:
+                    docto.patient = patients[int(sys.stdin.readline().strip())]
+                except (ValueError, IndexError):
+                    continue
+                else:
+                    break
+        else:
+            docto.patient = patients[0]
 
         while True:
             for center in docto.find_centers(args.city):
