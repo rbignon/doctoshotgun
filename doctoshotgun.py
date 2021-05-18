@@ -7,6 +7,7 @@ from time import sleep
 import json
 from urllib.parse import urlparse
 import datetime
+import argparse
 import getpass
 
 from dateutil.parser import parse as parse_date
@@ -335,30 +336,31 @@ class Doctolib(LoginBrowser):
         return self.page.doc['confirmed']
 
 class Application:
-    def main(self, argv):
-        logging.basicConfig(level=logging.DEBUG)
-        responses_dirname = tempfile.mkdtemp(prefix='woob_session_')
+    def main(self):
+        parser = argparse.ArgumentParser(description="Book a vaccine slot on Doctolib")
+        parser.add_argument('--debug', '-d', action='store_true', help='show debug information')
+        parser.add_argument('city', help='city where to book')
+        parser.add_argument('username', help='Doctolib username')
+        parser.add_argument('password', nargs='?', help='Doctolib password')
+        args = parser.parse_args()
 
-        if len(argv) < 3:
-            print('Usage: %s CITY USERNAME [PASSWORD]' % argv[0])
-            return 1
-
-        city = argv[1]
-        username = argv[2]
-
-        if len(argv) < 4:
-            password = getpass.getpass()
+        if args.debug:
+            logging.basicConfig(level=logging.DEBUG)
+            responses_dirname = tempfile.mkdtemp(prefix='woob_session_')
         else:
-            password = argv[3]
+            responses_dirname = None
 
-        docto = Doctolib(username, password, responses_dirname=responses_dirname)
+        if not args.password:
+            args.password = getpass.getpass()
+
+        docto = Doctolib(args.username, args.password, responses_dirname=responses_dirname)
         if not docto.do_login():
             print('Wrong login/password')
             return 1
 
         while True:
-            for center in docto.find_centers(city):
-                if center['city'].lower() != city:
+            for center in docto.find_centers(args.city):
+                if center['city'].lower() != args.city:
                     continue
 
                 log('Trying to find a slot in %s', center['name_with_title'])
@@ -377,7 +379,7 @@ class Application:
 
 if __name__ == '__main__':
     try:
-        sys.exit(Application().main(sys.argv))
+        sys.exit(Application().main())
     except KeyboardInterrupt:
         print('Abort.')
         sys.exit(1)
