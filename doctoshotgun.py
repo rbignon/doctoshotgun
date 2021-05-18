@@ -15,6 +15,7 @@ from dateutil.relativedelta import relativedelta
 import cloudscraper
 from termcolor import colored
 
+from woob.browser.exceptions import ClientError
 from woob.browser.browsers import LoginBrowser
 from woob.browser.url import URL
 from woob.browser.pages import JsonPage, HTMLPage
@@ -170,12 +171,16 @@ class Doctolib(LoginBrowser):
 
     def do_login(self):
         self.open('https://www.doctolib.fr/sessions/new')
-        self.login.go(json={'kind': 'patient',
-                            'username': self.username,
-                            'password': self.password,
-                            'remember': True,
-                            'remember_username': True})
-        self._logged = True
+        try:
+            self.login.go(json={'kind': 'patient',
+                                'username': self.username,
+                                'password': self.password,
+                                'remember': True,
+                                'remember_username': True})
+        except ClientError:
+            return False
+
+        return True
 
     def find_centers(self, where):
         self.centers.go(where=where, params={'ref_visit_motive_ids[]': '6970', 'ref_visit_motive_ids[]': '7005'})
@@ -347,6 +352,9 @@ class Application:
             password = argv[3]
 
         docto = Doctolib(username, password, responses_dirname=responses_dirname)
+        if not docto.do_login():
+            print('Wrong login/password')
+            return 1
 
         while True:
             for center in docto.find_centers(city):
@@ -354,9 +362,6 @@ class Application:
                     continue
 
                 log('Trying to find a slot in %s', center['name_with_title'])
-
-                if not docto.logged:
-                    docto.do_login()
 
                 if docto.try_to_book(center):
                     log('Booked!')
