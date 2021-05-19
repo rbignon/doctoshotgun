@@ -387,7 +387,7 @@ class Application:
 
                 log('Trying to find a slot in %s', center['name_with_title'])
 
-                if docto.try_to_book(center, pro):
+                if docto.try_to_book(center, args.pro):
                     log('Booked!')
                     return 0
 
