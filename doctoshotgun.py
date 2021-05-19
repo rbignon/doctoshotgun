@@ -185,7 +185,7 @@ class Doctolib(LoginBrowser):
         self.centers.go(where=where, params={'ref_visit_motive_ids[]': ['6970', '7005']})
 
         for i in self.page.iter_centers_ids():
-            page = self.center_result.open(id=i, params={'limit': '4', 'ref_visit_motive_ids%5B%5D': ['6970', '7005'], 'speciality_id': '5494', 'search_result_format': 'json'})
+            page = self.center_result.open(id=i, params={'limit': '4', 'ref_visit_motive_ids[]': ['6970', '7005'], 'speciality_id': '5494', 'search_result_format': 'json'})
             # XXX return all pages even if there are no indicated availabilities.
             #for a in page.doc['availabilities']:
             #    if len(a['slots']) > 0:
