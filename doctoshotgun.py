@@ -198,7 +198,7 @@ class Doctolib(LoginBrowser):
         return self.page.get_patients()
 
 
-    def try_to_book(self, center):
+    def try_to_book(self, center, pro):
         self.open(center['url'])
         p = urlparse(center['url'])
         center_id = p.path.split('/')[-1]
@@ -213,15 +213,19 @@ class Doctolib(LoginBrowser):
             return False
 
         for place in self.page.get_places():
-            log('Looking for slots in place %s', place['name'])
-            practice_id = place['practice_ids'][0]
-            agenda_ids = center_page.get_agenda_ids(motive_id, practice_id)
-            if len(agenda_ids) == 0:
-                # do not filter to give a chance
-                agenda_ids = center_page.get_agenda_ids(motive_id)
+            # Add regexp search for "professionnel" in the place['name']
+            if not pro and re.search("professionnel", place['name'], re.IGNORECASE):
+                log('Not looking for slots in place %s, as it\'s reserved for \'professionnel\'', place['name'])
+            else:
+                log('Looking for slots in place %s', place['name'])
+                practice_id = place['practice_ids'][0]
+                agenda_ids = center_page.get_agenda_ids(motive_id, practice_id)
+                if len(agenda_ids) == 0:
+                    # do not filter to give a chance
+                    agenda_ids = center_page.get_agenda_ids(motive_id)
 
-            if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids):
-                return True
+                if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids):
+                    return True
 
         return False
 
@@ -340,6 +344,7 @@ class Application:
     def main(self):
         parser = argparse.ArgumentParser(description="Book a vaccine slot on Doctolib")
         parser.add_argument('--debug', '-d', action='store_true', help='show debug information')
+        parser.add_argument('--pro', '-p', action='store_true', help='search on place with \'professionnel\'')
         parser.add_argument('city', help='city where to book')
         parser.add_argument('username', help='Doctolib username')
         parser.add_argument('password', nargs='?', help='Doctolib password')
@@ -382,7 +387,7 @@ class Application:
 
                 log('Trying to find a slot in %s', center['name_with_title'])
 
-                if docto.try_to_book(center):
+                if docto.try_to_book(center, pro):
                     log('Booked!')
                     return 0
 
