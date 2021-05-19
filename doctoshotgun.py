@@ -23,11 +23,8 @@ from woob.browser.pages import JsonPage, HTMLPage
 
 
 def log(text, *args):
-    args = [colored(arg, 'yellow') for arg in args]
-    if len(args) == 1:
-        text = text % args[0]
-    elif len(args) > 1:
-        text = text % args
+    args = (colored(arg, 'yellow') for arg in args)
+    text = text % tuple(args)
     print(colored(':::', 'magenta'), text)
 
 
