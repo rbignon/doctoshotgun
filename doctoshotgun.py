@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 import datetime
 import argparse
 import getpass
+import unicodedata
 
 from dateutil.parser import parse as parse_date
 from dateutil.relativedelta import relativedelta
@@ -196,6 +197,10 @@ class Doctolib(LoginBrowser):
         self.master_patient.go()
 
         return self.page.get_patients()
+    
+    def remove_accents(self, string):
+        nfkd = unicodedata.normalize('NFKD', string)
+        return u"".join([c for c in nfkd if not unicodedata.combining(c)])
 
 
     def try_to_book(self, center):
@@ -335,6 +340,8 @@ class Doctolib(LoginBrowser):
         log('Booking status: %s', self.page.doc['confirmed'])
 
         return self.page.doc['confirmed']
+ 
+
 
 class Application:
     def main(self):
@@ -376,8 +383,8 @@ class Application:
             docto.patient = patients[0]
 
         while True:
-            for center in docto.find_centers(args.city):
-                if center['city'].lower() != args.city:
+            for center in docto.find_centers(docto.remove_accents(args.city)):
+                if docto.remove_accents(center['city'].lower()) != docto.remove_accents(args.city):
                     continue
 
                 log('Trying to find a slot in %s', center['name_with_title'])
