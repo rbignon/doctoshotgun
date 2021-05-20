@@ -383,8 +383,8 @@ class Application:
             docto.patient = patients[0]
 
         while True:
-            for center in docto.find_centers(docto.remove_accents(args.city)):
-                if docto.remove_accents(center['city'].lower()) != docto.normalize(args.city):
+            for center in docto.find_centers(docto.normalize(args.city)):
+                if docto.normalize(center['city']) != docto.normalize(args.city):
                     continue
 
                 log('Trying to find a slot in %s', center['name_with_title'])
