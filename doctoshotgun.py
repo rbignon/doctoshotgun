@@ -345,6 +345,14 @@ class Application:
         parser.add_argument('password', nargs='?', help='Doctolib password')
         args = parser.parse_args()
 
+        reg_zipcode = re.match('([0-9]*)-([a-z]*)', args.city)
+        if reg_zipcode :
+            check_zip = reg_zipcode[1]
+            check_city= reg_zipcode[2]  
+        else :
+            check_zip =""
+            check_city = args.city 
+
         if args.debug:
             logging.basicConfig(level=logging.DEBUG)
             responses_dirname = tempfile.mkdtemp(prefix='woob_session_')
@@ -377,7 +385,9 @@ class Application:
 
         while True:
             for center in docto.find_centers(args.city):
-                if center['city'].lower() != args.city:
+                if center['city'].lower() != check_city:
+                    continue
+                elif check_zip and center['zipcode'].lower() != check_zip :
                     continue
 
                 log('Trying to find a slot in %s', center['name_with_title'])
