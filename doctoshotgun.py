@@ -198,9 +198,11 @@ class Doctolib(LoginBrowser):
 
         return self.page.get_patients()
     
-    def remove_accents(self, string):
+    def normalize(string):
         nfkd = unicodedata.normalize('NFKD', string)
-        return u"".join([c for c in nfkd if not unicodedata.combining(c)])
+        normalized = u"".join([c for c in nfkd if not unicodedata.combining(c)])
+        normalized = re.sub(r'\W', '-', normalized)
+        return normalized.lower()
 
 
     def try_to_book(self, center):
