@@ -384,7 +384,7 @@ class Application:
 
         while True:
             for center in docto.find_centers(docto.remove_accents(args.city)):
-                if docto.remove_accents(center['city'].lower()) != docto.remove_accents(args.city):
+                if docto.remove_accents(center['city'].lower()) != docto.normalize(args.city):
                     continue
 
                 log('Trying to find a slot in %s', center['name_with_title'])
