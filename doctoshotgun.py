@@ -198,7 +198,7 @@ class Doctolib(LoginBrowser):
         return self.page.get_patients()
 
 
-    def try_to_book(self, center):
+    def try_to_book(self, center, check_zip):
         self.open(center['url'])
         p = urlparse(center['url'])
         center_id = p.path.split('/')[-1]
@@ -213,15 +213,16 @@ class Doctolib(LoginBrowser):
             return False
 
         for place in self.page.get_places():
-            log('Looking for slots in place %s', place['name'])
-            practice_id = place['practice_ids'][0]
-            agenda_ids = center_page.get_agenda_ids(motive_id, practice_id)
-            if len(agenda_ids) == 0:
-                # do not filter to give a chance
-                agenda_ids = center_page.get_agenda_ids(motive_id)
+            if not check_zip or place['zipcode'].lower() == check_zip:
+                log('Looking for slots in place %s', place['name'])
+                practice_id = place['practice_ids'][0]
+                agenda_ids = center_page.get_agenda_ids(motive_id, practice_id)
+                if len(agenda_ids) == 0:
+                    # do not filter to give a chance
+                    agenda_ids = center_page.get_agenda_ids(motive_id)
 
-            if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids):
-                return True
+                if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids):
+                    return True
 
         return False
 
@@ -392,7 +393,7 @@ class Application:
 
                 log('Trying to find a slot in %s', center['name_with_title'])
 
-                if docto.try_to_book(center):
+                if docto.try_to_book(center,check_zip):
                     log('Booked!')
                     return 0
 
