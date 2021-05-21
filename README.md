@@ -37,3 +37,12 @@ Password:
 ::: Booking status: True
 ::: Booked!
 ```
+
+# Development
+
+## Running tests
+
+```
+ $ pip install -r requirements-dev.txt
+ $ pytest test_browser.py
+```
