@@ -375,7 +375,7 @@ class Application:
             for i, patient in enumerate(patients):
                 print('* [%s] %s %s' % (i, patient['first_name'], patient['last_name']))
             while True:
-                print('You want to book a slot for whom patient?', end=' ', flush=True)
+                print('For which patient do you want to book a slot ?', end=' ', flush=True)
                 try:
                     docto.patient = patients[int(sys.stdin.readline().strip())]
                 except (ValueError, IndexError):
