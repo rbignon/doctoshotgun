@@ -46,6 +46,22 @@ Run:
 ./doctoshotgun.py <city1>,<city2>,<city3> <email> [password]
 ```
 
+For doctolib accounts with more thant one patient, you can select patient just after launching the script :
+
+```
+$ ./doctoshotgun.py paris roger.philibert@gmail.com PASSWORD
+Available patients are:
+* [0] Roger PHILIBERT
+* [1] Luce PHILIBERT
+You want to book a slot for whom patient?
+```
+You can also give the patient id as argument :
+```
+$ ./doctoshotgun.py paris roger.philibert@gmail.com PASSWORD - p 1
+Selected patient : [1] Lucile VERMOT-DESROCHES
+```
+
+
 ## Development
 
 ### Running tests

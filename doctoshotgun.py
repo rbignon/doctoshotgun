@@ -357,6 +357,7 @@ class Application:
     def main(self):
         parser = argparse.ArgumentParser(description="Book a vaccine slot on Doctolib")
         parser.add_argument('--debug', '-d', action='store_true', help='show debug information')
+        parser.add_argument('--patient', '-p', type=int, default=-1, help='give patient ID')
         parser.add_argument('city', help='city where to book')
         parser.add_argument('username', help='Doctolib username')
         parser.add_argument('password', nargs='?', help='Doctolib password')
@@ -377,19 +378,26 @@ class Application:
             return 1
 
         patients = docto.get_patients()
+        #log(args.patient)
+        
         if len(patients) > 1:
-            print('Available patients are:')
-            for i, patient in enumerate(patients):
-                print('* [%s] %s %s' % (i, patient['first_name'], patient['last_name']))
-            while True:
-                print('You want to book a slot for whom patient?', end=' ', flush=True)
-                try:
-                    docto.patient = patients[int(sys.stdin.readline().strip())]
-                except (ValueError, IndexError):
-                    continue
-                else:
-                    break
+            if(args.patient >= 0 and args.patient < len(patients)):
+                print('Selected patient : [%s] %s %s' % (args.patient, patients[args.patient]['first_name'], patients[args.patient]['last_name']))
+                docto.patient = patients[args.patient]
+            else:
+                print('Available patients are:')
+                for i, patient in enumerate(patients):
+                    print('* [%s] %s %s' % (i, patient['first_name'], patient['last_name']))
+                while True:
+                    print('You want to book a slot for whom patient?', end=' ', flush=True)
+                    try:
+                        docto.patient = patients[int(sys.stdin.readline().strip())]
+                    except (ValueError, IndexError):
+                        continue
+                    else:
+                        break
         else:
+            print('Default patient : [%s] %s %s' % (0, patients[0]['first_name'], patients[0]['last_name']))
             docto.patient = patients[0]
 
         cities = (args.city).split(',')
