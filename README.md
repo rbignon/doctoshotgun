@@ -58,7 +58,7 @@ You want to book a slot for whom patient?
 You can also give the patient id as argument :
 ```
 $ ./doctoshotgun.py paris roger.philibert@gmail.com PASSWORD -p 1
-Selected patient : [1] Lucile VERMOT-DESROCHES
+Selected patient : [1] Luce PHILIBERT
 ```
 
 
