@@ -370,6 +370,9 @@ class Application:
             return 1
 
         patients = docto.get_patients()
+        if len(patients) == 0:
+            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
+            return 1
         if len(patients) > 1:
             print('Available patients are:')
             for i, patient in enumerate(patients):
