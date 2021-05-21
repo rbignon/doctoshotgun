@@ -223,8 +223,6 @@ class Doctolib(LoginBrowser):
             return False
 
         for place in self.page.get_places():
-            print(bool(check_zip))
-            print(place['zipcode'].lower())
 
             if place['city'].lower() not in check_zip or place['zipcode'].lower() in check_zip[place['city'].lower()]:
                 log('Looking for slots in place %s', place['name'])
@@ -403,13 +401,8 @@ class Application:
             else :
                 cities.append(city.lower())
 
-        #TODO : Delete
-        print(cities)
-        print(check_zip)
-        
         while True:
             for center in docto.find_centers(cities):
-                print(center)
                 if center['city'].lower() not in cities:
                     continue
                 elif center['city'].lower() in check_zip and center['zipcode'].lower() not in check_zip[center['city'].lower()]:
