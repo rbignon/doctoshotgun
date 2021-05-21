@@ -198,7 +198,6 @@ class Doctolib(LoginBrowser):
 
         return self.page.get_patients()
     
-    #@staticmethod
     def normalize(self, string):
         nfkd = unicodedata.normalize('NFKD', string)
         normalized = u"".join([c for c in nfkd if not unicodedata.combining(c)])
