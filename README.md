@@ -6,7 +6,7 @@ tomorrow, following rules from the French Government.
 
 ## Python dependencies
 
-- woob
+- [woob](https://woob.tech)
 - cloudscraper
 - dateutil
 - termcolor
@@ -38,9 +38,9 @@ Password:
 ::: Booked!
 ```
 
-# Development
+## Development
 
-## Running tests
+### Running tests
 
 ```
  $ pip install -r requirements-dev.txt
