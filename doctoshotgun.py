@@ -354,7 +354,7 @@ class Application:
     def main(self):
         parser = argparse.ArgumentParser(description="Book a vaccine slot on Doctolib")
         parser.add_argument('--debug', '-d', action='store_true', help='show debug information')
-        parser.add_argument('city', help='city where to book')
+        parser.add_argument('city', help='city where to book. You can look for multiple cities by add several cities, separated by commas. You can specify a zipcode for a city (in paris for instance) following this format : 75001-paris ')
         parser.add_argument('username', help='Doctolib username')
         parser.add_argument('password', nargs='?', help='Doctolib password')
         args = parser.parse_args()
