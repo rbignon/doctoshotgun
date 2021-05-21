@@ -38,6 +38,14 @@ Password:
 ::: Booked!
 ```
 
+You can also look for slot in multiple cities at the same time. Cities must be separated by commas.
+
+Run:
+
+```
+./doctoshotgun.py <city1>,<city2>,<city3> <email> [password]
+```
+
 ## Development
 
 ### Running tests
