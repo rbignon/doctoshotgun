@@ -264,6 +264,9 @@ class Doctolib(LoginBrowser):
         if not slot:
             log('First slot not found :(')
             return False
+        if type(slot) != dict:
+            log('Error while fetching first slot.')
+            return False
 
         log('Best slot found: %s', parse_date(slot['start_date']).strftime('%c'))
 
@@ -356,6 +359,7 @@ class Application:
     def main(self):
         parser = argparse.ArgumentParser(description="Book a vaccine slot on Doctolib")
         parser.add_argument('--debug', '-d', action='store_true', help='show debug information')
+        parser.add_argument('--center', '-c', action='append', help='filter centers')
         parser.add_argument('city', help='city where to book')
         parser.add_argument('username', help='Doctolib username')
         parser.add_argument('password', nargs='?', help='Doctolib password')
@@ -398,8 +402,14 @@ class Application:
 
         while True:
             for center in docto.find_centers(cities):
-                if docto.normalize(center['city']) not in cities:
-                    continue
+                if args.center is not None and len(args.center) > 0:
+                    if center['name_with_title'] not in args.center:
+                        logging.debug("Skipping center '%s'", center['name_with_title'])
+                        continue
+                else:
+                    if docto.normalize(center['city']) not in cities:
+                        logging.debug("Skipping city '%(city)s' %(name_with_title)s", center)
+                        continue
 
                 log('Trying to find a slot in %s', center['name_with_title'])
 
