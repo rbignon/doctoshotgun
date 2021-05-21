@@ -6,7 +6,7 @@ tomorrow, following rules from the French Government.
 
 ## Python dependencies
 
-- woob
+- [woob](https://woob.tech)
 - cloudscraper
 - dateutil
 - termcolor
@@ -36,4 +36,21 @@ Password:
 ::: Booking for Roger Philibert...
 ::: Booking status: True
 ::: Booked!
+```
+
+You can also look for slot in multiple cities at the same time. Cities must be separated by commas.
+
+Run:
+
+```
+./doctoshotgun.py <city1>,<city2>,<city3> <email> [password]
+```
+
+## Development
+
+### Running tests
+
+```
+ $ pip install -r requirements-dev.txt
+ $ pytest test_browser.py
 ```

@@ -17,7 +17,7 @@ from dateutil.relativedelta import relativedelta
 import cloudscraper
 from termcolor import colored
 
-from woob.browser.exceptions import ClientError
+from woob.browser.exceptions import ClientError, ServerError
 from woob.browser.browsers import LoginBrowser
 from woob.browser.url import URL
 from woob.browser.pages import JsonPage, HTMLPage
@@ -183,15 +183,25 @@ class Doctolib(LoginBrowser):
         return True
 
     def find_centers(self, where):
-        self.centers.go(where=where, params={'ref_visit_motive_ids[]': ['6970', '7005']})
+        for city in where:
+            try:
+                self.centers.go(where=city, params={'ref_visit_motive_ids[]': ['6970', '7005']})
+            except ServerError as e:
+                if e.response.status_code in [503]:
+                    return None
+                else:
+                    raise e
 
-        for i in self.page.iter_centers_ids():
-            page = self.center_result.open(id=i, params={'limit': '4', 'ref_visit_motive_ids[]': ['6970', '7005'], 'speciality_id': '5494', 'search_result_format': 'json'})
-            # XXX return all pages even if there are no indicated availabilities.
-            #for a in page.doc['availabilities']:
-            #    if len(a['slots']) > 0:
-            #        yield page.doc['search_result']
-            yield page.doc['search_result']
+            for i in self.page.iter_centers_ids():
+                page = self.center_result.open(id=i, params={'limit': '4', 'ref_visit_motive_ids[]': ['6970', '7005'], 'speciality_id': '5494', 'search_result_format': 'json'})
+                # XXX return all pages even if there are no indicated availabilities.
+                #for a in page.doc['availabilities']:
+                #    if len(a['slots']) > 0:
+                #        yield page.doc['search_result']
+                try:
+                    yield page.doc['search_result']
+                except KeyError:
+                    pass
 
     def get_patients(self):
         self.master_patient.go()
@@ -382,9 +392,12 @@ class Application:
         else:
             docto.patient = patients[0]
 
+        cities = (args.city).split(',')
+        for i, city in enumerate(cities):
+            cities[i] = docto.normalize(city)
         while True:
-            for center in docto.find_centers(docto.normalize(args.city)):
-                if docto.normalize(center['city']) != docto.normalize(args.city):
+            for center in docto.find_centers(cities):
+                if docto.normalize(center['city']) not in cities:
                     continue
 
                 log('Trying to find a slot in %s', center['name_with_title'])
