@@ -16,7 +16,7 @@ from dateutil.relativedelta import relativedelta
 import cloudscraper
 from termcolor import colored
 
-from woob.browser.exceptions import ClientError
+from woob.browser.exceptions import ClientError, ServerError
 from woob.browser.browsers import LoginBrowser
 from woob.browser.url import URL
 from woob.browser.pages import JsonPage, HTMLPage
@@ -182,15 +182,25 @@ class Doctolib(LoginBrowser):
         return True
 
     def find_centers(self, where):
-        self.centers.go(where=where, params={'ref_visit_motive_ids[]': ['6970', '7005']})
+        for city in where:
+            try:
+                self.centers.go(where=city, params={'ref_visit_motive_ids[]': ['6970', '7005']})
+            except ServerError as e:
+                if e.response.status_code in [503]:
+                    return None
+                else:
+                    raise e
 
-        for i in self.page.iter_centers_ids():
-            page = self.center_result.open(id=i, params={'limit': '4', 'ref_visit_motive_ids[]': ['6970', '7005'], 'speciality_id': '5494', 'search_result_format': 'json'})
-            # XXX return all pages even if there are no indicated availabilities.
-            #for a in page.doc['availabilities']:
-            #    if len(a['slots']) > 0:
-            #        yield page.doc['search_result']
-            yield page.doc['search_result']
+            for i in self.page.iter_centers_ids():
+                page = self.center_result.open(id=i, params={'limit': '4', 'ref_visit_motive_ids[]': ['6970', '7005'], 'speciality_id': '5494', 'search_result_format': 'json'})
+                # XXX return all pages even if there are no indicated availabilities.
+                #for a in page.doc['availabilities']:
+                #    if len(a['slots']) > 0:
+                #        yield page.doc['search_result']
+                try:
+                    yield page.doc['search_result']
+                except KeyError:
+                    pass
 
     def get_patients(self):
         self.master_patient.go()
@@ -213,7 +223,10 @@ class Doctolib(LoginBrowser):
             return False
 
         for place in self.page.get_places():
-            if not check_zip or place['zipcode'].lower() == check_zip:
+            print(bool(check_zip))
+            print(place['zipcode'].lower())
+
+            if place['city'].lower() not in check_zip or place['zipcode'].lower() in check_zip[place['city'].lower()]:
                 log('Looking for slots in place %s', place['name'])
                 practice_id = place['practice_ids'][0]
                 agenda_ids = center_page.get_agenda_ids(motive_id, practice_id)
@@ -346,14 +359,6 @@ class Application:
         parser.add_argument('password', nargs='?', help='Doctolib password')
         args = parser.parse_args()
 
-        reg_zipcode = re.match('([0-9]*)-([a-z]*)', args.city)
-        if reg_zipcode :
-            check_zip = reg_zipcode[1]
-            check_city= reg_zipcode[2]  
-        else :
-            check_zip =""
-            check_city = args.city 
-
         if args.debug:
             logging.basicConfig(level=logging.DEBUG)
             responses_dirname = tempfile.mkdtemp(prefix='woob_session_')
@@ -384,11 +389,30 @@ class Application:
         else:
             docto.patient = patients[0]
 
+        input_cities = args.city.lower().split(',')
+        cities = []
+        check_zip = {}
+        for city in input_cities :
+            reg_zipcode = re.match('([0-9]*)-([a-z]*)', city)
+            if reg_zipcode :
+                cities.append(reg_zipcode[2].lower())
+                if reg_zipcode[2].lower() in check_zip:
+                    check_zip[reg_zipcode[2].lower()].append(reg_zipcode[1])
+                else:
+                    check_zip[reg_zipcode[2].lower()] = [reg_zipcode[1]]
+            else :
+                cities.append(city.lower())
+
+        #TODO : Delete
+        print(cities)
+        print(check_zip)
+        
         while True:
-            for center in docto.find_centers(args.city):
-                if center['city'].lower() != check_city:
+            for center in docto.find_centers(cities):
+                print(center)
+                if center['city'].lower() not in cities:
                     continue
-                elif check_zip and center['zipcode'].lower() != check_zip :
+                elif center['city'].lower() in check_zip and center['zipcode'].lower() not in check_zip[center['city'].lower()]:
                     continue
 
                 log('Trying to find a slot in %s', center['name_with_title'])

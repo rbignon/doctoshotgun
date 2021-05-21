@@ -6,7 +6,7 @@ tomorrow, following rules from the French Government.
 
 ## Python dependencies
 
-- woob
+- [woob](https://woob.tech)
 - cloudscraper
 - dateutil
 - termcolor
@@ -21,13 +21,16 @@ pip install -r requirements.txt
 
 Run:
 
+
 ```
-./doctoshotgun.py <city> <email> [password]
+./doctoshotgun.py <city1>,<city2>,<city3> <email> [password]
 ```
 
 ### Arguments
 
 `city`: The city name where you want to be vaccinated. To be more precise (if your city has several districts for instance), you can add the zip code before the city (for instance `75012-paris` or `69003-lyon`)
+
+You can also look for slot in multiple cities at the same time. Cities must be separated by commas.
 
 `email`: The email adress of your Doctolib account
 
@@ -47,6 +50,7 @@ Password:
 ::: Booked!
 ```
 
+
 ```
 $ ./doctoshotgun.py 75012-paris philippe.edouard@gmail.com 'ThisIsNotAGoodPassword'
 ::: Trying to find a slot in Centre de vaccination COVID  Bauchat Paris 12
@@ -57,4 +61,13 @@ $ ./doctoshotgun.py 75012-paris philippe.edouard@gmail.com 'ThisIsNotAGoodPasswo
 ::: Looking for slots in place Centre de vaccination Aubrac
 ::: No availabilities in this center
 ::: Fail, try next center...
+```
+
+## Development
+
+### Running tests
+
+```
+ $ pip install -r requirements-dev.txt
+ $ pytest test_browser.py
 ```
