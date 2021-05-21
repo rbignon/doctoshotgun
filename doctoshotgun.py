@@ -190,7 +190,10 @@ class Doctolib(LoginBrowser):
             #for a in page.doc['availabilities']:
             #    if len(a['slots']) > 0:
             #        yield page.doc['search_result']
-            yield page.doc['search_result']
+            try:
+                yield page.doc['search_result']
+            except KeyError:
+                pass
 
     def get_patients(self):
         self.master_patient.go()
