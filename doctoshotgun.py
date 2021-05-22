@@ -401,12 +401,10 @@ class Application:
             print('Default patient : [%s] %s %s' % (0, patients[0]['first_name'], patients[0]['last_name']))
             docto.patient = patients[0]
 
-        cities = (args.city).split(',')
-        for i, city in enumerate(cities):
-            cities[i] = docto.normalize(city)
+        args.city.lower().split(',')
         while True:
             for center in docto.find_centers(cities):
-                if docto.normalize(center['city']) not in cities:
+                if center['city'].lower() not in cities:
                     continue
 
                 log('Trying to find a slot in %s', center['name_with_title'])
