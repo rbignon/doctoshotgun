@@ -14,7 +14,10 @@ from dateutil.parser import parse as parse_date
 from dateutil.relativedelta import relativedelta
 
 import cloudscraper
+from requests.adapters import MaxRetryError
 from termcolor import colored
+from urllib3.exceptions import NewConnectionError
+from requests.exceptions import ConnectionError, ReadTimeout
 
 from woob.browser.exceptions import ClientError, ServerError
 from woob.browser.browsers import LoginBrowser
@@ -365,9 +368,17 @@ class Application:
             args.password = getpass.getpass()
 
         docto = Doctolib(args.username, args.password, responses_dirname=responses_dirname)
-        if not docto.do_login():
-            print('Wrong login/password')
-            return 1
+
+        login_request_received_response = False
+        while not login_request_received_response:
+            try:
+                if not docto.do_login():
+                    print('Wrong login/password')
+                    return 1
+                login_request_received_response = True
+            except (ConnectionError, NewConnectionError, MaxRetryError):
+                log('ConnectionError during login, waiting 60 seconds')
+                sleep(60)
 
         patients = docto.get_patients()
         if len(patients) == 0:
@@ -390,18 +401,23 @@ class Application:
 
         cities = args.city.lower().split(',')
         while True:
-            for center in docto.find_centers(cities):
-                if center['city'].lower() not in cities:
-                    continue
+            try:
+                for center in docto.find_centers(cities):
+                    if center['city'].lower() not in cities:
+                        continue
 
-                log('Trying to find a slot in %s', center['name_with_title'])
+                    log('Trying to find a slot in %s', center['name_with_title'])
 
-                if docto.try_to_book(center):
-                    log('Booked!')
-                    return 0
+                    if docto.try_to_book(center):
+                        log('Booked!')
+                        return 0
 
-                log('Fail, try next center...')
-                sleep(1)
+                    log('Fail, try next center...')
+                    sleep(1)
+
+            except (ConnectionError, NewConnectionError, MaxRetryError, ReadTimeout):
+                log('Error while finding an appointment, waiting 60 seconds')
+                sleep(60)
 
             sleep(5)
 
