@@ -378,8 +378,9 @@ class Application:
             return 1
 
         patients = docto.get_patients()
-        #log(args.patient)
-        
+        if len(patients) == 0:
+            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
+            return 1
         if len(patients) > 1:
             if(args.patient >= 0 and args.patient < len(patients)):
                 print('Selected patient : [%s] %s %s' % (args.patient, patients[args.patient]['first_name'], patients[args.patient]['last_name']))
