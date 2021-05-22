@@ -401,7 +401,7 @@ class Application:
             print('Default patient : [%s] %s %s' % (0, patients[0]['first_name'], patients[0]['last_name']))
             docto.patient = patients[0]
 
-        args.city.lower().split(',')
+        cities = args.city.lower().split(',')
         while True:
             for center in docto.find_centers(cities):
                 if center['city'].lower() not in cities:
