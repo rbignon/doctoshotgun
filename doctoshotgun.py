@@ -402,7 +402,7 @@ class Application:
 
         while True:
             for center in docto.find_centers(cities):
-                if args.center is not None and len(args.center) > 0:
+                if args.center:
                     if center['name_with_title'] not in args.center:
                         logging.debug("Skipping center '%s'", center['name_with_title'])
                         continue
