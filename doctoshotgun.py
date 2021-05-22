@@ -377,12 +377,15 @@ class Application:
             return 1
 
         patients = docto.get_patients()
+        if len(patients) == 0:
+            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
+            return 1
         if len(patients) > 1:
             print('Available patients are:')
             for i, patient in enumerate(patients):
                 print('* [%s] %s %s' % (i, patient['first_name'], patient['last_name']))
             while True:
-                print('You want to book a slot for whom patient?', end=' ', flush=True)
+                print('For which patient do you want to book a slot ?', end=' ', flush=True)
                 try:
                     docto.patient = patients[int(sys.stdin.readline().strip())]
                 except (ValueError, IndexError):
