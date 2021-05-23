@@ -25,13 +25,6 @@ Run:
 ./doctoshotgun.py <city> <email> [password]
 ```
 
-Parameters:
-```
---center "<center_name>" [--center "<other_center>" …]  : filter centers to only choose one from the provided list
---patient <index>                                       : select patient for which book a slot
---debug                                                 : display debug information
-```
-
 For example:
 
 ```
@@ -44,6 +37,14 @@ Password:
 ::: Booking for Roger Philibert...
 ::: Booking status: True
 ::: Booked!
+```
+
+Optional arguments:
+
+```
+--center "<center_name>" [--center "<other_center>" …]  : filter centers to only choose one from the provided list
+--patient <index>                                       : select patient for which book a slot
+--debug                                                 : display debug information
 ```
 
 ### Multiple cities
