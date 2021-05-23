@@ -25,6 +25,11 @@ Run:
 ./doctoshotgun.py <city> <email> [password]
 ```
 
+Parameters:
+```
+--center "<center_name>" [--center "<other_center>" …]  : filter centers to only choose one from the provided list. 
+```
+
 For example:
 
 ```
