@@ -384,26 +384,24 @@ class Application:
         if len(patients) == 0:
             print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
             return 1
-        if len(patients) > 1:
-            if(args.patient >= 0 and args.patient < len(patients)):
-                print('Selected patient : [%s] %s %s' % (args.patient, patients[args.patient]['first_name'], patients[args.patient]['last_name']))
-                docto.patient = patients[args.patient]
-            else:
-                print('Available patients are:')
-                for i, patient in enumerate(patients):
-                    print('* [%s] %s %s' % (i, patient['first_name'], patient['last_name']))
-                while True:
-                    print('For which patient do you want to book a slot ?', end=' ', flush=True)
-                    try:
-                        docto.patient = patients[int(sys.stdin.readline().strip())]
-                    except (ValueError, IndexError):
-                        continue
-                    else:
-                        break
+        if args.patient >= 0 and args.patient < len(patients):
+            docto.patient = patients[args.patient]
+        elif len(patients) > 1:
+            print('Available patients are:')
+            for i, patient in enumerate(patients):
+                print('* [%s] %s %s' % (i, patient['first_name'], patient['last_name']))
+            while True:
+                print('For which patient do you want to book a slot?', end=' ', flush=True)
+                try:
+                    docto.patient = patients[int(sys.stdin.readline().strip())]
+                except (ValueError, IndexError):
+                    continue
+                else:
+                    break
         else:
-            print('Default patient : [%s] %s %s' % (0, patients[0]['first_name'], patients[0]['last_name']))
             docto.patient = patients[0]
 
+        log('Looking for vaccine slots for %s %s', docto.patient['first_name'], docto.patient['last_name'])
         cities = [docto.normalize(city) for city in args.city.split(',')]
 
         while True:
