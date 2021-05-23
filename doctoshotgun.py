@@ -207,13 +207,12 @@ class Doctolib(LoginBrowser):
         self.master_patient.go()
 
         return self.page.get_patients()
-    
+
     def normalize(self, string):
         nfkd = unicodedata.normalize('NFKD', string)
         normalized = u"".join([c for c in nfkd if not unicodedata.combining(c)])
         normalized = re.sub(r'\W', '-', normalized)
         return normalized.lower()
-
 
     def try_to_book(self, center):
         self.open(center['url'])
@@ -264,6 +263,9 @@ class Doctolib(LoginBrowser):
         slot = self.page.find_best_slot()
         if not slot:
             log('First slot not found :(')
+            return False
+        if type(slot) != dict:
+            log('Error while fetching first slot.')
             return False
 
         log('Best slot found: %s', parse_date(slot['start_date']).strftime('%c'))
@@ -357,6 +359,8 @@ class Application:
     def main(self):
         parser = argparse.ArgumentParser(description="Book a vaccine slot on Doctolib")
         parser.add_argument('--debug', '-d', action='store_true', help='show debug information')
+        parser.add_argument('--patient', '-p', type=int, default=-1, help='give patient ID')
+        parser.add_argument('--center', '-c', action='append', help='filter centers')
         parser.add_argument('city', help='city where to book')
         parser.add_argument('username', help='Doctolib username')
         parser.add_argument('password', nargs='?', help='Doctolib password')
@@ -377,12 +381,17 @@ class Application:
             return 1
 
         patients = docto.get_patients()
-        if len(patients) > 1:
+        if len(patients) == 0:
+            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
+            return 1
+        if args.patient >= 0 and args.patient < len(patients):
+            docto.patient = patients[args.patient]
+        elif len(patients) > 1:
             print('Available patients are:')
             for i, patient in enumerate(patients):
                 print('* [%s] %s %s' % (i, patient['first_name'], patient['last_name']))
             while True:
-                print('You want to book a slot for whom patient?', end=' ', flush=True)
+                print('For which patient do you want to book a slot?', end=' ', flush=True)
                 try:
                     docto.patient = patients[int(sys.stdin.readline().strip())]
                 except (ValueError, IndexError):
@@ -392,13 +401,19 @@ class Application:
         else:
             docto.patient = patients[0]
 
-        cities = (args.city).split(',')
-        for i, city in enumerate(cities):
-            cities[i] = docto.normalize(city)
+        log('Looking for vaccine slots for %s %s', docto.patient['first_name'], docto.patient['last_name'])
+        cities = [docto.normalize(city) for city in args.city.split(',')]
+
         while True:
             for center in docto.find_centers(cities):
-                if docto.normalize(center['city']) not in cities:
-                    continue
+                if args.center:
+                    if center['name_with_title'] not in args.center:
+                        logging.debug("Skipping center '%s'", center['name_with_title'])
+                        continue
+                else:
+                    if docto.normalize(center['city']) not in cities:
+                        logging.debug("Skipping city '%(city)s' %(name_with_title)s", center)
+                        continue
 
                 log('Trying to find a slot in %s', center['name_with_title'])
 
