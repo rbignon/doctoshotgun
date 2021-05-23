@@ -207,13 +207,12 @@ class Doctolib(LoginBrowser):
         self.master_patient.go()
 
         return self.page.get_patients()
-    
+
     def normalize(self, string):
         nfkd = unicodedata.normalize('NFKD', string)
         normalized = u"".join([c for c in nfkd if not unicodedata.combining(c)])
         normalized = re.sub(r'\W', '-', normalized)
         return normalized.lower()
-
 
     def try_to_book(self, center):
         self.open(center['url'])
@@ -395,9 +394,8 @@ class Application:
         else:
             docto.patient = patients[0]
 
-        cities = (args.city).split(',')
-        for i, city in enumerate(cities):
-            cities[i] = docto.normalize(city)
+        cities = [docto.normalize(city) for city in args.city.split(',')]
+
         while True:
             for center in docto.find_centers(cities):
                 if docto.normalize(center['city']) not in cities:
