@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 import datetime
 import argparse
 import getpass
+import unicodedata
 
 from dateutil.parser import parse as parse_date
 from dateutil.relativedelta import relativedelta
@@ -206,6 +207,12 @@ class Doctolib(LoginBrowser):
         self.master_patient.go()
 
         return self.page.get_patients()
+    
+    def normalize(self, string):
+        nfkd = unicodedata.normalize('NFKD', string)
+        normalized = u"".join([c for c in nfkd if not unicodedata.combining(c)])
+        normalized = re.sub(r'\W', '-', normalized)
+        return normalized.lower()
 
 
     def try_to_book(self, center):
@@ -388,10 +395,12 @@ class Application:
         else:
             docto.patient = patients[0]
 
-        cities = args.city.lower().split(',')
+        cities = (args.city).split(',')
+        for i, city in enumerate(cities):
+            cities[i] = docto.normalize(city)
         while True:
             for center in docto.find_centers(cities):
-                if center['city'].lower() not in cities:
+                if docto.normalize(center['city']) not in cities:
                     continue
 
                 log('Trying to find a slot in %s', center['name_with_title'])
