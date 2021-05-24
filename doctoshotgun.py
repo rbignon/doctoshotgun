@@ -21,12 +21,15 @@ from woob.browser.exceptions import ClientError, ServerError
 from woob.browser.browsers import LoginBrowser
 from woob.browser.url import URL
 from woob.browser.pages import JsonPage, HTMLPage
+from woob.tools.log import createColoredFormatter
 
 
-def log(text, *args):
+def log(text, *args, **kwargs):
     args = (colored(arg, 'yellow') for arg in args)
+    if 'color' in kwargs:
+        text = colored(text, kwargs.pop('color'))
     text = text % tuple(args)
-    print(colored(':::', 'magenta'), text)
+    print(text, **kwargs)
 
 
 class Session(cloudscraper.CloudScraper):
@@ -224,12 +227,12 @@ class Doctolib(LoginBrowser):
         motive_id = self.page.find_motive(r'1re.*(Pfizer|Moderna)')
 
         if not motive_id:
-            log('Unable to find ARNm motive')
+            log('Unable to find mRNA motive')
             log('Motives: %s', ', '.join(self.page.get_motives()))
             return False
 
         for place in self.page.get_places():
-            log('Looking for slots in place %s', place['name'])
+            log('– %s...', place['name'], end=' ', flush=True)
             practice_id = place['practice_ids'][0]
             agenda_ids = center_page.get_agenda_ids(motive_id, practice_id)
             if len(agenda_ids) == 0:
@@ -257,18 +260,19 @@ class Doctolib(LoginBrowser):
                 date = None
 
         if len(self.page.doc['availabilities']) == 0:
-            log('No availabilities in this center')
+            log('no availabilities', color='red')
             return False
 
         slot = self.page.find_best_slot()
         if not slot:
-            log('First slot not found :(')
+            log('first slot not found :(', color='red')
             return False
         if type(slot) != dict:
-            log('Error while fetching first slot.')
+            log('error while fetching first slot.', color='red')
             return False
 
-        log('Best slot found: %s', parse_date(slot['start_date']).strftime('%c'))
+        log('found!', color='green')
+        log('  ├╴ Best slot found: %s', parse_date(slot['start_date']).strftime('%c'))
 
         appointment = {'profile_id':    profile_id,
                        'source_action': 'profile',
@@ -286,7 +290,7 @@ class Doctolib(LoginBrowser):
         self.appointment.go(data=json.dumps(data), headers=headers)
 
         if self.page.is_error():
-            log('Appointment not available anymore :( %s', self.page.get_error())
+            log('  └╴ Appointment not available anymore :( %s', self.page.get_error())
             return False
 
         self.second_shot_availabilities.go(params={'start_date': slot['steps'][1]['start_date'].split('T')[0],
@@ -299,23 +303,23 @@ class Doctolib(LoginBrowser):
 
         second_slot = self.page.find_best_slot(limit=False)
         if not second_slot:
-            log('No second shot found')
+            log('  └╴ No second shot found')
             return False
 
-        log('Second shot: %s', parse_date(second_slot['start_date']).strftime('%c'))
+        log('  ├╴ Second shot: %s', parse_date(second_slot['start_date']).strftime('%c'))
 
         data['second_slot'] = second_slot['start_date']
         self.appointment.go(data=json.dumps(data), headers=headers)
 
         if self.page.is_error():
-            log('Appointment not available anymore :( %s', self.page.get_error())
+            log('  └╴ Appointment not available anymore :( %s', self.page.get_error())
             return False
 
         a_id = self.page.doc['id']
 
         self.appointment_edit.go(id=a_id)
 
-        log('Booking for %s %s...', self.patient['first_name'], self.patient['last_name'])
+        log('  ├╴ Booking for %s %s...', self.patient['first_name'], self.patient['last_name'])
 
         self.appointment_edit.go(id=a_id, params={'master_patient_id': self.patient['id']})
 
@@ -346,16 +350,31 @@ class Doctolib(LoginBrowser):
 
         self.appointment_post.go(id=a_id, data=json.dumps(data), headers=headers, method='PUT')
 
-        if 'redirection' in self.page.doc:
-            log('Go on %s to complete', 'https://www.doctolib.fr' + self.page.doc['redirection'])
+        if 'redirection' in self.page.doc and not 'confirmed-appointment' in self.page.doc['redirection']:
+            log('  ├╴ Open %s to complete', 'https://www.doctolib.fr' + self.page.doc['redirection'])
 
         self.appointment_post.go(id=a_id)
 
-        log('Booking status: %s', self.page.doc['confirmed'])
+        log('  └╴ Booking status: %s', self.page.doc['confirmed'])
 
         return self.page.doc['confirmed']
 
 class Application:
+    @classmethod
+    def create_default_logger(cls):
+        # stderr logger
+        format = '%(asctime)s:%(levelname)s:%(name)s:' \
+                 ':%(filename)s:%(lineno)d:%(funcName)s %(message)s'
+        handler = logging.StreamHandler(sys.stderr)
+        handler.setFormatter(createColoredFormatter(sys.stderr, format))
+        return handler
+
+    def setup_loggers(self, level):
+        logging.root.handlers = []
+
+        logging.root.setLevel(level)
+        logging.root.addHandler(self.create_default_logger())
+
     def main(self):
         parser = argparse.ArgumentParser(description="Book a vaccine slot on Doctolib")
         parser.add_argument('--debug', '-d', action='store_true', help='show debug information')
@@ -367,10 +386,11 @@ class Application:
         args = parser.parse_args()
 
         if args.debug:
-            logging.basicConfig(level=logging.DEBUG)
             responses_dirname = tempfile.mkdtemp(prefix='woob_session_')
+            self.setup_loggers(logging.DEBUG)
         else:
             responses_dirname = None
+            self.setup_loggers(logging.WARNING)
 
         if not args.password:
             args.password = getpass.getpass()
@@ -401,7 +421,8 @@ class Application:
         else:
             docto.patient = patients[0]
 
-        log('Looking for vaccine slots for %s %s', docto.patient['first_name'], docto.patient['last_name'])
+        log('Starting to look for vaccine slots for %s %s...', docto.patient['first_name'], docto.patient['last_name'])
+        log('This may take a few minutes/hours, be patient!')
         cities = [docto.normalize(city) for city in args.city.split(',')]
 
         while True:
@@ -415,13 +436,14 @@ class Application:
                         logging.debug("Skipping city '%(city)s' %(name_with_title)s", center)
                         continue
 
-                log('Trying to find a slot in %s', center['name_with_title'])
+                log('')
+                log('Center %s:', center['name_with_title'])
 
                 if docto.try_to_book(center):
-                    log('Booked!')
+                    log('')
+                    log('💉 %s Congratulations.' % colored('Booked!', 'green', attrs=('bold',)))
                     return 0
 
-                log('Fail, try next center...')
                 sleep(1)
 
             sleep(5)
