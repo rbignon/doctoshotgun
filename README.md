@@ -4,6 +4,10 @@ This script lets you automatically book a vaccine slot on Doctolib for today or
 tomorrow, following rules from the French Government.
 
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/rbignon/doctoshotgun/da5f65a1e2ecc7b543376b1549c62004a454b90d/example.svg">
+</p>
+
 ## Python dependencies
 
 - [woob](https://woob.tech)
@@ -25,26 +29,13 @@ Run:
 ./doctoshotgun.py <city> <email> [password]
 ```
 
-For example:
-
-```
-$ ./doctoshotgun.py paris roger.philibert@gmail.com
-Password:
-::: Looking for vaccine slots for Roger Philibert in 1 next (days)
-::: Trying to find a slot in Centre de Vaccination Covid 19 - Ville de Paris
-::: Best slot found: Mon May 17 11:00:00 2021
-::: Second shot: Fri Jun 25 15:20:00 2021
-::: Booking for Roger Philibert...
-::: Booking status: True
-::: Booked!
-```
-
 Optional arguments:
 
 ```
 --center "<center_name>" [--center "<other_center>" …]  : filter centers to only choose one from the provided list
 --patient <index>                                       : select patient for which book a slot
 --debug                                                 : display debug information
+--time-window                                           : set how many next days the script look for slots
 ```
 
 ### Multiple cities
@@ -81,7 +72,7 @@ You can also give the patient id as argument:
 
 ```
 $ ./doctoshotgun.py paris roger.philibert@gmail.com PASSWORD -p 1
-::: Looking for vaccine slots for Luce Philibert  in 1 next (days)
+Starting to look for vaccine slots for Luce Philibert args.time_window...
 ```
 
 ### Set time window
