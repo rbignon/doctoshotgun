@@ -30,7 +30,7 @@ For example:
 ```
 $ ./doctoshotgun.py paris roger.philibert@gmail.com
 Password:
-::: Looking for vaccine slots for Roger Philibert
+::: Looking for vaccine slots for Roger Philibert in 1 next (days)
 ::: Trying to find a slot in Centre de Vaccination Covid 19 - Ville de Paris
 ::: Best slot found: Mon May 17 11:00:00 2021
 ::: Second shot: Fri Jun 25 15:20:00 2021
@@ -81,9 +81,24 @@ You can also give the patient id as argument:
 
 ```
 $ ./doctoshotgun.py paris roger.philibert@gmail.com PASSWORD -p 1
-::: Looking for vaccine slots for Luce Philibert
+::: Looking for vaccine slots for Luce Philibert  in 1 next (days)
 ```
 
+### Set time window
+
+By default, the script looks for slots between now and next day at 23:59:59. If you belong to a category of patients that is allowed to book a slot in a more distant future, you can expand the time window. For exemple, if you want to search in the next 5 days :
+
+```
+$ ./doctoshotgun.py paris roger.philibert@gmail.com -t 5
+Password:
+::: Looking for vaccine slots for Roger Philibert in 5 next (days)
+::: Trying to find a slot in Centre de Vaccination Covid 19 - Ville de Paris
+::: Best slot found: Mon May 17 11:00:00 2021
+::: Second shot: Fri Jun 25 15:20:00 2021
+::: Booking for Roger Philibert...
+::: Booking status: True
+::: Booked!
+```
 
 ## Development
 
