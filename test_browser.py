@@ -20,7 +20,7 @@ def test_find_centers_returns_503_should_continue(tmp_path):
     )
 
     # this should not raise an exception
-    for _ in docto.find_centers("Paris"):
+    for _ in docto.find_centers(["Paris"]):
         pass
 
 
@@ -40,5 +40,5 @@ def test_find_centers_returns_502_should_fail(tmp_path):
 
     # this should raise an exception
     with pytest.raises(ServerError):
-        for _ in docto.find_centers("Paris"):
+        for _ in docto.find_centers(["Paris"]):
             pass
