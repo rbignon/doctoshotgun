@@ -30,13 +30,21 @@ For example:
 ```
 $ ./doctoshotgun.py paris roger.philibert@gmail.com
 Password:
-::: Looking for vaccine slots for Roger Philibert
-::: Trying to find a slot in Centre de Vaccination Covid 19 - Ville de Paris
-::: Best slot found: Mon May 17 11:00:00 2021
-::: Second shot: Fri Jun 25 15:20:00 2021
-::: Booking for Roger Philibert...
-::: Booking status: True
-::: Booked!
+Starting to look for vaccine slots for Roger Philibert...
+This may take a few minutes/hours, be patient!
+
+Center GHU Paris Vaccination Covid-19:
+– Sainte-Anne... first slot not found :(
+– Pierre Bayle ... first slot not found :(
+
+Center Centre de Vaccination Covid 19 - Ville de Paris:
+– Centre de Vaccination - Mairie du 10e... found!
+  ├╴ Best slot found: Mon May 17 16:30:00 2021
+  ├╴ Second shot: Sat Jun 26 17:00:00 2021
+  ├╴ Booking for Roger Philibert...
+  └╴ Booking status: True
+
+💉 Booked! Congratulation.
 ```
 
 Optional arguments:
@@ -81,7 +89,7 @@ You can also give the patient id as argument:
 
 ```
 $ ./doctoshotgun.py paris roger.philibert@gmail.com PASSWORD -p 1
-::: Looking for vaccine slots for Luce Philibert
+Starting to look for vaccine slots for Luce Philibert...
 ```
 
 
