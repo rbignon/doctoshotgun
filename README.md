@@ -72,7 +72,7 @@ You can also give the patient id as argument:
 
 ```
 $ ./doctoshotgun.py paris roger.philibert@gmail.com PASSWORD -p 1
-Starting to look for vaccine slots for Luce Philibert args.time_window...
+Starting to look for vaccine slots for Luce Philibert in 1 next day(s)...
 ```
 
 ### Set time window
