@@ -21,6 +21,7 @@ from woob.browser.exceptions import ClientError, ServerError
 from woob.browser.browsers import LoginBrowser
 from woob.browser.url import URL
 from woob.browser.pages import JsonPage, HTMLPage
+from woob.tools.log import createColoredFormatter
 
 
 def log(text, *args):
@@ -356,6 +357,22 @@ class Doctolib(LoginBrowser):
         return self.page.doc['confirmed']
 
 class Application:
+    @classmethod
+    def create_default_logger(cls):
+        # stderr logger
+        format = '%(asctime)s:%(levelname)s:%(name)s:' \
+                 ':%(filename)s:%(lineno)d:%(funcName)s %(message)s'
+        handler = logging.StreamHandler(sys.stderr)
+        handler.setFormatter(createColoredFormatter(sys.stderr, format))
+        return handler
+
+    def setup_loggers(self, level):
+        logging.root.handlers = []
+
+        logging.root.setLevel(level)
+        logging.root.addHandler(self.create_default_logger())
+
+
     def main(self):
         parser = argparse.ArgumentParser(description="Book a vaccine slot on Doctolib")
         parser.add_argument('--debug', '-d', action='store_true', help='show debug information')
@@ -367,10 +384,11 @@ class Application:
         args = parser.parse_args()
 
         if args.debug:
-            logging.basicConfig(level=logging.DEBUG)
             responses_dirname = tempfile.mkdtemp(prefix='woob_session_')
+            self.setup_loggers(logging.DEBUG)
         else:
             responses_dirname = None
+            self.setup_loggers(logging.WARNING)
 
         if not args.password:
             args.password = getpass.getpass()
