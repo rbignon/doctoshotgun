@@ -14,6 +14,7 @@ tomorrow, following rules from the French Government.
 - cloudscraper
 - dateutil
 - termcolor
+- playsound
 
 ## How to use it
 
