@@ -1,3 +1,9 @@
+This fork is a merge of:
+* https://github.com/rbignon/doctoshotgun (original script)
+* https://github.com/LinqLover/doctoshotgun (updates for Berlin vaccination centers)
+* https://github.com/rbignon/doctoshotgun/pull/38 (Book for more than 1 day in advance)
+* Reduced vaccination centers to Biontech only
+
 # DOCTOSHOTGUN
 
 This script lets you automatically book a vaccine slot on Doctolib for today or
