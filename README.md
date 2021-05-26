@@ -38,6 +38,20 @@ Optional arguments:
 --debug                                                 : display debug information
 ```
 
+### With Docker
+
+Build the image:
+
+```
+docker build . -t doctoshotgun
+```
+
+Run the container:
+
+```
+docker run doctoshotgun <city> <email> [password]
+```
+
 ### Multiple cities
 
 You can also look for slot in multiple cities at the same time. Cities must be separated by commas:
