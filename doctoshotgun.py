@@ -218,7 +218,7 @@ class Doctolib(LoginBrowser):
         normalized = re.sub(r'\W', '-', normalized)
         return normalized.lower()
 
-    def try_to_book(self, center):
+    def try_to_book(self, center, notification):
         self.open(center['url'])
         p = urlparse(center['url'])
         center_id = p.path.split('/')[-1]
@@ -240,12 +240,12 @@ class Doctolib(LoginBrowser):
                 # do not filter to give a chance
                 agenda_ids = center_page.get_agenda_ids(motive_id)
 
-            if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids):
+            if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, notification):
                 return True
 
         return False
 
-    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids):
+    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, notification):
         date = datetime.date.today().strftime('%Y-%m-%d')
         while date is not None:
             self.availabilities.go(params={'start_date': date,
@@ -294,8 +294,6 @@ class Doctolib(LoginBrowser):
             log('  └╴ Appointment not available anymore :( %s', self.page.get_error())
             return False
 
-        playsound('ding.mp3')
-
         self.second_shot_availabilities.go(params={'start_date': slot['steps'][1]['start_date'].split('T')[0],
                                                    'visit_motive_ids': motive_id,
                                                    'agenda_ids': '-'.join(agenda_ids),
@@ -323,6 +321,9 @@ class Doctolib(LoginBrowser):
         self.appointment_edit.go(id=a_id)
 
         log('  ├╴ Booking for %s %s...', self.patient['first_name'], self.patient['last_name'])
+
+        if notification:
+            playsound('ding.mp3')
 
         self.appointment_edit.go(id=a_id, params={'master_patient_id': self.patient['id']})
 
@@ -383,6 +384,7 @@ class Application:
         parser.add_argument('--debug', '-d', action='store_true', help='show debug information')
         parser.add_argument('--patient', '-p', type=int, default=-1, help='give patient ID')
         parser.add_argument('--center', '-c', action='append', help='filter centers')
+        parser.add_argument('--notification', '-n', action='store_true', help='play sound when slots found')
         parser.add_argument('city', help='city where to book')
         parser.add_argument('username', help='Doctolib username')
         parser.add_argument('password', nargs='?', help='Doctolib password')
@@ -397,6 +399,9 @@ class Application:
 
         if not args.password:
             args.password = getpass.getpass()
+
+        if not args.notification:
+            args.notifcation = False
 
         docto = Doctolib(args.username, args.password, responses_dirname=responses_dirname)
         if not docto.do_login():
@@ -442,7 +447,7 @@ class Application:
                 log('')
                 log('Center %s:', center['name_with_title'])
 
-                if docto.try_to_book(center):
+                if docto.try_to_book(center, args.notification):
                     log('')
                     log('💉 %s Congratulations.' % colored('Booked!', 'green', attrs=('bold',)))
                     return 0
