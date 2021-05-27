@@ -189,7 +189,6 @@ class Doctolib(LoginBrowser):
         motives = ['6970', '7005']
         if limitToPfizer:
             motives = ['6970']
-            log("Pfizer demande")
         for city in where:
             try:
                 self.centers.go(where=city, params={'ref_visit_motive_ids[]': motives})
@@ -425,8 +424,12 @@ class Application:
                     break
         else:
             docto.patient = patients[0]
+        
+        vaccineList = ""
+        if (args.pfizer):
+            vaccineList = "(Pfizer only) "
 
-        log('Starting to look for vaccine slots for %s %s...', docto.patient['first_name'], docto.patient['last_name'])
+        log('Starting to look for vaccine %sslots for %s %s...', vaccineList, docto.patient['first_name'], docto.patient['last_name'])
         log('This may take a few minutes/hours, be patient!')
         cities = [docto.normalize(city) for city in args.city.split(',')]
 

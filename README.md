@@ -74,6 +74,13 @@ $ ./doctoshotgun.py paris roger.philibert@gmail.com PASSWORD -p 1
 Starting to look for vaccine slots for Luce Philibert...
 ```
 
+### Filter by vaccine
+The Pfizer vaccine is the only vaccine allowed in France for people between 16 and 18. For this case, you can use the -z option.
+
+```
+$ ./doctoshotgun.py paris roger.philibert@gmail.com PASSWORD -z
+Starting to look for vaccine slots for Luce Philibert...
+```
 
 ## Development
 
