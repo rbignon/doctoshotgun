@@ -23,7 +23,11 @@ from woob.browser.url import URL
 from woob.browser.pages import JsonPage, HTMLPage
 from woob.tools.log import createColoredFormatter
 
-from playsound import playsound
+try:
+    from playsound import playsound
+except ImportError:
+    def playsound(*args):
+        pass
 
 def log(text, *args, **kwargs):
     args = (colored(arg, 'yellow') for arg in args)
