@@ -35,7 +35,7 @@ Optional arguments:
 --center "<center_name>" [--center "<other_center>" …]  : filter centers to only choose one from the provided list
 --patient <index>                                       : select patient for which book a slot
 --debug                                                 : display debug information
---time-window                                           : set how many next days the script look for slots
+--time-window <days>                                    : set how many next days the script look for slots
 ```
 
 ### Multiple cities
