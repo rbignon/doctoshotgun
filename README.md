@@ -81,14 +81,9 @@ By default, the script looks for slots between now and next day at 23:59:59. If 
 
 ```
 $ ./doctoshotgun.py paris roger.philibert@gmail.com -t 5
-Password:
-::: Looking for vaccine slots for Roger Philibert in 5 next (days)
-::: Trying to find a slot in Centre de Vaccination Covid 19 - Ville de Paris
-::: Best slot found: Mon May 17 11:00:00 2021
-::: Second shot: Fri Jun 25 15:20:00 2021
-::: Booking for Roger Philibert...
-::: Booking status: True
-::: Booked!
+Password: 
+Starting to look for vaccine slots for Clément VERMOT-DESROCHES in 5 next day(s)...
+This may take a few minutes/hours, be patient!
 ```
 
 ## Development
