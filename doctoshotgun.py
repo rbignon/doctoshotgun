@@ -28,7 +28,7 @@ try:
     def playsound(*args):
         try:
             return _playsound(*args)
-        except PlaysoundException:
+        except (PlaysoundException,ModuleNotFoundError):
             pass # do not crash if, for one reason or another, something wrong happens
 except ImportError:
     def playsound(*args):
