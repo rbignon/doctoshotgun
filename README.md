@@ -79,7 +79,7 @@ The Pfizer vaccine is the only vaccine allowed in France for people between 16 a
 
 ```
 $ ./doctoshotgun.py paris roger.philibert@gmail.com PASSWORD -z
-Starting to look for vaccine slots for Luce Philibert...
+Starting to look for vaccine (Pfizer only) slots for Luce Philibert...
 ```
 
 ## Development
