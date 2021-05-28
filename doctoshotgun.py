@@ -108,7 +108,7 @@ class CenterBookingPage(JsonPage):
 class AvailabilitiesPage(JsonPage):
     def find_best_slot(self, limit=True):
         for a in self.doc['availabilities']:
-            if limit and parse_date(a['date']).date() > datetime.date.today() + relativedelta(days=1):
+            if limit and parse_date(a['date']).date() > datetime.date.today() + relativedelta(days=2):
                 continue
 
             if len(a['slots']) == 0:
@@ -255,7 +255,12 @@ class Doctolib(LoginBrowser):
         return False
 
     def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids):
-        date = datetime.date.today().strftime('%Y-%m-%d')
+        today = datetime.date.today()
+        date31 = datetime.datetime.fromisoformat("2021-05-31").date()
+        if datetime.date.today() < date31:
+            date = date31.strftime('%Y-%m-%d')
+        else:
+            date = today.strftime('%Y-%m-%d')
         while date is not None:
             self.availabilities.go(params={'start_date': date,
                                            'visit_motive_ids': motive_id,
@@ -273,7 +278,7 @@ class Doctolib(LoginBrowser):
             log('no availabilities', color='red')
             return False
 
-        slot = self.page.find_best_slot()
+        slot = self.page.find_best_slot(limit=False)
         if not slot:
             log('first slot not found :(', color='red')
             return False
