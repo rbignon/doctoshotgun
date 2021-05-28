@@ -14,6 +14,7 @@ tomorrow, following rules from the French Government.
 - cloudscraper
 - dateutil
 - termcolor
+- playsound
 
 ## How to use it
 
@@ -36,6 +37,20 @@ Optional arguments:
 --patient <index>                                       : select patient for which book a slot
 --debug                                                 : display debug information
 --time-window <days>                                    : set how many next days the script look for slots
+```
+
+### With Docker
+
+Build the image:
+
+```
+docker build . -t doctoshotgun
+```
+
+Run the container:
+
+```
+docker run doctoshotgun <city> <email> [password]
 ```
 
 ### Multiple cities

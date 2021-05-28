@@ -23,6 +23,16 @@ from woob.browser.url import URL
 from woob.browser.pages import JsonPage, HTMLPage
 from woob.tools.log import createColoredFormatter
 
+try:
+    from playsound import playsound as _playsound, PlaysoundException
+    def playsound(*args):
+        try:
+            return _playsound(*args)
+        except (PlaysoundException,ModuleNotFoundError):
+            pass # do not crash if, for one reason or another, something wrong happens
+except ImportError:
+    def playsound(*args):
+        pass
 
 def log(text, *args, **kwargs):
     args = (colored(arg, 'yellow') for arg in args)
@@ -292,6 +302,8 @@ class Doctolib(LoginBrowser):
         if self.page.is_error():
             log('  └╴ Appointment not available anymore :( %s', self.page.get_error())
             return False
+
+        playsound('ding.mp3')
 
         self.second_shot_availabilities.go(params={'start_date': slot['steps'][1]['start_date'].split('T')[0],
                                                    'visit_motive_ids': motive_id,
