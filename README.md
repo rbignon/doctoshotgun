@@ -14,6 +14,7 @@ tomorrow, following rules from the French Government.
 - cloudscraper
 - dateutil
 - termcolor
+- playsound
 
 ## How to use it
 
@@ -35,6 +36,20 @@ Optional arguments:
 --center "<center_name>" [--center "<other_center>" …]  : filter centers to only choose one from the provided list
 --patient <index>                                       : select patient for which book a slot
 --debug                                                 : display debug information
+```
+
+### With Docker
+
+Build the image:
+
+```
+docker build . -t doctoshotgun
+```
+
+Run the container:
+
+```
+docker run doctoshotgun <city> <email> [password]
 ```
 
 ### Multiple cities
