@@ -17,7 +17,7 @@ from dateutil.relativedelta import relativedelta
 import cloudscraper
 from termcolor import colored
 
-from woob.browser.exceptions import ClientError, ServerError
+from woob.browser.exceptions import ClientError, ServerError, HTTPNotFound
 from woob.browser.browsers import LoginBrowser
 from woob.browser.url import URL
 from woob.browser.pages import JsonPage, HTMLPage
@@ -145,6 +145,10 @@ class MasterPatientPage(JsonPage):
         return '%s %s' % (self.doc[0]['first_name'], self.doc[0]['last_name'])
 
 
+class CityNotFound(Exception):
+    pass
+
+
 class Doctolib(LoginBrowser):
     BASEURL = 'https://www.doctolib.fr'
 
@@ -203,8 +207,10 @@ class Doctolib(LoginBrowser):
                 self.centers.go(where=city, params={'ref_visit_motive_ids[]': motives})
             except ServerError as e:
                 if e.response.status_code in [503]:
-                    return None
-                raise e
+                    return
+                raise
+            except HTTPNotFound as e:
+                raise CityNotFound(city) from e
 
             for i in self.page.iter_centers_ids():
                 page = self.center_result.open(id=i, params={'limit': '4', 'ref_visit_motive_ids[]': motives, 'speciality_id': '5494', 'search_result_format': 'json'})
@@ -458,28 +464,32 @@ class Application:
         log('This may take a few minutes/hours, be patient!')
         cities = [docto.normalize(city) for city in args.city.split(',')]
 
-        while True:
-            for center in docto.find_centers(cities, motives):
-                if args.center:
-                    if center['name_with_title'] not in args.center:
-                        logging.debug("Skipping center '%s'", center['name_with_title'])
-                        continue
-                else:
-                    if docto.normalize(center['city']) not in cities:
-                        logging.debug("Skipping city '%(city)s' %(name_with_title)s", center)
-                        continue
+        try:
+            while True:
+                for center in docto.find_centers(cities, motives):
+                    if args.center:
+                        if center['name_with_title'] not in args.center:
+                            logging.debug("Skipping center '%s'", center['name_with_title'])
+                            continue
+                    else:
+                        if docto.normalize(center['city']) not in cities:
+                            logging.debug("Skipping city '%(city)s' %(name_with_title)s", center)
+                            continue
 
-                log('')
-                log('Center %s:', center['name_with_title'])
-
-                if docto.try_to_book(center, args.time_window):
                     log('')
-                    log('💉 %s Congratulations.' % colored('Booked!', 'green', attrs=('bold',)))
-                    return 0
+                    log('Center %s:', center['name_with_title'])
 
-                sleep(1)
+                    if docto.try_to_book(center, args.time_window):
+                        log('')
+                        log('💉 %s Congratulations.' % colored('Booked!', 'green', attrs=('bold',)))
+                        return 0
 
-            sleep(5)
+                    sleep(1)
+
+                sleep(5)
+        except CityNotFound as e:
+            print('\n%s: City %s not found. For now Doctoshotgun works only in France.' % (colored('Error', 'red'), colored(e, 'yellow')))
+            return 1
 
         return 0
 
