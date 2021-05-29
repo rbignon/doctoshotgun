@@ -195,10 +195,13 @@ class Doctolib(LoginBrowser):
 
         return True
 
-    def find_centers(self, where):
+    def find_centers(self, where, limitToPfizer=False):
+        motives = ['6970', '7005']
+        if limitToPfizer:
+            motives = ['6970']
         for city in where:
             try:
-                self.centers.go(where=city, params={'ref_visit_motive_ids[]': ['6970', '7005']})
+                self.centers.go(where=city, params={'ref_visit_motive_ids[]': motives})
             except ServerError as e:
                 if e.response.status_code in [503]:
                     return None
@@ -206,7 +209,7 @@ class Doctolib(LoginBrowser):
                     raise e
 
             for i in self.page.iter_centers_ids():
-                page = self.center_result.open(id=i, params={'limit': '4', 'ref_visit_motive_ids[]': ['6970', '7005'], 'speciality_id': '5494', 'search_result_format': 'json'})
+                page = self.center_result.open(id=i, params={'limit': '4', 'ref_visit_motive_ids[]': motives, 'speciality_id': '5494', 'search_result_format': 'json'})
                 # XXX return all pages even if there are no indicated availabilities.
                 #for a in page.doc['availabilities']:
                 #    if len(a['slots']) > 0:
@@ -390,6 +393,7 @@ class Application:
     def main(self):
         parser = argparse.ArgumentParser(description="Book a vaccine slot on Doctolib")
         parser.add_argument('--debug', '-d', action='store_true', help='show debug information')
+        parser.add_argument('--pfizer', '-z', action='store_true', help='select only pfizer vaccine')
         parser.add_argument('--patient', '-p', type=int, default=-1, help='give patient ID')
         parser.add_argument('--center', '-c', action='append', help='filter centers')
         parser.add_argument('city', help='city where to book')
@@ -432,13 +436,17 @@ class Application:
                     break
         else:
             docto.patient = patients[0]
+        
+        vaccineList = ""
+        if (args.pfizer):
+            vaccineList = "(Pfizer only) "
 
-        log('Starting to look for vaccine slots for %s %s...', docto.patient['first_name'], docto.patient['last_name'])
+        log('Starting to look for vaccine %sslots for %s %s...', vaccineList, docto.patient['first_name'], docto.patient['last_name'])
         log('This may take a few minutes/hours, be patient!')
         cities = [docto.normalize(city) for city in args.city.split(',')]
 
         while True:
-            for center in docto.find_centers(cities):
+            for center in docto.find_centers(cities, args.pfizer):
                 if args.center:
                     if center['name_with_title'] not in args.center:
                         logging.debug("Skipping center '%s'", center['name_with_title'])
