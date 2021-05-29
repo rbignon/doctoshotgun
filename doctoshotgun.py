@@ -23,6 +23,7 @@ from woob.browser.url import URL
 from woob.browser.pages import JsonPage, HTMLPage
 from woob.tools.log import createColoredFormatter
 
+
 try:
     from playsound import playsound as _playsound, PlaysoundException
     def playsound(*args):
@@ -33,6 +34,7 @@ try:
 except ImportError:
     def playsound(*args):
         pass
+
 
 def log(text, *args, **kwargs):
     args = (colored(arg, 'yellow') for arg in args)
@@ -202,8 +204,7 @@ class Doctolib(LoginBrowser):
             except ServerError as e:
                 if e.response.status_code in [503]:
                     return None
-                else:
-                    raise e
+                raise e
 
             for i in self.page.iter_centers_ids():
                 page = self.center_result.open(id=i, params={'limit': '4', 'ref_visit_motive_ids[]': motives, 'speciality_id': '5494', 'search_result_format': 'json'})
@@ -221,7 +222,8 @@ class Doctolib(LoginBrowser):
 
         return self.page.get_patients()
 
-    def normalize(self, string):
+    @classmethod
+    def normalize(cls, string):
         nfkd = unicodedata.normalize('NFKD', string)
         normalized = u"".join([c for c in nfkd if not unicodedata.combining(c)])
         normalized = re.sub(r'\W', '-', normalized)
@@ -277,7 +279,8 @@ class Doctolib(LoginBrowser):
         if not slot:
             log('first slot not found :(', color='red')
             return False
-        if type(slot) != dict:
+
+        if not isinstance(slot, dict):
             log('error while fetching first slot.', color='red')
             return False
 
