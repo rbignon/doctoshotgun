@@ -195,10 +195,10 @@ class Doctolib(LoginBrowser):
 
         return True
 
-    def find_centers(self, where):
+    def find_centers(self, where, motives=('6970', '7005')):
         for city in where:
             try:
-                self.centers.go(where=city, params={'ref_visit_motive_ids[]': ['6970', '7005']})
+                self.centers.go(where=city, params={'ref_visit_motive_ids[]': motives})
             except ServerError as e:
                 if e.response.status_code in [503]:
                     return None
@@ -206,7 +206,7 @@ class Doctolib(LoginBrowser):
                     raise e
 
             for i in self.page.iter_centers_ids():
-                page = self.center_result.open(id=i, params={'limit': '4', 'ref_visit_motive_ids[]': ['6970', '7005'], 'speciality_id': '5494', 'search_result_format': 'json'})
+                page = self.center_result.open(id=i, params={'limit': '4', 'ref_visit_motive_ids[]': motives, 'speciality_id': '5494', 'search_result_format': 'json'})
                 # XXX return all pages even if there are no indicated availabilities.
                 #for a in page.doc['availabilities']:
                 #    if len(a['slots']) > 0:
@@ -372,6 +372,10 @@ class Doctolib(LoginBrowser):
         return self.page.doc['confirmed']
 
 class Application:
+    vaccine_motives = {'6970': 'Pfizer',
+                       '7005': 'Moderna',
+                      }
+
     @classmethod
     def create_default_logger(cls):
         # stderr logger
@@ -390,6 +394,8 @@ class Application:
     def main(self):
         parser = argparse.ArgumentParser(description="Book a vaccine slot on Doctolib")
         parser.add_argument('--debug', '-d', action='store_true', help='show debug information')
+        parser.add_argument('--pfizer', '-z', action='store_true', help='select only Pfizer vaccine')
+        parser.add_argument('--moderna', '-m', action='store_true', help='select only Moderna vaccine')
         parser.add_argument('--patient', '-p', type=int, default=-1, help='give patient ID')
         parser.add_argument('--time-window', '-t', type=int, default=1, help='set how many next days the script look for slots (default = 1)')
         parser.add_argument('--center', '-c', action='append', help='filter centers')
@@ -434,12 +440,23 @@ class Application:
         else:
             docto.patient = patients[0]
 
+        motives = []
+        if not args.pfizer and not args.moderna:
+            motives = ['6970', '7005']
+        if args.pfizer:
+            motives.append('6970')
+        if args.moderna:
+            motives.append('7005')
+
+        vaccine_list = [self.vaccine_motives[motive] for motive in motives]
+
         log('Starting to look for vaccine slots for %s %s in %s next day(s)...', docto.patient['first_name'], docto.patient['last_name'], args.time_window)
+        log('Vaccines: %s' % ', '.join(vaccine_list))
         log('This may take a few minutes/hours, be patient!')
         cities = [docto.normalize(city) for city in args.city.split(',')]
 
         while True:
-            for center in docto.find_centers(cities):
+            for center in docto.find_centers(cities, motives):
                 if args.center:
                     if center['name_with_title'] not in args.center:
                         logging.debug("Skipping center '%s'", center['name_with_title'])

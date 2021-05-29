@@ -35,6 +35,8 @@ Optional arguments:
 ```
 --center "<center_name>" [--center "<other_center>" …]  : filter centers to only choose one from the provided list
 --patient <index>                                       : select patient for which book a slot
+--pfizer                                                : looking only for a Pfizer vaccine
+--moderna                                               : looking only for a Moderna vaccine
 --debug                                                 : display debug information
 --time-window <days>                                    : set how many next days the script look for slots
 ```
@@ -100,6 +102,19 @@ Password:
 Starting to look for vaccine slots for Clément VERMOT-DESROCHES in 5 next day(s)...
 This may take a few minutes/hours, be patient!
 ```
+
+### Filter by vaccine
+
+The Pfizer vaccine is the only vaccine allowed in France for people between 16 and 18. For this case, you can use the -z option.
+
+```
+$ ./doctoshotgun.py paris roger.philibert@gmail.com PASSWORD -z
+Starting to look for vaccine slots for Luce Philibert...
+Vaccines: Pfizer
+This may take a few minutes/hours, be patient!
+```
+
+It is also possible to filter on Moderna vaccine with the -m option.
 
 ## Development
 
