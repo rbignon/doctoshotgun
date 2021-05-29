@@ -106,9 +106,9 @@ class CenterBookingPage(JsonPage):
 
 
 class AvailabilitiesPage(JsonPage):
-    def find_best_slot(self, limit=True):
+    def find_best_slot(self, limit=True, time_window=1):
         for a in self.doc['availabilities']:
-            if limit and parse_date(a['date']).date() > datetime.date.today() + relativedelta(days=1):
+            if limit and parse_date(a['date']).date() > datetime.date.today() + relativedelta(days=time_window):
                 continue
 
             if len(a['slots']) == 0:
@@ -227,7 +227,7 @@ class Doctolib(LoginBrowser):
         normalized = re.sub(r'\W', '-', normalized)
         return normalized.lower()
 
-    def try_to_book(self, center):
+    def try_to_book(self, center, time_window=1):
         self.open(center['url'])
         p = urlparse(center['url'])
         center_id = p.path.split('/')[-1]
@@ -249,12 +249,12 @@ class Doctolib(LoginBrowser):
                 # do not filter to give a chance
                 agenda_ids = center_page.get_agenda_ids(motive_id)
 
-            if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids):
+            if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, time_window):
                 return True
 
         return False
 
-    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids):
+    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, time_window=1):
         date = datetime.date.today().strftime('%Y-%m-%d')
         while date is not None:
             self.availabilities.go(params={'start_date': date,
@@ -273,7 +273,7 @@ class Doctolib(LoginBrowser):
             log('no availabilities', color='red')
             return False
 
-        slot = self.page.find_best_slot()
+        slot = self.page.find_best_slot(time_window=time_window)
         if not slot:
             log('first slot not found :(', color='red')
             return False
@@ -397,6 +397,7 @@ class Application:
         parser.add_argument('--pfizer', '-z', action='store_true', help='select only Pfizer vaccine')
         parser.add_argument('--moderna', '-m', action='store_true', help='select only Moderna vaccine')
         parser.add_argument('--patient', '-p', type=int, default=-1, help='give patient ID')
+        parser.add_argument('--time-window', '-t', type=int, default=1, help='set how many next days the script look for slots (default = 1)')
         parser.add_argument('--center', '-c', action='append', help='filter centers')
         parser.add_argument('city', help='city where to book')
         parser.add_argument('username', help='Doctolib username')
@@ -449,7 +450,7 @@ class Application:
 
         vaccine_list = [self.vaccine_motives[motive] for motive in motives]
 
-        log('Starting to look for vaccine slots for %s %s...', docto.patient['first_name'], docto.patient['last_name'])
+        log('Starting to look for vaccine slots for %s %s in %s next day(s)...', docto.patient['first_name'], docto.patient['last_name'], args.time_window)
         log('Vaccines: %s' % ', '.join(vaccine_list))
         log('This may take a few minutes/hours, be patient!')
         cities = [docto.normalize(city) for city in args.city.split(',')]
@@ -468,7 +469,7 @@ class Application:
                 log('')
                 log('Center %s:', center['name_with_title'])
 
-                if docto.try_to_book(center):
+                if docto.try_to_book(center, args.time_window):
                     log('')
                     log('💉 %s Congratulations.' % colored('Booked!', 'green', attrs=('bold',)))
                     return 0

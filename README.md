@@ -38,6 +38,7 @@ Optional arguments:
 --pfizer                                                : looking only for a Pfizer vaccine
 --moderna                                               : looking only for a Moderna vaccine
 --debug                                                 : display debug information
+--time-window <days>                                    : set how many next days the script look for slots
 ```
 
 ### With Docker
@@ -88,7 +89,18 @@ You can also give the patient id as argument:
 
 ```
 $ ./doctoshotgun.py paris roger.philibert@gmail.com PASSWORD -p 1
-Starting to look for vaccine slots for Luce Philibert...
+Starting to look for vaccine slots for Luce Philibert in 1 next day(s)...
+```
+
+### Set time window
+
+By default, the script looks for slots between now and next day at 23:59:59. If you belong to a category of patients that is allowed to book a slot in a more distant future, you can expand the time window. For exemple, if you want to search in the next 5 days :
+
+```
+$ ./doctoshotgun.py paris roger.philibert@gmail.com -t 5
+Password: 
+Starting to look for vaccine slots for Clément VERMOT-DESROCHES in 5 next day(s)...
+This may take a few minutes/hours, be patient!
 ```
 
 ### Filter by vaccine
