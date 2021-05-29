@@ -106,9 +106,9 @@ class CenterBookingPage(JsonPage):
 
 
 class AvailabilitiesPage(JsonPage):
-    def find_best_slot(self, limit=True, time_window=1):
+    def find_best_slot(self, time_window=1):
         for a in self.doc['availabilities']:
-            if limit and parse_date(a['date']).date() > datetime.date.today() + relativedelta(days=time_window):
+            if time_window and parse_date(a['date']).date() > datetime.date.today() + relativedelta(days=time_window):
                 continue
 
             if len(a['slots']) == 0:
@@ -313,7 +313,7 @@ class Doctolib(LoginBrowser):
                                                    'practice_ids': practice_id,
                                                    'limit': 3})
 
-        second_slot = self.page.find_best_slot(limit=False)
+        second_slot = self.page.find_best_slot(time_window=None)
         if not second_slot:
             log('  └╴ No second shot found')
             return False
@@ -397,7 +397,7 @@ class Application:
         parser.add_argument('--pfizer', '-z', action='store_true', help='select only Pfizer vaccine')
         parser.add_argument('--moderna', '-m', action='store_true', help='select only Moderna vaccine')
         parser.add_argument('--patient', '-p', type=int, default=-1, help='give patient ID')
-        parser.add_argument('--time-window', '-t', type=int, default=1, help='set how many next days the script look for slots (default = 1)')
+        parser.add_argument('--time-window', '-t', type=int, default=7, help='set how many next days the script look for slots (default = 7)')
         parser.add_argument('--center', '-c', action='append', help='filter centers')
         parser.add_argument('city', help='city where to book')
         parser.add_argument('username', help='Doctolib username')
