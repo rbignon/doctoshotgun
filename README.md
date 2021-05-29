@@ -99,7 +99,7 @@ By default, the script looks for slots between now and next day at 23:59:59. If 
 ```
 $ ./doctoshotgun.py paris roger.philibert@gmail.com -t 5
 Password: 
-Starting to look for vaccine slots for Clément VERMOT-DESROCHES in 5 next day(s)...
+Starting to look for vaccine slots for Roger Philibert in 5 next day(s)...
 This may take a few minutes/hours, be patient!
 ```
 
