@@ -1,7 +1,7 @@
 # DOCTOSHOTGUN
 
-This script lets you automatically book a vaccine slot on Doctolib for today or
-tomorrow, following rules from the French Government.
+This script lets you automatically book a vaccine slot on Doctolib in France in
+the next seven days.
 
 
 <p align="center">
@@ -98,7 +98,7 @@ By default, the script looks for slots between now and next day at 23:59:59. If 
 
 ```
 $ ./doctoshotgun.py paris roger.philibert@gmail.com -t 5
-Password: 
+Password:
 Starting to look for vaccine slots for Roger Philibert in 5 next day(s)...
 This may take a few minutes/hours, be patient!
 ```
