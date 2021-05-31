@@ -33,12 +33,12 @@ Run:
 Optional arguments:
 
 ```
---center "<center_name>" [--center "<other_center>" …]  : filter centers to only choose one from the provided list
---patient <index>                                       : select patient for which book a slot
---pfizer                                                : looking only for a Pfizer vaccine
---moderna                                               : looking only for a Moderna vaccine
---debug                                                 : display debug information
---time-window <days>                                    : set how many next days the script look for slots
+--center "<name>" [--center <name> …] : filter centers to only choose one from the provided list
+-p <index>, --patient <index>         : select patient for which book a slot
+-z, --pfizer                          : looking only for a Pfizer vaccine
+-m, --moderna                         : looking only for a Moderna vaccine
+-d, --debug                           : display debug information
+-t <days>, --time-window <days>       : set how many next days the script look for slots
 ```
 
 ### With Docker
