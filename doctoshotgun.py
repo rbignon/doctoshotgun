@@ -235,7 +235,7 @@ class Doctolib(LoginBrowser):
         normalized = re.sub(r'\W', '-', normalized)
         return normalized.lower()
 
-    def try_to_book(self, center, time_window=1):
+    def try_to_book(self, center, time_window=1, date=None):
         self.open(center['url'])
         p = urlparse(center['url'])
         center_id = p.path.split('/')[-1]
@@ -257,13 +257,13 @@ class Doctolib(LoginBrowser):
                 # do not filter to give a chance
                 agenda_ids = center_page.get_agenda_ids(motive_id)
 
-            if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, time_window):
+            if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, time_window, date):
                 return True
 
         return False
 
-    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, time_window=1):
-        date = datetime.date.today().strftime('%Y-%m-%d')
+    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, time_window=1, date=None):
+        date = datetime.datetime.strptime(date, '%d/%m/%Y').strftime('%Y-%m-%d') if date else datetime.date.today().strftime('%Y-%m-%d')
         while date is not None:
             self.availabilities.go(params={'start_date': date,
                                            'visit_motive_ids': motive_id,
@@ -408,6 +408,7 @@ class Application:
         parser.add_argument('--patient', '-p', type=int, default=-1, help='give patient ID')
         parser.add_argument('--time-window', '-t', type=int, default=7, help='set how many next days the script look for slots (default = 7)')
         parser.add_argument('--center', '-c', action='append', help='filter centers')
+        parser.add_argument('--date', type=str, default=None, help='date on which you want to book the first slot (format should be DD/MM/YYYY)')
         parser.add_argument('city', help='city where to book')
         parser.add_argument('username', help='Doctolib username')
         parser.add_argument('password', nargs='?', help='Doctolib password')
@@ -479,7 +480,7 @@ class Application:
                     log('')
                     log('Center %s:', center['name_with_title'])
 
-                    if docto.try_to_book(center, args.time_window):
+                    if docto.try_to_book(center, args.time_window, args.date):
                         log('')
                         log('💉 %s Congratulations.' % colored('Booked!', 'green', attrs=('bold',)))
                         return 0
