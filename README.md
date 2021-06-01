@@ -39,7 +39,7 @@ Optional arguments:
 -m, --moderna                         : looking only for a Moderna vaccine
 -d, --debug                           : display debug information
 -t <days>, --time-window <days>       : set how many next days the script look for slots
---date <DD/MM/YYYY>                   : set a specific start date on which to start looking
+--start-date <DD/MM/YYYY>             : set a specific start date on which to start looking
 ```
 
 ### With Docker
@@ -109,7 +109,7 @@ This may take a few minutes/hours, be patient!
 By default, the script looks for slots between now and next day at 23:59:59. If you can't be vaccinated right now (e.g covid in the last 3 months or out of town) and you are looking for an appointment in a distant future, you can pass a starting date:
 
 ```
-$ ./doctoshotgun.py paris roger.philibert@gmail.com --date 17/06/2021
+$ ./doctoshotgun.py paris roger.philibert@gmail.com --start-date 17/06/2021
 Password:
 Starting to look for vaccine slots for Roger Philibert in 5 next day(s)...
 This may take a few minutes/hours, be patient!
