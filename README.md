@@ -90,7 +90,7 @@ You can also give the patient id as argument:
 
 ```
 $ ./doctoshotgun.py paris roger.philibert@gmail.com PASSWORD -p 1
-Starting to look for vaccine slots for Luce Philibert in 1 next day(s)...
+Starting to look for vaccine slots for Luce Philibert in 1 next day(s) starting today...
 ```
 
 ### Set time window
@@ -100,7 +100,7 @@ By default, the script looks for slots between now and next day at 23:59:59. If 
 ```
 $ ./doctoshotgun.py paris roger.philibert@gmail.com -t 5
 Password:
-Starting to look for vaccine slots for Roger Philibert in 5 next day(s)...
+Starting to look for vaccine slots for Roger Philibert in 5 next day(s) starting today...
 This may take a few minutes/hours, be patient!
 ```
 
@@ -111,7 +111,7 @@ By default, the script looks for slots between now and next day at 23:59:59. If 
 ```
 $ ./doctoshotgun.py paris roger.philibert@gmail.com --start-date 17/06/2021
 Password:
-Starting to look for vaccine slots for Roger Philibert in 5 next day(s)...
+Starting to look for vaccine slots for Roger Philibert in 7 next day(s) starting 17/06/2021...
 This may take a few minutes/hours, be patient!
 ```
 

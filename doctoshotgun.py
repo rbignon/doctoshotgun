@@ -460,7 +460,8 @@ class Application:
 
         vaccine_list = [self.vaccine_motives[motive] for motive in motives]
 
-        log('Starting to look for vaccine slots for %s %s in %s next day(s)...', docto.patient['first_name'], docto.patient['last_name'], args.time_window)
+        start_date_log = args.start_date if args.start_date else 'today'
+        log('Starting to look for vaccine slots for %s %s in %s next day(s) starting %s...', docto.patient['first_name'], docto.patient['last_name'], args.time_window, start_date_log)
         log('Vaccines: %s' % ', '.join(vaccine_list))
         log('This may take a few minutes/hours, be patient!')
         cities = [docto.normalize(city) for city in args.city.split(',')]
