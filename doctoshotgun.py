@@ -408,7 +408,7 @@ class Application:
         parser.add_argument('--patient', '-p', type=int, default=-1, help='give patient ID')
         parser.add_argument('--time-window', '-t', type=int, default=7, help='set how many next days the script look for slots (default = 7)')
         parser.add_argument('--center', '-c', action='append', help='filter centers')
-        parser.add_argument('--date', type=str, default=None, help='date on which you want to book the first slot (format should be DD/MM/YYYY)')
+        parser.add_argument('--start-date', type=str, default=None, help='date on which you want to book the first slot (format should be DD/MM/YYYY)')
         parser.add_argument('city', help='city where to book')
         parser.add_argument('username', help='Doctolib username')
         parser.add_argument('password', nargs='?', help='Doctolib password')
@@ -480,7 +480,7 @@ class Application:
                     log('')
                     log('Center %s:', center['name_with_title'])
 
-                    if docto.try_to_book(center, args.time_window, args.date):
+                    if docto.try_to_book(center, args.time_window, args.start_date):
                         log('')
                         log('💉 %s Congratulations.' % colored('Booked!', 'green', attrs=('bold',)))
                         return 0
