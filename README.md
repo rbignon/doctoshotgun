@@ -40,6 +40,7 @@ Optional arguments:
 -d, --debug                           : display debug information
 -t <days>, --time-window <days>       : set how many next days the script look for slots
 --start-date <DD/MM/YYYY>             : set a specific start date on which to start looking
+--dry-run                             : do not really book a slot
 ```
 
 ### With Docker
