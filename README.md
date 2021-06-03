@@ -1,7 +1,7 @@
 # DOCTOSHOTGUN
 
-This script lets you automatically book a vaccine slot on Doctolib for today or
-tomorrow, following rules from the French Government.
+This script lets you automatically book a vaccine slot on Doctolib in France in
+the next seven days.
 
 
 <p align="center">
@@ -33,9 +33,14 @@ Run:
 Optional arguments:
 
 ```
---center "<center_name>" [--center "<other_center>" …]  : filter centers to only choose one from the provided list
---patient <index>                                       : select patient for which book a slot
---debug                                                 : display debug information
+--center "<name>" [--center <name> …] : filter centers to only choose one from the provided list
+-p <index>, --patient <index>         : select patient for which book a slot
+-z, --pfizer                          : looking only for a Pfizer vaccine
+-m, --moderna                         : looking only for a Moderna vaccine
+-d, --debug                           : display debug information
+-t <days>, --time-window <days>       : set how many next days the script look for slots
+--start-date <DD/MM/YYYY>             : set a specific start date on which to start looking
+--dry-run                             : do not really book a slot
 ```
 
 ### With Docker
@@ -86,9 +91,43 @@ You can also give the patient id as argument:
 
 ```
 $ ./doctoshotgun.py paris roger.philibert@gmail.com PASSWORD -p 1
-Starting to look for vaccine slots for Luce Philibert...
+Starting to look for vaccine slots for Luce Philibert in 1 next day(s) starting today...
 ```
 
+### Set time window
+
+By default, the script looks for slots between now and next day at 23:59:59. If you belong to a category of patients that is allowed to book a slot in a more distant future, you can expand the time window. For exemple, if you want to search in the next 5 days :
+
+```
+$ ./doctoshotgun.py paris roger.philibert@gmail.com -t 5
+Password:
+Starting to look for vaccine slots for Roger Philibert in 5 next day(s) starting today...
+This may take a few minutes/hours, be patient!
+```
+
+### Look on specific date
+
+By default, the script looks for slots between now and next day at 23:59:59. If you can't be vaccinated right now (e.g covid in the last 3 months or out of town) and you are looking for an appointment in a distant future, you can pass a starting date:
+
+```
+$ ./doctoshotgun.py paris roger.philibert@gmail.com --start-date 17/06/2021
+Password:
+Starting to look for vaccine slots for Roger Philibert in 7 next day(s) starting 17/06/2021...
+This may take a few minutes/hours, be patient!
+```
+
+### Filter by vaccine
+
+The Pfizer vaccine is the only vaccine allowed in France for people between 16 and 18. For this case, you can use the -z option.
+
+```
+$ ./doctoshotgun.py paris roger.philibert@gmail.com PASSWORD -z
+Starting to look for vaccine slots for Luce Philibert...
+Vaccines: Pfizer
+This may take a few minutes/hours, be patient!
+```
+
+It is also possible to filter on Moderna vaccine with the -m option.
 
 ## Development
 
