@@ -17,11 +17,12 @@ from dateutil.relativedelta import relativedelta
 import cloudscraper
 from termcolor import colored
 
-from woob.browser.exceptions import ClientError, ServerError
+from woob.browser.exceptions import ClientError, ServerError, HTTPNotFound
 from woob.browser.browsers import LoginBrowser
 from woob.browser.url import URL
 from woob.browser.pages import JsonPage, HTMLPage
 from woob.tools.log import createColoredFormatter
+
 
 try:
     from playsound import playsound as _playsound, PlaysoundException
@@ -33,6 +34,7 @@ try:
 except ImportError:
     def playsound(*args):
         pass
+
 
 def log(text, *args, **kwargs):
     args = (colored(arg, 'yellow') for arg in args)
@@ -106,9 +108,9 @@ class CenterBookingPage(JsonPage):
 
 
 class AvailabilitiesPage(JsonPage):
-    def find_best_slot(self, limit=True):
+    def find_best_slot(self, time_window=1):
         for a in self.doc['availabilities']:
-            if limit and parse_date(a['date']).date() > datetime.date.today() + relativedelta(days=2):
+            if time_window and parse_date(a['date']).date() > datetime.date.today() + relativedelta(days=time_window):
                 continue
 
             if len(a['slots']) == 0:
@@ -141,6 +143,10 @@ class MasterPatientPage(JsonPage):
 
     def get_name(self):
         return '%s %s' % (self.doc[0]['first_name'], self.doc[0]['last_name'])
+
+
+class CityNotFound(Exception):
+    pass
 
 
 class Doctolib(LoginBrowser):
@@ -195,18 +201,19 @@ class Doctolib(LoginBrowser):
 
         return True
 
-    def find_centers(self, where):
+    def find_centers(self, where, motives=('6970', '7005')):
         for city in where:
             try:
-                self.centers.go(where=city, params={'ref_visit_motive_ids[]': ['6970', '7005']})
+                self.centers.go(where=city, params={'ref_visit_motive_ids[]': motives})
             except ServerError as e:
                 if e.response.status_code in [503]:
-                    return None
-                else:
-                    raise e
+                    return
+                raise
+            except HTTPNotFound as e:
+                raise CityNotFound(city) from e
 
             for i in self.page.iter_centers_ids():
-                page = self.center_result.open(id=i, params={'limit': '4', 'ref_visit_motive_ids[]': ['6970', '7005'], 'speciality_id': '5494', 'search_result_format': 'json'})
+                page = self.center_result.open(id=i, params={'limit': '4', 'ref_visit_motive_ids[]': motives, 'speciality_id': '5494', 'search_result_format': 'json'})
                 # XXX return all pages even if there are no indicated availabilities.
                 #for a in page.doc['availabilities']:
                 #    if len(a['slots']) > 0:
@@ -221,13 +228,14 @@ class Doctolib(LoginBrowser):
 
         return self.page.get_patients()
 
-    def normalize(self, string):
+    @classmethod
+    def normalize(cls, string):
         nfkd = unicodedata.normalize('NFKD', string)
         normalized = u"".join([c for c in nfkd if not unicodedata.combining(c)])
         normalized = re.sub(r'\W', '-', normalized)
         return normalized.lower()
 
-    def try_to_book(self, center):
+    def try_to_book(self, center, time_window=1, date=None, dry_run=False):
         self.open(center['url'])
         p = urlparse(center['url'])
         center_id = p.path.split('/')[-1]
@@ -249,18 +257,13 @@ class Doctolib(LoginBrowser):
                 # do not filter to give a chance
                 agenda_ids = center_page.get_agenda_ids(motive_id)
 
-            if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids):
+            if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, time_window, date, dry_run):
                 return True
 
         return False
 
-    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids):
-        today = datetime.date.today()
-        date31 = datetime.datetime.fromisoformat("2021-05-31").date()
-        if datetime.date.today() < date31:
-            date = date31.strftime('%Y-%m-%d')
-        else:
-            date = today.strftime('%Y-%m-%d')
+    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, time_window=1, date=None, dry_run=False):
+        date = datetime.datetime.strptime(date, '%d/%m/%Y').strftime('%Y-%m-%d') if date else datetime.date.today().strftime('%Y-%m-%d')
         while date is not None:
             self.availabilities.go(params={'start_date': date,
                                            'visit_motive_ids': motive_id,
@@ -278,11 +281,12 @@ class Doctolib(LoginBrowser):
             log('no availabilities', color='red')
             return False
 
-        slot = self.page.find_best_slot(limit=False)
+        slot = self.page.find_best_slot(time_window=time_window)
         if not slot:
             log('first slot not found :(', color='red')
             return False
-        if type(slot) != dict:
+
+        if not isinstance(slot, dict):
             log('error while fetching first slot.', color='red')
             return False
 
@@ -318,7 +322,7 @@ class Doctolib(LoginBrowser):
                                                    'practice_ids': practice_id,
                                                    'limit': 3})
 
-        second_slot = self.page.find_best_slot(limit=False)
+        second_slot = self.page.find_best_slot(time_window=None)
         if not second_slot:
             log('  └╴ No second shot found')
             return False
@@ -352,6 +356,10 @@ class Doctolib(LoginBrowser):
 
             custom_fields[field['id']] = value
 
+        if dry_run:
+            log('  └╴ Booking status: %s', 'fake')
+            return True
+
         data = {'appointment': {'custom_fields_values': custom_fields,
                                 'new_patient': True,
                                 'qualification_answers': {},
@@ -377,6 +385,10 @@ class Doctolib(LoginBrowser):
         return self.page.doc['confirmed']
 
 class Application:
+    vaccine_motives = {'6970': 'Pfizer',
+                       '7005': 'Moderna',
+                      }
+
     @classmethod
     def create_default_logger(cls):
         # stderr logger
@@ -395,8 +407,13 @@ class Application:
     def main(self):
         parser = argparse.ArgumentParser(description="Book a vaccine slot on Doctolib")
         parser.add_argument('--debug', '-d', action='store_true', help='show debug information')
+        parser.add_argument('--pfizer', '-z', action='store_true', help='select only Pfizer vaccine')
+        parser.add_argument('--moderna', '-m', action='store_true', help='select only Moderna vaccine')
         parser.add_argument('--patient', '-p', type=int, default=-1, help='give patient ID')
+        parser.add_argument('--time-window', '-t', type=int, default=7, help='set how many next days the script look for slots (default = 7)')
         parser.add_argument('--center', '-c', action='append', help='filter centers')
+        parser.add_argument('--start-date', type=str, default=None, help='date on which you want to book the first slot (format should be DD/MM/YYYY)')
+        parser.add_argument('--dry-run', action='store_true', help='do not really book the slot')
         parser.add_argument('city', help='city where to book')
         parser.add_argument('username', help='Doctolib username')
         parser.add_argument('password', nargs='?', help='Doctolib password')
@@ -438,32 +455,48 @@ class Application:
         else:
             docto.patient = patients[0]
 
-        log('Starting to look for vaccine slots for %s %s...', docto.patient['first_name'], docto.patient['last_name'])
+        motives = []
+        if not args.pfizer and not args.moderna:
+            motives = ['6970', '7005']
+        if args.pfizer:
+            motives.append('6970')
+        if args.moderna:
+            motives.append('7005')
+
+        vaccine_list = [self.vaccine_motives[motive] for motive in motives]
+
+        start_date_log = args.start_date if args.start_date else 'today'
+        log('Starting to look for vaccine slots for %s %s in %s next day(s) starting %s...', docto.patient['first_name'], docto.patient['last_name'], args.time_window, start_date_log)
+        log('Vaccines: %s' % ', '.join(vaccine_list))
         log('This may take a few minutes/hours, be patient!')
         cities = [docto.normalize(city) for city in args.city.split(',')]
 
-        while True:
-            for center in docto.find_centers(cities):
-                if args.center:
-                    if center['name_with_title'] not in args.center:
-                        logging.debug("Skipping center '%s'", center['name_with_title'])
-                        continue
-                else:
-                    if docto.normalize(center['city']) not in cities:
-                        logging.debug("Skipping city '%(city)s' %(name_with_title)s", center)
-                        continue
+        try:
+            while True:
+                for center in docto.find_centers(cities, motives):
+                    if args.center:
+                        if center['name_with_title'] not in args.center:
+                            logging.debug("Skipping center '%s'", center['name_with_title'])
+                            continue
+                    else:
+                        if docto.normalize(center['city']) not in cities:
+                            logging.debug("Skipping city '%(city)s' %(name_with_title)s", center)
+                            continue
 
-                log('')
-                log('Center %s:', center['name_with_title'])
-
-                if docto.try_to_book(center):
                     log('')
-                    log('💉 %s Congratulations.' % colored('Booked!', 'green', attrs=('bold',)))
-                    return 0
+                    log('Center %s:', center['name_with_title'])
 
-                sleep(1)
+                    if docto.try_to_book(center, args.time_window, args.start_date, args.dry_run):
+                        log('')
+                        log('💉 %s Congratulations.' % colored('Booked!', 'green', attrs=('bold',)))
+                        return 0
 
-            sleep(5)
+                    sleep(1)
+
+                sleep(5)
+        except CityNotFound as e:
+            print('\n%s: City %s not found. For now Doctoshotgun works only in France.' % (colored('Error', 'red'), colored(e, 'yellow')))
+            return 1
 
         return 0
 
