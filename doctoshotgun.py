@@ -180,6 +180,7 @@ class Doctolib(LoginBrowser):
         self.session.headers['sec-fetch-mode'] = 'navigate'
         self.session.headers['sec-fetch-site'] = 'same-origin'
         self.session.headers['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'
+
         self._logged = False
         self.patient = None
 
@@ -386,8 +387,6 @@ class Doctolib(LoginBrowser):
 class Application:
     vaccine_motives = {'6970': 'Pfizer',
                        '7005': 'Moderna',
-                       '6971': 'Pfizer - Second dose',
-                       '7004': 'Moderna - Second dose',
                       }
 
     @classmethod
@@ -410,7 +409,6 @@ class Application:
         parser.add_argument('--debug', '-d', action='store_true', help='show debug information')
         parser.add_argument('--pfizer', '-z', action='store_true', help='select only Pfizer vaccine')
         parser.add_argument('--moderna', '-m', action='store_true', help='select only Moderna vaccine')
-        parser.add_argument('--second-shot', '-s', action='store_true', help='select only second shot bookings')
         parser.add_argument('--patient', '-p', type=int, default=-1, help='give patient ID')
         parser.add_argument('--time-window', '-t', type=int, default=7, help='set how many next days the script look for slots (default = 7)')
         parser.add_argument('--center', '-c', action='append', help='filter centers')
@@ -461,15 +459,9 @@ class Application:
         if not args.pfizer and not args.moderna:
             motives = ['6970', '7005']
         if args.pfizer:
-            if not args.second_shot:
-                motives.append('6970')
-            else:
-                motives.append('6971')
+            motives.append('6970')
         if args.moderna:
-            if not args.second_shot:
-                motives.append('7005')
-            else:
-                motives.append('7004')
+            motives.append('7005')
 
         vaccine_list = [self.vaccine_motives[motive] for motive in motives]
 
