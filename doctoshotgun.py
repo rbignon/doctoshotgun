@@ -387,6 +387,10 @@ class Doctolib(LoginBrowser):
 class Application:
     vaccine_motives = {'6970': 'Pfizer',
                        '7005': 'Moderna',
+                       '6971': 'Pfizer_second',
+                       '7004': 'Moderna_second',
+                       '8192': 'Pfizer_third',
+                       '8193': 'Moderna_third'
                       }
 
     @classmethod
@@ -409,6 +413,8 @@ class Application:
         parser.add_argument('--debug', '-d', action='store_true', help='show debug information')
         parser.add_argument('--pfizer', '-z', action='store_true', help='select only Pfizer vaccine')
         parser.add_argument('--moderna', '-m', action='store_true', help='select only Moderna vaccine')
+        parser.add_argument('--only-second', '-2', action='store_true', help='search only second dose')
+        parser.add_argument('--only-third', '-3', action='store_true', help='search only third dose')
         parser.add_argument('--patient', '-p', type=int, default=-1, help='give patient ID')
         parser.add_argument('--time-window', '-t', type=int, default=7, help='set how many next days the script look for slots (default = 7)')
         parser.add_argument('--center', '-c', action='append', help='filter centers')
@@ -457,11 +463,26 @@ class Application:
 
         motives = []
         if not args.pfizer and not args.moderna:
-            motives = ['6970', '7005']
+            if args.only_second:
+                motives = ['6971', '7004']
+            elif args.only_third:
+                motives = ['8192', '8193']
+            else:
+                motives = ['6970', '7005']
         if args.pfizer:
-            motives.append('6970')
+            if args.only_second:
+                motives.append('6971')
+            elif args.only_third:
+                motives.append('8192')
+            else:
+                motives.append('6970')
         if args.moderna:
-            motives.append('7005')
+            if args.only_second:
+                motives.append('7004')
+            elif args.only_third:
+                motives.append('8193')
+            else:
+                motives.append('7005')
 
         vaccine_list = [self.vaccine_motives[motive] for motive in motives]
 
