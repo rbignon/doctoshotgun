@@ -481,7 +481,7 @@ class Application:
         parser.add_argument('--start-date', type=str, default=None, help='date on which you want to book the first slot (format should be DD/MM/YYYY)')
         parser.add_argument('--dry-run', action='store_true', help='do not really book the slot')
         parser.add_argument('--city', help='city where to book', required=True)
-        parser.add_argument('--country', help='country where to book: ' + str(doctolib_map.keys()), required=True)
+        parser.add_argument('--country', help='country where to book', choices=list(doctolib_map.keys()), required=True)
         parser.add_argument('--username', help='Doctolib username', required=True)
         parser.add_argument('--password', nargs='?', help='Doctolib password')
         args = parser.parse_args()
@@ -496,12 +496,7 @@ class Application:
         if not args.password:
             args.password = getpass.getpass()
 
-        country = args.country.lower()
-        if country not in doctolib_map:
-            print(colored('Choose one of the available countries: ' + str(doctolib_map.keys()), 'red'))
-            return 1
-
-        docto = doctolib_map[country](args.username, args.password, responses_dirname=responses_dirname)
+        docto = doctolib_map[args.country](args.username, args.password, responses_dirname=responses_dirname)
         if not docto.do_login():
             return 1
 
@@ -541,7 +536,7 @@ class Application:
         start_date_log = args.start_date if args.start_date else 'today'
         log('Starting to look for vaccine slots for %s %s in %s next day(s) starting %s...', docto.patient['first_name'], docto.patient['last_name'], args.time_window, start_date_log)
         log('Vaccines: %s' % ', '.join(vaccine_list))
-        log('Country: %s ' % country)
+        log('Country: %s ' % args.country)
         log('This may take a few minutes/hours, be patient!')
         cities = [docto.normalize(city) for city in args.city.split(',')]
 

@@ -4,10 +4,6 @@ This script lets you automatically book a vaccine slot on Doctolib in France and
 the next seven days. 
 
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/rbignon/doctoshotgun/da5f65a1e2ecc7b543376b1549c62004a454b90d/example.svg">
-</p>
-
 ## Python dependencies
 
 - [woob](https://woob.tech)
@@ -27,7 +23,7 @@ pip install -r requirements.txt
 Run:
 
 ```
-./doctoshotgun.py --city <city> --country <country> --username <email> [--password <password>]
+./doctoshotgun.py --city <city> --country <{fr,de}> --username <email> [--password <password>]
 ```
 
 Further optional arguments:
@@ -55,7 +51,7 @@ docker build . -t doctoshotgun
 Run the container:
 
 ```
-docker run doctoshotgun --city <city> --country <country> --username <email> [--password <password>]
+docker run doctoshotgun --city <city> --country <{fr,de}}> --username <email> [--password <password>]
 ```
 
 ### Multiple cities
@@ -63,7 +59,7 @@ docker run doctoshotgun --city <city> --country <country> --username <email> [--
 You can also look for slot in multiple cities at the same time. Cities must be separated by commas:
 
 ```
-$ ./doctoshotgun.py --city <city1>,<city2>,<city3> --country <country> --username <email> [--password <password>]
+$ ./doctoshotgun.py --city <city1>,<city2>,<city3> --country <{fr,de}> --username <email> [--password <password>]
 ```
 
 ### Filter on centers
