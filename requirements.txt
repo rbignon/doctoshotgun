@@ -2,4 +2,3 @@ woob
 cloudscraper
 python-dateutil
 termcolor
-playsound

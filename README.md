@@ -14,7 +14,7 @@ the next seven days.
 - cloudscraper
 - dateutil
 - termcolor
-- playsound
+- playsound (optional)
 
 ## How to use it
 
