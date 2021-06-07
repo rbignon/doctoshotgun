@@ -480,10 +480,10 @@ class Application:
         parser.add_argument('--center', '-c', action='append', help='filter centers')
         parser.add_argument('--start-date', type=str, default=None, help='date on which you want to book the first slot (format should be DD/MM/YYYY)')
         parser.add_argument('--dry-run', action='store_true', help='do not really book the slot')
-        parser.add_argument('--city', help='city where to book', required=True)
-        parser.add_argument('--country', help='country where to book', choices=list(doctolib_map.keys()), required=True)
-        parser.add_argument('--username', help='Doctolib username', required=True)
-        parser.add_argument('--password', nargs='?', help='Doctolib password')
+        parser.add_argument('country', help='country where to book', choices=list(doctolib_map.keys()))
+        parser.add_argument('city', help='city where to book')
+        parser.add_argument('username', help='Doctolib username')
+        parser.add_argument('password', nargs='?', help='Doctolib password')
         args = parser.parse_args()
 
         if args.debug:
