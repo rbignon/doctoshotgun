@@ -2,3 +2,5 @@ woob
 cloudscraper
 python-dateutil
 termcolor
+vext
+vext.gi

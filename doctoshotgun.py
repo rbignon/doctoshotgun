@@ -292,12 +292,12 @@ class Doctolib(LoginBrowser):
                     # do not filter to give a chance
                     agenda_ids = center_page.get_agenda_ids(motive_id)
 
-                if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, time_window, date, dry_run):
+                if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, vac_name.lower(), time_window, date, dry_run):
                     return True
 
         return False
 
-    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, time_window=1, date=None, dry_run=False):
+    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, vac_name, time_window=1, date=None, dry_run=False):
         date = datetime.datetime.strptime(date, '%d/%m/%Y').strftime('%Y-%m-%d') if date else datetime.date.today().strftime('%Y-%m-%d')
         while date is not None:
             self.availabilities.go(
@@ -322,16 +322,27 @@ class Doctolib(LoginBrowser):
             log('first slot not found :(', color='red')
             return False
 
-        if not isinstance(slot, dict):
+        # depending on the country, the slot is returned in a different format. Go figure...
+        if isinstance(slot, dict) and 'start_date' in slot:
+            slot_date_first = slot['start_date']
+            if vac_name != "janssen":
+                slot_date_second = slot['steps'][1]['start_date']
+        elif isinstance(slot, str):
+            slot_date_first = slot # should be for Janssen only, otherwise it is a list
+        elif isinstance(slot, list):
+            slot_date_first = slot[0]
+            if vac_name != "janssen": # maybe redundant?
+                slot_date_second = slot[1]
+        else:
             log('error while fetching first slot.', color='red')
             return False
 
         log('found!', color='green')
-        log('  ├╴ Best slot found: %s', parse_date(slot['start_date']).strftime('%c'))
+        log('  ├╴ Best slot found: %s', parse_date(slot_date_first).strftime('%c'))
 
         appointment = {'profile_id':    profile_id,
                        'source_action': 'profile',
-                       'start_date':    slot['start_date'],
+                       'start_date':    slot_date_first,
                        'visit_motive_ids': str(motive_id),
                       }
 
@@ -350,28 +361,42 @@ class Doctolib(LoginBrowser):
 
         playsound('ding.mp3')
 
-        self.second_shot_availabilities.go(
-            params={'start_date': slot['steps'][1]['start_date'].split('T')[0],
-                    'visit_motive_ids': motive_id,
-                    'agenda_ids': '-'.join(agenda_ids),
-                    'first_slot': slot['start_date'],
-                    'insurance_sector': 'public',
-                    'practice_ids': practice_id,
-                    'limit': 3})
+        if vac_name != "janssen": # janssen has only one shot
+            self.second_shot_availabilities.go(
+                params={'start_date': slot_date_second.split('T')[0],
+                        'visit_motive_ids': motive_id,
+                        'agenda_ids': '-'.join(agenda_ids),
+                        'first_slot': slot_date_first,
+                        'insurance_sector': 'public',
+                        'practice_ids': practice_id,
+                        'limit': 3})
 
-        second_slot = self.page.find_best_slot(time_window=None)
-        if not second_slot:
-            log('  └╴ No second shot found')
-            return False
+            second_slot = self.page.find_best_slot(time_window=None)
+            if not second_slot:
+                log('  └╴ No second shot found')
+                return False
 
-        log('  ├╴ Second shot: %s', parse_date(second_slot['start_date']).strftime('%c'))
+            # in theory we could use the stored slot_date_second result from above,
+            # but we refresh with the new results to play safe
+            if isinstance(second_slot, dict) and 'start_date' in second_slot:
+                slot_date_second = second_slot['start_date']
+            elif isinstance(slot, str):
+                slot_date_second = second_slot
+            # TODO: is this else needed?
+            #elif isinstance(slot, list):
+            #    slot_date_second = second_slot[1]
+            else:
+                log('error while fetching second slot.', color='red')
+                return False
 
-        data['second_slot'] = second_slot['start_date']
-        self.appointment.go(data=json.dumps(data), headers=headers)
+            log('  ├╴ Second shot: %s', parse_date(slot_date_second).strftime('%c'))
 
-        if self.page.is_error():
-            log('  └╴ Appointment not available anymore :( %s', self.page.get_error())
-            return False
+            data['second_slot'] = slot_date_second
+            self.appointment.go(data=json.dumps(data), headers=headers)
+
+            if self.page.is_error():
+                log('  └╴ Appointment not available anymore :( %s', self.page.get_error())
+                return False
 
         a_id = self.page.doc['id']
 
