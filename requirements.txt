@@ -3,3 +3,5 @@ cloudscraper
 python-dateutil
 termcolor
 playsound
+vext
+vext.gi
