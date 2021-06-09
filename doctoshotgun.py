@@ -58,8 +58,16 @@ class Session(cloudscraper.CloudScraper):
 
 
 class LoginPage(JsonPage):
-    pass
+    def redirect(self):
+        return self.doc['redirection']
 
+class SendAuthCodePage(JsonPage):
+    def build_doc(self, content):
+        return "" # Do not choke on empty response from server
+
+class ChallengePage(JsonPage):
+    def build_doc(self, content):
+        return "" # Do not choke on empty response from server
 
 class CentersPage(HTMLPage):
     def iter_centers_ids(self):
@@ -153,6 +161,8 @@ class Doctolib(LoginBrowser):
     BASEURL = 'https://www.doctolib.fr'
 
     login = URL('/login.json', LoginPage)
+    send_auth_code = URL('/api/accounts/send_auth_code', SendAuthCodePage)
+    challenge = URL('/login/challenge', ChallengePage)
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
@@ -197,7 +207,18 @@ class Doctolib(LoginBrowser):
                                 'remember': True,
                                 'remember_username': True})
         except ClientError:
+            print('Wrong login/password')
             return False
+
+        if self.page.redirect() == "/sessions/two-factor":
+            print("Requesting 2fa code...")
+            self.send_auth_code.go(json={'two_factor_auth_method': 'email'}, method="POST")
+            code = input("Enter auth code: ")
+            try:
+                self.challenge.go(json={'auth_code': code, 'two_factor_auth_method': 'email'}, method="POST")
+            except HTTPNotFound:
+                print("Invalid auth code")
+                return False
 
         return True
 
@@ -431,7 +452,6 @@ class Application:
 
         docto = Doctolib(args.username, args.password, responses_dirname=responses_dirname)
         if not docto.do_login():
-            print('Wrong login/password')
             return 1
 
         patients = docto.get_patients()
