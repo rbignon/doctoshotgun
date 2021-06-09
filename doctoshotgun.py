@@ -15,6 +15,7 @@ from dateutil.parser import parse as parse_date
 from dateutil.relativedelta import relativedelta
 
 import cloudscraper
+import colorama
 from requests.adapters import ReadTimeout, ConnectionError
 from termcolor import colored
 from urllib3.exceptions import NewConnectionError
@@ -490,6 +491,8 @@ class Application:
         logging.root.addHandler(self.create_default_logger())
 
     def main(self):
+        colorama.init() # needed for windows
+
         doctolib_map = {
             "fr": DoctolibFR,
             "de": DoctolibDE

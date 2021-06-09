@@ -10,9 +10,12 @@ the next seven days.
 - cloudscraper
 - dateutil
 - termcolor
+- colorama
 - playsound (optional)
 
 ## How to use it
+
+You need python3 for this script. If you don't have it, please [install it first](https://www.python.org/).
 
 Install dependencies:
 
