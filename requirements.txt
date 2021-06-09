@@ -2,3 +2,4 @@ woob
 cloudscraper
 python-dateutil
 termcolor
+colorama
