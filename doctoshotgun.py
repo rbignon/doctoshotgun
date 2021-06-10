@@ -449,26 +449,26 @@ class Doctolib(LoginBrowser):
 
 class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
-    _KEY_PFIZER = '6768'
-    _KEY_MODERNA = '6936'
-    _KEY_JANSSEN = '7978'
+    KEY_PFIZER = '6768'
+    KEY_MODERNA = '6936'
+    KEY_JANSSEN = '7978'
     vaccine_motives = {
-        _KEY_PFIZER: 'Pfizer',
-        _KEY_MODERNA: 'Moderna',
-        _KEY_JANSSEN: 'Janssen',
+        KEY_PFIZER: 'Pfizer',
+        KEY_MODERNA: 'Moderna',
+        KEY_JANSSEN: 'Janssen',
     }
     centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
     center = URL(r'/praxis/.*', CenterPage)
 
 class DoctolibFR(Doctolib):
     BASEURL = 'https://www.doctolib.fr'
-    _KEY_PFIZER = '6970'
-    _KEY_MODERNA = '7005'
-    _KEY_JANSSEN = '7945'
+    KEY_PFIZER = '6970'
+    KEY_MODERNA = '7005'
+    KEY_JANSSEN = '7945'
     vaccine_motives = {
-        _KEY_PFIZER: 'Pfizer',
-        _KEY_MODERNA: 'Moderna',
-        _KEY_JANSSEN: 'Janssen',
+        KEY_PFIZER: 'Pfizer',
+        KEY_MODERNA: 'Moderna',
+        KEY_JANSSEN: 'Janssen',
     }
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
@@ -553,11 +553,11 @@ class Application:
         if not args.pfizer and not args.moderna and not args.janssen:
             motives = docto.vaccine_motives.keys()
         if args.pfizer:
-            motives.append(docto._KEY_PFIZER)
+            motives.append(docto.KEY_PFIZER)
         if args.moderna:
-            motives.append(docto._KEY_MODERNA)
+            motives.append(docto.KEY_MODERNA)
         if args.janssen:
-            motives.append(docto._KEY_JANSSEN)
+            motives.append(docto.KEY_JANSSEN)
 
         vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
 
