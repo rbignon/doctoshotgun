@@ -280,7 +280,8 @@ class Doctolib(LoginBrowser):
             return False
 
         for place in self.page.get_places():
-            log('– %s...', place['name'])
+            if place['name']:
+                log('– %s...', place['name'])
             practice_id = place['practice_ids'][0]
             for vac_name, motive_id in motives_id.items():
                 log('  Vaccine %s...', vac_name, end=' ', flush=True)
