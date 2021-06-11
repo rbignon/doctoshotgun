@@ -202,7 +202,7 @@ class Doctolib(LoginBrowser):
         return self._logged
 
     def do_login(self):
-        self.open('https://www.doctolib.fr/sessions/new')
+        self.open(self.BASEURL + '/sessions/new')
         try:
             self.login.go(json={'kind': 'patient',
                                 'username': self.username,
