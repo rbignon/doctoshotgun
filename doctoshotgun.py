@@ -91,6 +91,9 @@ class CenterBookingPage(JsonPage):
     def find_motive(self, regex):
         for s in self.doc['data']['visit_motives']:
             if re.search(regex, s['name']):
+                if s['allow_new_patients'] == False:
+                    log('Motive %s not allowed for new patients at this center. Skipping vaccine...', s['name'], flush=True)
+                    return None
                 return s['id']
 
         return None
