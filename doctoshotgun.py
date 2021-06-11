@@ -119,9 +119,10 @@ class CenterBookingPage(JsonPage):
 
 
 class AvailabilitiesPage(JsonPage):
-    def find_best_slot(self, time_window=1):
+    def find_best_slot(self, start_date=None, end_date=None):
         for a in self.doc['availabilities']:
-            if time_window and parse_date(a['date']).date() > datetime.date.today() + relativedelta(days=time_window):
+            date = parse_date(a['date']).date()
+            if start_date and date < start_date or end_date and date > end_date:
                 continue
             if len(a['slots']) == 0:
                 continue
@@ -260,7 +261,7 @@ class Doctolib(LoginBrowser):
         normalized = re.sub(r'\W', '-', normalized)
         return normalized.lower()
 
-    def try_to_book(self, center, vaccine_list, time_window=1, date=None, dry_run=False):
+    def try_to_book(self, center, vaccine_list, start_date, end_date, dry_run=False):
         self.open(center['url'])
         p = urlparse(center['url'])
         center_id = p.path.split('/')[-1]
@@ -279,22 +280,22 @@ class Doctolib(LoginBrowser):
             return False
 
         for place in self.page.get_places():
-            log('– %s...', place['name'], flush=True)
+            log('– %s...', place['name'])
             practice_id = place['practice_ids'][0]
             for vac_name, motive_id in motives_id.items():
-                log('- Trying %s...', vac_name, end=' ', flush=True)
+                log('  Vaccine %s...', vac_name, end=' ', flush=True)
                 agenda_ids = center_page.get_agenda_ids(motive_id, practice_id)
                 if len(agenda_ids) == 0:
                     # do not filter to give a chance
                     agenda_ids = center_page.get_agenda_ids(motive_id)
 
-                if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, vac_name.lower(), time_window, date, dry_run):
+                if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, vac_name.lower(), start_date, end_date, dry_run):
                     return True
 
         return False
 
-    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, vac_name, time_window=1, date=None, dry_run=False):
-        date = datetime.datetime.strptime(date, '%d/%m/%Y').strftime('%Y-%m-%d') if date else datetime.date.today().strftime('%Y-%m-%d')
+    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, vac_name, start_date, end_date, dry_run=False):
+        date = start_date.strftime('%Y-%m-%d')
         while date is not None:
             self.availabilities.go(
                 params={'start_date': date,
@@ -313,7 +314,7 @@ class Doctolib(LoginBrowser):
             log('no availabilities', color='red')
             return False
 
-        slot = self.page.find_best_slot(time_window=time_window)
+        slot = self.page.find_best_slot(start_date, end_date)
         if not slot:
             log('first slot not found :(', color='red')
             return False
@@ -367,7 +368,7 @@ class Doctolib(LoginBrowser):
                         'practice_ids': practice_id,
                         'limit': 3})
 
-            second_slot = self.page.find_best_slot(time_window=None)
+            second_slot = self.page.find_best_slot()
             if not second_slot:
                 log('  └╴ No second shot found')
                 return False
@@ -501,7 +502,8 @@ class Application:
         parser.add_argument('--patient', '-p', type=int, default=-1, help='give patient ID')
         parser.add_argument('--time-window', '-t', type=int, default=7, help='set how many next days the script look for slots (default = 7)')
         parser.add_argument('--center', '-c', action='append', help='filter centers')
-        parser.add_argument('--start-date', type=str, default=None, help='date on which you want to book the first slot (format should be DD/MM/YYYY)')
+        parser.add_argument('--start-date', type=str, default=None, help='first date on which you want to book the first slot (format should be DD/MM/YYYY)')
+        parser.add_argument('--end-date', type=str, default=None, help='last date on which you want to book the first slot (format should be DD/MM/YYYY)')
         parser.add_argument('--dry-run', action='store_true', help='do not really book the slot')
         parser.add_argument('country', help='country where to book', choices=list(doctolib_map.keys()))
         parser.add_argument('city', help='city where to book')
@@ -556,10 +558,25 @@ class Application:
 
         vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
 
-        start_date_log = args.start_date if args.start_date else 'today'
-        log('Starting to look for vaccine slots for %s %s in %s next day(s) starting %s...', docto.patient['first_name'], docto.patient['last_name'], args.time_window, start_date_log)
-        log('Vaccines: %s' % ', '.join(vaccine_list))
-        log('Country: %s ' % args.country)
+        if args.start_date:
+            try:
+                start_date = datetime.datetime.strptime(args.start_date, '%d/%m/%Y').date()
+            except ValueError as e:
+                print('Invalid value for --start-date: %s' % e)
+                return 1
+        else:
+            start_date = datetime.date.today()
+        if args.end_date:
+            try:
+                end_date = datetime.datetime.strptime(args.end_date, '%d/%m/%Y').date()
+            except ValueError as e:
+                print('Invalid value for --end-date: %s' % e)
+                return 1
+        else:
+            end_date = start_date + relativedelta(days=args.time_window)
+        log('Starting to look for vaccine slots for %s %s between %s and %s...', docto.patient['first_name'], docto.patient['last_name'], start_date, end_date)
+        log('Vaccines: %s', ', '.join(vaccine_list))
+        log('Country: %s ', args.country)
         log('This may take a few minutes/hours, be patient!')
         cities = [docto.normalize(city) for city in args.city.split(',')]
 
@@ -578,7 +595,7 @@ class Application:
                     log('')
                     log('Center %s:', center['name_with_title'])
 
-                    if docto.try_to_book(center, vaccine_list, args.time_window, args.start_date, args.dry_run):
+                    if docto.try_to_book(center, vaccine_list, start_date, end_date, args.dry_run):
                         log('')
                         log('💉 %s Congratulations.' % colored('Booked!', 'green', attrs=('bold',)))
                         return 0
