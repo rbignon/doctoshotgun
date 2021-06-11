@@ -3,6 +3,9 @@
 This script lets you automatically book a vaccine slot on Doctolib in France and in Germany in
 the next seven days.
 
+<p align="center">
+  <img src="https://github.com/rbignon/doctoshotgun/raw/master/example.svg">
+</p>
 
 ## Python dependencies
 
