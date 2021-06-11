@@ -1,7 +1,7 @@
 # DOCTOSHOTGUN
 
 This script lets you automatically book a vaccine slot on Doctolib in France and in Germany in
-the next seven days. 
+the next seven days.
 
 
 ## Python dependencies
@@ -39,7 +39,8 @@ Further optional arguments:
 -j, --janssen                         : looking only for a Janssen vaccine
 -d, --debug                           : display debug information
 -t <days>, --time-window <days>       : set how many next days the script look for slots
---start-date <DD/MM/YYYY>             : set a specific start date on which to start looking
+--start-date <DD/MM/YYYY>             : first date on which you want to book the first slot
+--end-date <DD/MM/YYYY>               : last date on which you want to book the first slot
 --dry-run                             : do not really book a slot
 ```
 
