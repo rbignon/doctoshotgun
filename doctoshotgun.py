@@ -194,12 +194,7 @@ class Doctolib(LoginBrowser):
         self.session.headers['sec-fetch-site'] = 'same-origin'
         self.session.headers['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'
 
-        self._logged = False
         self.patient = None
-
-    @property
-    def logged(self):
-        return self._logged
 
     def do_login(self):
         self.open(self.BASEURL + '/sessions/new')
