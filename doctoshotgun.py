@@ -325,7 +325,7 @@ class Doctolib(LoginBrowser):
             slot_date_first = slot['start_date']
             if vac_name != "janssen":
                 slot_date_second = slot['steps'][1]['start_date']
-        elif isinstance(slot, str):
+        elif isinstance(slot, str) and vac_name == 'janssen':
             slot_date_first = slot # should be for Janssen only, otherwise it is a list
         elif isinstance(slot, list):
             slot_date_first = slot[0]
