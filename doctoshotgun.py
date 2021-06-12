@@ -90,10 +90,7 @@ class CenterPage(HTMLPage):
 class CenterBookingPage(JsonPage):
     def find_motive(self, regex):
         for s in self.doc['data']['visit_motives']:
-            if re.search(regex, s['name']):
-                if s['allow_new_patients'] == False:
-                    log('Motive %s not allowed for new patients at this center. Skipping vaccine...', s['name'], flush=True)
-                    return None
+            if re.search(regex, s['name']) and s['allow_new_patients']:
                 return s['id']
 
         return None
@@ -271,20 +268,21 @@ class Doctolib(LoginBrowser):
 
         center_page = self.center_booking.go(center_id=center_id)
         profile_id = self.page.get_profile_id()
-        # extract motive ids based on the vaccine names
-        motives_id = dict()
-        for vaccine in vaccine_list:
-            motives_id[vaccine] = self.page.find_motive(r'.*({})'.format(vaccine))
 
-        motives_id = dict((k, v) for k, v in motives_id.items() if v is not None)
+        # extract motive ids based on the vaccine names
+        motives_id = {}
+        for vaccine in vaccine_list:
+            motive_id = self.page.find_motive(r'.*({})'.format(vaccine))
+            if motive_id:
+                motives_id[vaccine] = motive_id
+
         if len(motives_id.values()) == 0:
-            log('Unable to find requested vaccines in motives')
-            log('Motives: %s', ', '.join(self.page.get_motives()))
+            log(colored('unable to find requested vaccines', 'red'))
             return False
 
         for place in self.page.get_places():
             if place['name']:
-                log('– %s...', place['name'])
+                log('– %s', place['name'])
             practice_id = place['practice_ids'][0]
             for vac_name, motive_id in motives_id.items():
                 log('  Vaccine %s...', vac_name, end=' ', flush=True)
