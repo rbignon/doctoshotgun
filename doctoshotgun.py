@@ -39,6 +39,13 @@ except ImportError:
         pass
 
 
+def log_ts(text, *args, **kwargs):
+    ''' Log with time stamp'''
+    now = datetime.datetime.now()
+    print("[%s]" % now.isoformat(" ", "seconds"))
+    log(text, *args, **kwargs)
+
+
 def log(text, *args, **kwargs):
     args = (colored(arg, 'yellow') for arg in args)
     if 'color' in kwargs:
@@ -320,6 +327,7 @@ class Doctolib(LoginBrowser):
         if not slot:
             log('first slot not found :(', color='red')
             return False
+
         # depending on the country, the slot is returned in a different format. Go figure...
         if isinstance(slot, dict) and 'start_date' in slot:
             slot_date_first = slot['start_date']
@@ -583,14 +591,16 @@ class Application:
 
         while True:
             try:
+                log('')
+                log_ts('Going through the centers found')
                 for center in docto.find_centers(cities, motives):
                     if args.center:
                         if center['name_with_title'] not in args.center:
-                            logging.debug("Skipping center '%s'", center['name_with_title'])
+                            logging.debug("\nSkipping center '%s'", center['name_with_title'])
                             continue
                     else:
                         if docto.normalize(center['city']) not in cities:
-                            logging.debug("Skipping city '%(city)s' %(name_with_title)s", center)
+                            logging.debug("\nSkipping city '%(city)s' %(name_with_title)s", center)
                             continue
 
                     log('')
