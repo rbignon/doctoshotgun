@@ -198,7 +198,14 @@ class Doctolib(LoginBrowser):
         self.patient = None
 
     def do_login(self):
-        self.open(self.BASEURL + '/sessions/new')
+        try:
+            self.open(self.BASEURL + '/sessions/new')
+        except ServerError as e:
+            if e.response.status_code in [503] \
+                and 'text/html' in e.response.headers['Content-Type'] \
+                    and 'cloudflare' in e.response.text:
+                log('Request blocked by CloudFlare', color='red')
+            raise
         try:
             self.login.go(json={'kind': 'patient',
                                 'username': self.username,
