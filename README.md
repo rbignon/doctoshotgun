@@ -35,16 +35,17 @@ Run:
 Further optional arguments:
 
 ```
---center "<name>" [--center <name> …] : filter centers to only choose one from the provided list
--p <index>, --patient <index>         : select patient for which book a slot
--z, --pfizer                          : looking only for a Pfizer vaccine
--m, --moderna                         : looking only for a Moderna vaccine
--j, --janssen                         : looking only for a Janssen vaccine
--d, --debug                           : display debug information
--t <days>, --time-window <days>       : set how many next days the script look for slots
---start-date <DD/MM/YYYY>             : first date on which you want to book the first slot
---end-date <DD/MM/YYYY>               : last date on which you want to book the first slot
---dry-run                             : do not really book a slot
+--center "<name>" [--center <name> …]                 : filter centers to only choose one from the provided list
+--center-exclude "<name>" [--center-exclude <name> …] : exclude centers from search and booking
+-p <index>, --patient <index>                         : select patient for which book a slot
+-z, --pfizer                                          : looking only for a Pfizer vaccine
+-m, --moderna                                         : looking only for a Moderna vaccine
+-j, --janssen                                         : looking only for a Janssen vaccine
+-d, --debug                                           : display debug information
+-t <days>, --time-window <days>                       : set how many next days the script look for slots
+--start-date <DD/MM/YYYY>                             : first date on which you want to book the first slot
+--end-date <DD/MM/YYYY>                               : last date on which you want to book the first slot
+--dry-run                                             : do not really book a slot
 ```
 
 ### With Docker

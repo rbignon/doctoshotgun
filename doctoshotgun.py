@@ -504,6 +504,7 @@ class Application:
         parser.add_argument('--patient', '-p', type=int, default=-1, help='give patient ID')
         parser.add_argument('--time-window', '-t', type=int, default=7, help='set how many next days the script look for slots (default = 7)')
         parser.add_argument('--center', '-c', action='append', help='filter centers')
+        parser.add_argument('--center-exclude', '-x', action='append', help='exclude centers')
         parser.add_argument('--start-date', type=str, default=None, help='first date on which you want to book the first slot (format should be DD/MM/YYYY)')
         parser.add_argument('--end-date', type=str, default=None, help='last date on which you want to book the first slot (format should be DD/MM/YYYY)')
         parser.add_argument('--dry-run', action='store_true', help='do not really book the slot')
@@ -588,6 +589,10 @@ class Application:
                     if args.center:
                         if center['name_with_title'] not in args.center:
                             logging.debug("Skipping center '%s'", center['name_with_title'])
+                            continue
+                    elif args.center_exclude:
+                        if center['name_with_title'] in args.center_exclude:
+                            logging.debug("Skipping center '%s' because it's excluded", center['name_with_title'])
                             continue
                     else:
                         if docto.normalize(center['city']) not in cities:
