@@ -88,9 +88,9 @@ class CenterPage(HTMLPage):
 
 
 class CenterBookingPage(JsonPage):
-    def find_motive(self, regex):
+    def find_motive(self, regex, singleShot=False):
         for s in self.doc['data']['visit_motives']:
-            if re.search(regex, s['name']) and s['allow_new_patients']:
+            if re.search(regex, s['name']) and s['allow_new_patients'] and (singleShot or s['first_shot_motive']):
                 return s['id']
 
         return None
@@ -279,7 +279,7 @@ class Doctolib(LoginBrowser):
         # extract motive ids based on the vaccine names
         motives_id = {}
         for vaccine in vaccine_list:
-            motive_id = self.page.find_motive(r'.*({})'.format(vaccine))
+            motive_id = self.page.find_motive(r'.*({})'.format(vaccine), singleShot=(vaccine == self.vaccine_motives[self.KEY_JANSSEN]))
             if motive_id:
                 motives_id[vaccine] = motive_id
 
