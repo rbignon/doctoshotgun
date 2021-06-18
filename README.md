@@ -40,6 +40,9 @@ Further optional arguments:
 -z, --pfizer                          : looking only for a Pfizer vaccine
 -m, --moderna                         : looking only for a Moderna vaccine
 -j, --janssen                         : looking only for a Janssen vaccine
+-a, --astrazeneca                     : looking only for a AstrZeneca vaccine
+-2, --only-second                     : select only second dose
+-3, --only-third                      : select only third dose
 -d, --debug                           : display debug information
 -t <days>, --time-window <days>       : set how many next days the script look for slots
 --start-date <DD/MM/YYYY>             : first date on which you want to book the first slot
