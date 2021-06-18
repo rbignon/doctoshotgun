@@ -449,11 +449,13 @@ class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
     KEY_PFIZER = '6768'
     KEY_MODERNA = '6936'
+    KEY_ASTRA = '7109'
     KEY_JANSSEN = '7978'
     vaccine_motives = {
         KEY_PFIZER: 'Pfizer',
         KEY_MODERNA: 'Moderna',
         KEY_JANSSEN: 'Janssen',
+        KEY_ASTRA: 'AstraZeneca',
     }
     centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
     center = URL(r'/praxis/.*', CenterPage)
@@ -462,11 +464,13 @@ class DoctolibFR(Doctolib):
     BASEURL = 'https://www.doctolib.fr'
     KEY_PFIZER = '6970'
     KEY_MODERNA = '7005'
+    KEY_ASTRA = '7107'
     KEY_JANSSEN = '7945'
     vaccine_motives = {
         KEY_PFIZER: 'Pfizer',
         KEY_MODERNA: 'Moderna',
         KEY_JANSSEN: 'Janssen',
+        KEY_ASTRA: 'AstraZeneca',
     }
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
@@ -500,6 +504,7 @@ class Application:
         parser.add_argument('--debug', '-d', action='store_true', help='show debug information')
         parser.add_argument('--pfizer', '-z', action='store_true', help='select only Pfizer vaccine')
         parser.add_argument('--moderna', '-m', action='store_true', help='select only Moderna vaccine')
+        parser.add_argument('--astrazeneca', '-a', action='store_true', help='select only AstraZeneca vaccine')
         parser.add_argument('--janssen', '-j', action='store_true', help='select only Janssen vaccine')
         parser.add_argument('--patient', '-p', type=int, default=-1, help='give patient ID')
         parser.add_argument('--time-window', '-t', type=int, default=7, help='set how many next days the script look for slots (default = 7)')
@@ -549,7 +554,7 @@ class Application:
             docto.patient = patients[0]
 
         motives = []
-        if not args.pfizer and not args.moderna and not args.janssen:
+        if not args.pfizer and not args.moderna and not args.janssen and not args.astrazeneca:
             motives = docto.vaccine_motives.keys()
         if args.pfizer:
             motives.append(docto.KEY_PFIZER)
@@ -557,6 +562,8 @@ class Application:
             motives.append(docto.KEY_MODERNA)
         if args.janssen:
             motives.append(docto.KEY_JANSSEN)
+        if args.astrazeneca:
+            motives.append(docto.KEY_ASTRA)
 
         vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
 
