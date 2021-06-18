@@ -327,7 +327,10 @@ class Doctolib(LoginBrowser):
 
         slot = self.page.find_best_slot(start_date, end_date)
         if not slot:
-            log('first slot not found :(', color='red')
+            if only_second == False and only_third == False:
+                log('First slot not found :(', color='red')
+            else:
+                log('Slot not found :(', color='red')
             return False
 
         # depending on the country, the slot is returned in a different format. Go figure...
