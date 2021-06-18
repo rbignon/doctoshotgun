@@ -58,7 +58,7 @@ docker build . -t doctoshotgun
 Run the container:
 
 ```
-docker run doctoshotgun <country{fr,de}> <city> <email> [<password>]
+docker run -it doctoshotgun <country{fr,de}> <city> <email> [<password>]
 ```
 
 ### Multiple cities
