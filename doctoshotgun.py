@@ -268,7 +268,7 @@ class Doctolib(LoginBrowser):
         normalized = re.sub(r'\W', '-', normalized)
         return normalized.lower()
 
-    def try_to_book(self, center, vaccine_list, start_date, end_date, dry_run=False):
+    def try_to_book(self, center, vaccine_list, start_date, end_date, only_second, only_third, dry_run=False):
         self.open(center['url'])
         p = urlparse(center['url'])
         center_id = p.path.split('/')[-1]
@@ -298,12 +298,13 @@ class Doctolib(LoginBrowser):
                     # do not filter to give a chance
                     agenda_ids = center_page.get_agenda_ids(motive_id)
 
-                if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, vac_name.lower(), start_date, end_date, dry_run):
+                if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, vac_name.lower(), start_date, end_date, only_second, only_third, dry_run):
                     return True
 
         return False
 
-    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, vac_name, start_date, end_date, dry_run=False):
+    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, vac_name, start_date, end_date,
+                          only_second, only_third, dry_run=False):
         date = start_date.strftime('%Y-%m-%d')
         while date is not None:
             self.availabilities.go(
@@ -333,8 +334,8 @@ class Doctolib(LoginBrowser):
             slot_date_first = slot['start_date']
             if vac_name != "janssen":
                 slot_date_second = slot['steps'][1]['start_date']
-        elif isinstance(slot, str) and vac_name == 'janssen':
-            slot_date_first = slot # should be for Janssen only, otherwise it is a list
+        elif isinstance(slot, str) and (vac_name == 'janssen' or only_second or only_third):
+            slot_date_first = slot # should be for Janssen, second or third shots only, otherwise it is a list
         elif isinstance(slot, list):
             slot_date_first = slot[0]
             if vac_name != "janssen": # maybe redundant?
@@ -367,7 +368,7 @@ class Doctolib(LoginBrowser):
 
         playsound('ding.mp3')
 
-        if vac_name != "janssen": # janssen has only one shot
+        if vac_name != "janssen" and not only_second and not only_third: # janssen has only one shot
             self.second_shot_availabilities.go(
                 params={'start_date': slot_date_second.split('T')[0],
                         'visit_motive_ids': motive_id,
@@ -455,12 +456,25 @@ class Doctolib(LoginBrowser):
 class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
     KEY_PFIZER = '6768'
+    KEY_PFIZER_SECOND = '6769'
+    KEY_PFIZER_THIRD = None
     KEY_MODERNA = '6936'
+    KEY_MODERNA_SECOND = '6937'
+    KEY_MODERNA_THIRD = None
     KEY_JANSSEN = '7978'
+    KEY_ASTRAZENECA = '7109'
+    KEY_ASTRAZENECA_SECOND = '7110'
+
     vaccine_motives = {
         KEY_PFIZER: 'Pfizer',
+        KEY_PFIZER_SECOND: 'Zweit.*Pfizer|Pfizer.*Zweit',
+        KEY_PFIZER_THIRD: 'Dritt.*Pfizer|Pfizer.*Dritt',
         KEY_MODERNA: 'Moderna',
+        KEY_MODERNA_SECOND: 'Zweit.*Moderna|Moderna.*Zweit',
+        KEY_MODERNA_THIRD: 'Dritt.*Moderna|Moderna.*Dritt',
         KEY_JANSSEN: 'Janssen',
+        KEY_ASTRAZENECA: 'AstraZeneca',
+        KEY_ASTRAZENECA_SECOND: 'Zweit.*AstraZeneca|AstraZeneca.*Zweit'
     }
     centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
     center = URL(r'/praxis/.*', CenterPage)
@@ -468,12 +482,24 @@ class DoctolibDE(Doctolib):
 class DoctolibFR(Doctolib):
     BASEURL = 'https://www.doctolib.fr'
     KEY_PFIZER = '6970'
+    KEY_PFIZER_SECOND = '6971'
+    KEY_PFIZER_THIRD = '8192'
     KEY_MODERNA = '7005'
+    KEY_MODERNA_SECOND = '7004'
+    KEY_MODERNA_THIRD = '8193'
     KEY_JANSSEN = '7945'
+    KEY_ASTRAZENECA = '7107'
+    KEY_ASTRAZENECA_SECOND = '7108'
     vaccine_motives = {
-        KEY_PFIZER: 'Pfizer',
-        KEY_MODERNA: 'Moderna',
+        KEY_PFIZER: '1re.*Pfizer',
+        KEY_PFIZER_SECOND: '2re.*Pfizer',
+        KEY_PFIZER_THIRD: '3de.*Pfizer',
+        KEY_MODERNA: '1re.*Moderna',
+        KEY_MODERNA_SECOND: '2re.*Moderna',
+        KEY_MODERNA_THIRD: '3de.*Moderna',
         KEY_JANSSEN: 'Janssen',
+        KEY_ASTRAZENECA: '1re.*AstraZeneca',
+        KEY_ASTRAZENECA_SECOND: '2de.*AstraZeneca'
     }
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
@@ -508,6 +534,9 @@ class Application:
         parser.add_argument('--pfizer', '-z', action='store_true', help='select only Pfizer vaccine')
         parser.add_argument('--moderna', '-m', action='store_true', help='select only Moderna vaccine')
         parser.add_argument('--janssen', '-j', action='store_true', help='select only Janssen vaccine')
+        parser.add_argument('--astrazeneca', '-a', action='store_true', help='select only AstraZeneca vaccine')
+        parser.add_argument('--only-second', '-2', action='store_true', help='select only second dose')
+        parser.add_argument('--only-third', '-3', action='store_true', help='select only third dose')
         parser.add_argument('--patient', '-p', type=int, default=-1, help='give patient ID')
         parser.add_argument('--time-window', '-t', type=int, default=7, help='set how many next days the script look for slots (default = 7)')
         parser.add_argument('--center', '-c', action='append', help='filter centers')
@@ -557,14 +586,47 @@ class Application:
 
         motives = []
         if not args.pfizer and not args.moderna and not args.janssen:
-            motives = docto.vaccine_motives.keys()
+            if args.only_second:
+                motives.append(docto.KEY_PFIZER_SECOND)
+                motives.append(docto.KEY_MODERNA_SECOND)
+                #motives.append(docto.KEY_ASTRAZENECA_SECOND) #do not add AstraZeneca by default
+            elif args.only_third:
+                motives.append(docto.KEY_PFIZER_THIRD)
+                motives.append(docto.KEY_MODERNA_THIRD)
+            else:
+                motives.append(docto.KEY_PFIZER)
+                motives.append(docto.KEY_MODERNA)
+                motives.append(docto.KEY_JANSSEN)
+                #motives.append(docto.KEY_ASTRAZENECA) #do not add AstraZeneca by default
         if args.pfizer:
-            motives.append(docto.KEY_PFIZER)
+            if args.only_second:
+                motives.append(docto.KEY_PFIZER_SECOND)
+            elif args.only_third:
+                motives.append(docto.KEY_PFIZER_THIRD)
+            else:
+                motives.append(docto.KEY_PFIZER)
         if args.moderna:
-            motives.append(docto.KEY_MODERNA)
+            if args.only_second:
+                motives.append(docto.KEY_MODERNA_SECOND)
+            elif args.only_third:
+                motives.append(docto.KEY_MODERNA_THIRD)
+            else:
+                motives.append(docto.KEY_MODERNA)
         if args.janssen:
-            motives.append(docto.KEY_JANSSEN)
-
+            if args.only_second or args.only_third:
+                print('Invalid args: Janssen has no second or third shot')
+                return 1
+            else:
+                motives.append(docto.KEY_JANSSEN)
+        if args.astrazeneca:
+            if args.only_second:
+                motives.append(docto.KEY_ASTRAZENECA_SECOND)
+            elif args.only_third:
+                print('Invalid args: AstraZeneca has no third shot')
+                return 1
+            else:
+                motives.append(docto.KEY_PFIZER)
+        
         vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
 
         if args.start_date:
@@ -604,7 +666,7 @@ class Application:
                     log('')
                     log('Center %s:', center['name_with_title'])
 
-                    if docto.try_to_book(center, vaccine_list, start_date, end_date, args.dry_run):
+                    if docto.try_to_book(center, vaccine_list, start_date, end_date, args.only_second, args.only_third, args.dry_run):
                         log('')
                         log('💉 %s Congratulations.' % colored('Booked!', 'green', attrs=('bold',)))
                         return 0
