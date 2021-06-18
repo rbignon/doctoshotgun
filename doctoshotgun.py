@@ -90,7 +90,8 @@ class CenterPage(HTMLPage):
 class CenterBookingPage(JsonPage):
     def find_motive(self, regex):
         for s in self.doc['data']['visit_motives']:
-            if re.search(regex, s['name']) and s['allow_new_patients']:
+            #ignore case as some doctors use their own spelling
+            if re.search(regex, s['name'], re.IGNORECASE) and s['allow_new_patients']:
                 return s['id']
 
         return None
