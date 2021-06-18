@@ -617,7 +617,7 @@ class Application:
             except CityNotFound as e:
                 print('\n%s: City %s not found. Make sure you selected a city from the available countries.' % (colored('Error', 'red'), colored(e, 'yellow')))
                 return 1
-            except (ReadTimeout, ConnectionError, NewConnectionError) as e:
+            except (ReadTimeout, ConnectionError, NewConnectionError, ServerError) as e:
                 print('\n%s' % (colored('Connection error. Check your internet connection. Retrying ...', 'red')))
                 print(str(e))
                 sleep(5)
