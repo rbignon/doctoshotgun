@@ -629,7 +629,7 @@ class Application:
                 print('Invalid args: AstraZeneca has no third shot')
                 return 1
             else:
-                motives.append(docto.KEY_PFIZER)
+                motives.append(docto.KEY_ASTRAZENECA)
         
         vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
 
