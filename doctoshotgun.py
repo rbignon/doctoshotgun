@@ -495,14 +495,14 @@ class DoctolibFR(Doctolib):
     KEY_ASTRAZENECA = '7107'
     KEY_ASTRAZENECA_SECOND = '7108'
     vaccine_motives = {
-        KEY_PFIZER: '1re.*Pfizer',
+        KEY_PFIZER: 'Pfizer',
         KEY_PFIZER_SECOND: '2re.*Pfizer',
         KEY_PFIZER_THIRD: '3de.*Pfizer',
-        KEY_MODERNA: '1re.*Moderna',
+        KEY_MODERNA: 'Moderna',
         KEY_MODERNA_SECOND: '2re.*Moderna',
         KEY_MODERNA_THIRD: '3de.*Moderna',
         KEY_JANSSEN: 'Janssen',
-        KEY_ASTRAZENECA: '1re.*AstraZeneca',
+        KEY_ASTRAZENECA: 'AstraZeneca',
         KEY_ASTRAZENECA_SECOND: '2de.*AstraZeneca'
     }
 
