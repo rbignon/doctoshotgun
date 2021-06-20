@@ -293,7 +293,7 @@ class Doctolib(LoginBrowser):
 
         return True
 
-    def find_centers(self, where, motives=None, page=1):
+    def find_centers(self, where, motives=None, page=1, additional_centers=None):
         if motives is None:
             motives = self.vaccine_motives.keys()
         for city in where:
@@ -334,6 +334,17 @@ class Doctolib(LoginBrowser):
             if next_page:
                 for center in self.find_centers(where, motives, next_page):
                     yield center
+
+        if additional_centers:
+            for additional_center in additional_centers:
+                splitted = additional_center.split(';')
+                if len(splitted) == 3:
+                    yield {
+                        "name_with_title": splitted[0], #"Corona Impfzentren - Berlin",
+                        "city": splitted[1], #"Berlin",
+                        "url": splitted[2], #"/institut/berlin/ciz-berlin-berlin"
+                    }
+
 
     def get_patients(self):
         self.master_patient.go()
@@ -653,6 +664,8 @@ class Application:
                             action='append', help='exclude centers')
         parser.add_argument('--center-exclude-regex',
                             action='append', help='exclude centers by regex')
+        parser.add_argument('--additional-center', '-ac',
+                            action='append', help='Add additional centers or doctors: "name;city;link" e.g. "Corona Impfzentren - Berlin;Berlin;/institut/berlin/ciz-berlin-berlin"')
         parser.add_argument(
             '--include-neighbor-city', '-n', action='store_true', help='include neighboring cities')
         parser.add_argument('--start-date', type=str, default=None,
@@ -791,7 +804,7 @@ class Application:
         while True:
             log_ts()
             try:
-                for center in docto.find_centers(cities, motives):
+                for center in docto.find_centers(cities, motives, args.additional_center):
                     if args.center:
                         if center['name_with_title'] not in args.center:
                             logging.debug("Skipping center '%s'" %
