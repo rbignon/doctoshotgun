@@ -197,7 +197,7 @@ class Doctolib(LoginBrowser):
 
         self.patient = None
 
-    def do_login(self):
+    def do_login(self, code):
         try:
             self.open(self.BASEURL + '/sessions/new')
         except ServerError as e:
@@ -218,8 +218,12 @@ class Doctolib(LoginBrowser):
 
         if self.page.redirect() == "/sessions/two-factor":
             print("Requesting 2fa code...")
-            self.send_auth_code.go(json={'two_factor_auth_method': 'email'}, method="POST")
-            code = input("Enter auth code: ")
+            if not code:
+                self.send_auth_code.go(json={'two_factor_auth_method': 'email'}, method="POST")
+                if not sys.__stdin__.isatty():
+                    log("Auth Code input required, but no interactive terminal available. Please check your email and provide it via command line argument '--code'.", color='red')
+                    return False
+                code = input("Enter auth code: ")
             try:
                 self.challenge.go(json={'auth_code': code, 'two_factor_auth_method': 'email'}, method="POST")
             except HTTPNotFound:
@@ -518,6 +522,7 @@ class Application:
         parser.add_argument('city', help='city where to book')
         parser.add_argument('username', help='Doctolib username')
         parser.add_argument('password', nargs='?', help='Doctolib password')
+        parser.add_argument('--code', type=str, default=None, help='2FA code')
         args = parser.parse_args()
 
         if args.debug:
@@ -531,7 +536,7 @@ class Application:
             args.password = getpass.getpass()
 
         docto = doctolib_map[args.country](args.username, args.password, responses_dirname=responses_dirname)
-        if not docto.do_login():
+        if not docto.do_login(args.code):
             return 1
 
         patients = docto.get_patients()
