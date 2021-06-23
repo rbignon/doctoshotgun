@@ -203,7 +203,7 @@ class Doctolib(LoginBrowser):
         except ServerError as e:
             if e.response.status_code in [503] \
                 and 'text/html' in e.response.headers['Content-Type'] \
-                    and 'cloudflare' in e.response.text:
+                    and ('cloudflare' in e.response.text or 'Checking your browser before accessing' in e .response.text):
                 log('Request blocked by CloudFlare', color='red')
             raise
         try:
