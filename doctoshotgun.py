@@ -511,6 +511,8 @@ class Application:
         parser.add_argument('--patient', '-p', type=int, default=-1, help='give patient ID')
         parser.add_argument('--time-window', '-t', type=int, default=7, help='set how many next days the script look for slots (default = 7)')
         parser.add_argument('--center', '-c', action='append', help='filter centers')
+        parser.add_argument('--center-regex', action='append', help='filter centers by regex')
+        parser.add_argument('--center-exclude-regex', action='append', help='exclude centers by regex')
         parser.add_argument('--start-date', type=str, default=None, help='first date on which you want to book the first slot (format should be DD/MM/YYYY)')
         parser.add_argument('--end-date', type=str, default=None, help='last date on which you want to book the first slot (format should be DD/MM/YYYY)')
         parser.add_argument('--dry-run', action='store_true', help='do not really book the slot')
@@ -595,6 +597,24 @@ class Application:
                     if args.center:
                         if center['name_with_title'] not in args.center:
                             logging.debug("Skipping center '%s'", center['name_with_title'])
+                            continue
+                    elif args.center_regex:
+                        center_matched = False
+                        for center_regex in args.center_regex:
+                            if re.match(center_regex, center['name_with_title']):
+                                center_matched = True
+                            else:
+                                logging.debug("Skipping center '%s'", center['name_with_title'])
+                        if not center_matched:
+                            continue
+                    elif args.center_exclude_regex:
+                        center_excluded = False
+                        for center_exclude_regex in args.center_exclude_regex:
+                            if re.match(center_exclude_regex, center['name_with_title']):
+                                logging.debug(
+                                    "Skipping center '%s' because it's excluded", center['name_with_title'])
+                                center_excluded = True
+                        if center_excluded:
                             continue
                     else:
                         if docto.normalize(center['city']) not in cities:
