@@ -597,7 +597,7 @@ class Application:
                             logging.debug("Skipping center '%s'", center['name_with_title'])
                             continue
                     else:
-                        if docto.normalize(center['city']) not in cities:
+                        if not docto.normalize(center['city']).startswith(tuple(cities)):
                             logging.debug("Skipping city '%(city)s' %(name_with_title)s", center)
                             continue
 
