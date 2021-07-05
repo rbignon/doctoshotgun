@@ -35,16 +35,32 @@ Run:
 Further optional arguments:
 
 ```
---center "<name>" [--center <name> …] : filter centers to only choose one from the provided list
--p <index>, --patient <index>         : select patient for which book a slot
--z, --pfizer                          : looking only for a Pfizer vaccine
--m, --moderna                         : looking only for a Moderna vaccine
--j, --janssen                         : looking only for a Janssen vaccine
--d, --debug                           : display debug information
--t <days>, --time-window <days>       : set how many next days the script look for slots
---start-date <DD/MM/YYYY>             : first date on which you want to book the first slot
---end-date <DD/MM/YYYY>               : last date on which you want to book the first slot
---dry-run                             : do not really book a slot
+--debug, -d           show debug information
+--pfizer, -z          select only Pfizer vaccine
+--moderna, -m         select only Moderna vaccine
+--janssen, -j         select only Janssen vaccine
+--astrazeneca, -a     select only AstraZeneca vaccine
+--only-second, -2     select only second dose
+--only-third, -3      select only third dose
+--patient PATIENT, -p PATIENT
+                      give patient ID
+--time-window TIME_WINDOW, -t TIME_WINDOW
+                      set how many next days the script look for slots (default = 7)
+--center CENTER, -c CENTER
+                      filter centers
+--center-regex CENTER_REGEX
+                      filter centers by regex
+--center-exclude CENTER_EXCLUDE, -x CENTER_EXCLUDE
+                      exclude centers
+--center-exclude-regex CENTER_EXCLUDE_REGEX
+                      exclude centers by regex
+--include-neighbor-city, -n
+                      include neighboring cities
+--start-date START_DATE
+                      first date on which you want to book the first slot (format should be DD/MM/YYYY)
+--end-date END_DATE   last date on which you want to book the first slot (format should be DD/MM/YYYY)
+--dry-run             do not really book the slot
+--code CODE           2FA code
 ```
 
 ### With Docker
