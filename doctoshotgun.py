@@ -18,6 +18,7 @@ import cloudscraper
 import colorama
 from requests.adapters import ReadTimeout, ConnectionError
 from termcolor import colored
+from urllib import parse
 from urllib3.exceptions import NewConnectionError
 
 from woob.browser.exceptions import ClientError, ServerError, HTTPNotFound
@@ -94,6 +95,15 @@ class CentersPage(HTMLPage):
             data = json.loads(div.attrib['data-props'])
             yield data['searchResultId']
 
+    def get_next_page(self):
+        for a in self.doc.xpath('//div[contains(@class, "next")]/a'):
+            href = a.attrib['href']
+            query = dict(parse.parse_qsl(parse.urlsplit(href).query))
+
+            if 'page' in query:
+                return int(query['page'])
+        
+        return None
 
 class CenterResultPage(JsonPage):
     pass
@@ -264,13 +274,13 @@ class Doctolib(LoginBrowser):
 
         return True
 
-    def find_centers(self, where, motives=None):
+    def find_centers(self, where, motives=None, page=1):
         if motives is None:
             motives = self.vaccine_motives.keys()
         for city in where:
             try:
                 self.centers.go(where=city, params={
-                                'ref_visit_motive_ids[]': motives})
+                                'ref_visit_motive_ids[]': motives, 'page': page})
             except ServerError as e:
                 if e.response.status_code in [503]:
                     if 'text/html' in e.response.headers['Content-Type'] \
@@ -284,6 +294,8 @@ class Doctolib(LoginBrowser):
                 raise
             except HTTPNotFound as e:
                 raise CityNotFound(city) from e
+
+            next_page = self.page.get_next_page()
 
             for i in self.page.iter_centers_ids():
                 page = self.center_result.open(
@@ -299,6 +311,10 @@ class Doctolib(LoginBrowser):
                     yield page.doc['search_result']
                 except KeyError:
                     pass
+
+            if next_page:
+                for center in self.find_centers(where, motives, next_page):
+                    yield center
 
     def get_patients(self):
         self.master_patient.go()
