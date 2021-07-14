@@ -73,6 +73,35 @@ class Session(cloudscraper.CloudScraper):
 
         return callback(self, resp)
 
+class Page: 
+    def allocate( page: URL) -> str: 
+            if page == '/login.json':
+                return URL('/login.json', LoginPage)
+            if page == '/api/accounts/send_auth_code':
+                 return URL('/api/accounts/send_auth_code', SendAuthCodePage)
+            if page == '/login/challenge':
+                return URL('/login/challenge', ChallengePage)
+            if page == '/search_results/(?P<id>\d+).json':
+                return URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
+            if page == '/booking/(?P<center_id>.+).json':
+                return URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage)
+            if page == '/availabilities.json':
+                return URL(r'/availabilities.json', AvailabilitiesPage)
+            if page == '/second_shot_availabilities.json':
+                return URL(
+        r'/second_shot_availabilities.json', AvailabilitiesPage)
+            if page == '/appointments.json':
+                return URL(r'/appointments.json', AppointmentPage)
+            if page == '/appointments/(?P<id>.+)/edit.json':
+                return URL(
+        r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
+            if page == '/appointments/(?P<id>.+).json':
+                return URL(
+        r'/appointments/(?P<id>.+).json', AppointmentPostPage)
+            if page == '/account/master_patients.json':
+                return URL(r'/account/master_patients.json', MasterPatientPage)
+
+            
 
 class LoginPage(JsonPage):
     def redirect(self):
@@ -181,8 +210,7 @@ class AvailabilitiesPage(JsonPage):
             if len(a['slots']) == 0:
                 continue
             return a['slots'][-1]
-
-
+    
 class AppointmentPage(JsonPage):
     def get_error(self):
         return self.doc['error']
@@ -214,6 +242,8 @@ class CityNotFound(Exception):
     pass
 
 
+
+
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
     BASEURL = ""
@@ -221,20 +251,17 @@ class Doctolib(LoginBrowser):
     centers = URL('')
     center = URL('')
     # common properties
-    login = URL('/login.json', LoginPage)
-    send_auth_code = URL('/api/accounts/send_auth_code', SendAuthCodePage)
-    challenge = URL('/login/challenge', ChallengePage)
-    center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
-    center_booking = URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage)
-    availabilities = URL(r'/availabilities.json', AvailabilitiesPage)
-    second_shot_availabilities = URL(
-        r'/second_shot_availabilities.json', AvailabilitiesPage)
-    appointment = URL(r'/appointments.json', AppointmentPage)
-    appointment_edit = URL(
-        r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
-    appointment_post = URL(
-        r'/appointments/(?P<id>.+).json', AppointmentPostPage)
-    master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
+    login = Page.allocate('/login.json') # login = page.login()
+    send_auth_code = Page.allocate('/api/accounts/send_auth_code')
+    challenge = Page.allocate('/login/challenge')
+    center_result = Page.allocate('/search_results/(?P<id>\d+).json')
+    center_booking = Page.allocate('/booking/(?P<center_id>.+).json')
+    availabilities = Page.allocate('/availabilities.json')
+    second_shot_availabilities = Page.allocate('/second_shot_availabilities.json')
+    appointment = Page.allocate('/appointments.json')
+    appointment_edit = Page.allocate('/appointments/(?P<id>.+)/edit.json')
+    appointment_post = Page.allocate('/appointments/(?P<id>.+).json')
+    master_patient = Page.allocate('/account/master_patients.json')
 
     def _setup_session(self, profile):
         session = Session()
@@ -624,6 +651,7 @@ class Application:
             "fr": DoctolibFR,
             "de": DoctolibDE
         }
+        # fr <city> [email] [password]
 
         parser = argparse.ArgumentParser(
             description="Book a vaccine slot on Doctolib")
