@@ -73,34 +73,14 @@ class Session(cloudscraper.CloudScraper):
 
         return callback(self, resp)
 
-class Page: 
-    def allocate( page: URL) -> str: 
-            if page == '/login.json':
-                return URL('/login.json', LoginPage)
-            if page == '/api/accounts/send_auth_code':
-                 return URL('/api/accounts/send_auth_code', SendAuthCodePage)
-            if page == '/login/challenge':
-                return URL('/login/challenge', ChallengePage)
-            if page == '/search_results/(?P<id>\d+).json':
-                return URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
-            if page == '/booking/(?P<center_id>.+).json':
-                return URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage)
-            if page == '/availabilities.json':
-                return URL(r'/availabilities.json', AvailabilitiesPage)
-            if page == '/second_shot_availabilities.json':
-                return URL(
-        r'/second_shot_availabilities.json', AvailabilitiesPage)
-            if page == '/appointments.json':
-                return URL(r'/appointments.json', AppointmentPage)
-            if page == '/appointments/(?P<id>.+)/edit.json':
-                return URL(
-        r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
-            if page == '/appointments/(?P<id>.+).json':
-                return URL(
-        r'/appointments/(?P<id>.+).json', AppointmentPostPage)
-            if page == '/account/master_patients.json':
-                return URL(r'/account/master_patients.json', MasterPatientPage)
-
+class UserPage: 
+    def allocate():
+        dic = {}
+        dic["login"] = URL('/login.json', LoginPage)
+        dic["send_auth_code"] = URL('/api/accounts/send_auth_code', SendAuthCodePage)
+        dic["challenge"] = URL('/login/challenge', ChallengePage)
+        dic["master_patient"] = URL(r'/account/master_patients.json', MasterPatientPage)
+        return dic
             
 
 class LoginPage(JsonPage):
@@ -246,22 +226,23 @@ class CityNotFound(Exception):
 
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
+    userPages = UserPage.allocate()
     BASEURL = ""
     vaccine_motives = {}
     centers = URL('')
     center = URL('')
-    # common properties
-    login = Page.allocate('/login.json') # login = page.login()
-    send_auth_code = Page.allocate('/api/accounts/send_auth_code')
-    challenge = Page.allocate('/login/challenge')
-    center_result = Page.allocate('/search_results/(?P<id>\d+).json')
-    center_booking = Page.allocate('/booking/(?P<center_id>.+).json')
-    availabilities = Page.allocate('/availabilities.json')
-    second_shot_availabilities = Page.allocate('/second_shot_availabilities.json')
-    appointment = Page.allocate('/appointments.json')
-    appointment_edit = Page.allocate('/appointments/(?P<id>.+)/edit.json')
-    appointment_post = Page.allocate('/appointments/(?P<id>.+).json')
-    master_patient = Page.allocate('/account/master_patients.json')
+    center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
+    center_booking = URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage)
+    availabilities = URL(r'/availabilities.json', AvailabilitiesPage)
+    appointment = URL(r'/appointments.json', AppointmentPage)
+    appointment_edit = URL(
+        r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
+    appointment_post = URL(
+        r'/appointments/(?P<id>.+).json', AppointmentPostPage)
+    second_shot_availabilities = URL(
+        r'/second_shot_availabilities.json', AvailabilitiesPage)    
+
+   
 
     def _setup_session(self, profile):
         session = Session()
@@ -293,7 +274,7 @@ class Doctolib(LoginBrowser):
                 log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
             raise
         try:
-            self.login.go(json={'kind': 'patient',
+            self.userPages["login"].go(json={'kind': 'patient',
                                 'username': self.username,
                                 'password': self.password,
                                 'remember': True,
@@ -308,11 +289,11 @@ class Doctolib(LoginBrowser):
                 if not sys.__stdin__.isatty():
                     log("Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.", color='red')
                     return False
-                self.send_auth_code.go(
+                self.userPages["send_auth_code"].go(
                     json={'two_factor_auth_method': 'email'}, method="POST")
                 code = input("Enter auth code: ")
             try:
-                self.challenge.go(
+                self.userPages["challenge"].go(
                     json={'auth_code': code, 'two_factor_auth_method': 'email'}, method="POST")
             except HTTPNotFound:
                 print("Invalid auth code")
@@ -363,8 +344,7 @@ class Doctolib(LoginBrowser):
                     yield center
 
     def get_patients(self):
-        self.master_patient.go()
-
+        self.userPages["master_patient"].go()
         return self.page.get_patients()
 
     @classmethod
