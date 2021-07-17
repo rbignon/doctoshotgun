@@ -225,6 +225,11 @@ class CityNotFound(Exception):
 
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
+    BASEURL = ""
+    vaccine_motives = {}
+    centers = URL('')
+    center = URL('')
+    
     ## Bring Aggregate Root called <<userPages>>
     userPages = UserPage.allocate()
 
@@ -867,4 +872,3 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print('Abort.')
         sys.exit(1)
-        
