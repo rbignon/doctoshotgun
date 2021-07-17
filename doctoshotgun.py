@@ -73,6 +73,7 @@ class Session(cloudscraper.CloudScraper):
 
         return callback(self, resp)
 
+#Applied Aggregated Pattern For UserPage
 class UserPage: 
     def allocate():
         dic = {}
@@ -226,23 +227,20 @@ class CityNotFound(Exception):
 
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
+    ## Bring Aggregate Root called <<userPages>>
     userPages = UserPage.allocate()
-    BASEURL = ""
-    vaccine_motives = {}
-    centers = URL('')
-    center = URL('')
+    ## 
+      # common properties
     center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
     center_booking = URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage)
     availabilities = URL(r'/availabilities.json', AvailabilitiesPage)
+    second_shot_availabilities = URL(
+        r'/second_shot_availabilities.json', AvailabilitiesPage)
     appointment = URL(r'/appointments.json', AppointmentPage)
     appointment_edit = URL(
         r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
     appointment_post = URL(
         r'/appointments/(?P<id>.+).json', AppointmentPostPage)
-    second_shot_availabilities = URL(
-        r'/second_shot_availabilities.json', AvailabilitiesPage)    
-
-   
 
     def _setup_session(self, profile):
         session = Session()
@@ -631,7 +629,6 @@ class Application:
             "fr": DoctolibFR,
             "de": DoctolibDE
         }
-        # fr <city> [email] [password]
 
         parser = argparse.ArgumentParser(
             description="Book a vaccine slot on Doctolib")
