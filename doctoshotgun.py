@@ -223,14 +223,12 @@ class CityNotFound(Exception):
     pass
 
 
-
-
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
     ## Bring Aggregate Root called <<userPages>>
     userPages = UserPage.allocate()
-    ## 
-      # common properties
+
+    # common properties
     center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
     center_booking = URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage)
     availabilities = URL(r'/availabilities.json', AvailabilitiesPage)
@@ -869,3 +867,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print('Abort.')
         sys.exit(1)
+        
