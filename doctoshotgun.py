@@ -337,12 +337,12 @@ class Doctolib(LoginBrowser):
 
         if additional_centers:
             for additional_center in additional_centers:
-                splitted = additional_center.split(';')
-                if len(splitted) == 3:
+                match = re.match(r'(?P<name>.+);(?P<city>.+);(?P<url>.+)', additional_center)
+                if match:
                     yield {
-                        "name_with_title": splitted[0], #"Corona Impfzentren - Berlin",
-                        "city": splitted[1], #"Berlin",
-                        "url": splitted[2], #"/institut/berlin/ciz-berlin-berlin"
+                        "name_with_title": match['name'], #"Corona Impfzentren - Berlin",
+                        "city":            match['city'], #"Berlin",
+                        "url":             match['url'],  #"/institut/berlin/ciz-berlin-berlin"
                     }
 
 
