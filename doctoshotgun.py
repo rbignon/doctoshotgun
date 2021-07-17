@@ -76,12 +76,12 @@ class Session(cloudscraper.CloudScraper):
 #Applied Aggregated Pattern For UserPage
 class UserPage: 
     def allocate():
-        dic = {}
-        dic["login"] = URL('/login.json', LoginPage)
-        dic["send_auth_code"] = URL('/api/accounts/send_auth_code', SendAuthCodePage)
-        dic["challenge"] = URL('/login/challenge', ChallengePage)
-        dic["master_patient"] = URL(r'/account/master_patients.json', MasterPatientPage)
-        return dic
+        page = {}
+        page["login"] = URL('/login.json', LoginPage)
+        page["send_auth_code"] = URL('/api/accounts/send_auth_code', SendAuthCodePage)
+        page["challenge"] = URL('/login/challenge', ChallengePage)
+        page["master_patient"] = URL(r'/account/master_patients.json', MasterPatientPage)
+        return page
             
 
 class LoginPage(JsonPage):
@@ -229,7 +229,7 @@ class Doctolib(LoginBrowser):
     vaccine_motives = {}
     centers = URL('')
     center = URL('')
-    
+
     ## Bring Aggregate Root called <<userPages>>
     userPages = UserPage.allocate()
 
