@@ -185,12 +185,18 @@ class CityNotFound(Exception):
     pass
 
 
+class individual_properties_of_country():
+
+    def __init__(self):
+        self.BASEURL = ""
+        self.vaccine_motives = {}
+        self.centers = URL('')
+        self.center = URL('')
+
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
-    BASEURL = ""
-    vaccine_motives = {}
-    centers = URL('')
-    center = URL('')
+
+    properties_country = individual_properties_of_country()
     # common properties
     login = URL('/login.json', LoginPage)
     send_auth_code = URL('/api/accounts/send_auth_code', SendAuthCodePage)
