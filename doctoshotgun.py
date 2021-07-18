@@ -293,7 +293,7 @@ class Doctolib(LoginBrowser):
 
         return True
 
-    def find_centers(self, where, motives=None, page=1, additional_centers=None):
+    def find_centers(self, where, motives=None, page=1):
         if motives is None:
             motives = self.vaccine_motives.keys()
         for city in where:
@@ -334,17 +334,6 @@ class Doctolib(LoginBrowser):
             if next_page:
                 for center in self.find_centers(where, motives, next_page):
                     yield center
-
-        if additional_centers:
-            for additional_center in additional_centers:
-                match = re.match(r'(?P<name>.+);(?P<city>.+);(?P<url>.+)', additional_center)
-                if match:
-                    yield {
-                        "name_with_title": match['name'], #"Corona Impfzentren - Berlin",
-                        "city":            match['city'], #"Berlin",
-                        "url":             match['url'],  #"/institut/berlin/ciz-berlin-berlin"
-                    }
-
 
     def get_patients(self):
         self.master_patient.go()
@@ -628,6 +617,16 @@ class Application:
         logging.root.setLevel(level)
         logging.root.addHandler(self.create_default_logger())
 
+    def try_to_book_or_sleep(self, docto, center, vaccine_list, start_date, end_date, only_second, only_third, dry_run=False):
+        if docto.try_to_book(center, vaccine_list, start_date, end_date, only_second, only_third, dry_run):
+            log('')
+            log('💉 %s Congratulations.' %
+                colored('Booked!', 'green', attrs=('bold',)))
+            return True
+
+        sleep(SLEEP_INTERVAL_AFTER_CENTER)
+        return False
+
     def main(self, cli_args=None):
         colorama.init()  # needed for windows
 
@@ -665,7 +664,7 @@ class Application:
         parser.add_argument('--center-exclude-regex',
                             action='append', help='exclude centers by regex')
         parser.add_argument('--additional-center', '-ac',
-                            action='append', help='Add additional centers or doctors: "name;city;link" e.g. "Corona Impfzentren - Berlin;Berlin;/institut/berlin/ciz-berlin-berlin"')
+                            action='append', help='Add additional centers or doctors: "url" e.g. "/institut/berlin/ciz-berlin-berlin"')
         parser.add_argument(
             '--include-neighbor-city', '-n', action='store_true', help='include neighboring cities')
         parser.add_argument('--start-date', type=str, default=None,
@@ -681,8 +680,6 @@ class Application:
         parser.add_argument('password', nargs='?', help='Doctolib password')
         parser.add_argument('--code', type=str, default=None, help='2FA code')
         args = parser.parse_args(cli_args if cli_args else sys.argv[1:])
-
-        from types import SimpleNamespace
 
         if args.debug:
             responses_dirname = tempfile.mkdtemp(prefix='woob_session_')
@@ -804,7 +801,7 @@ class Application:
         while True:
             log_ts()
             try:
-                for center in docto.find_centers(cities, motives, args.additional_center):
+                for center in docto.find_centers(cities, motives):
                     if args.center:
                         if center['name_with_title'] not in args.center:
                             logging.debug("Skipping center '%s'" %
@@ -840,18 +837,19 @@ class Application:
                         continue
 
                     log('')
-
                     log('Center %(name_with_title)s (%(city)s):' % center)
 
-                    if docto.try_to_book(center, vaccine_list, start_date, end_date, args.only_second, args.only_third, args.dry_run):
-                        log('')
-                        log('💉 %s Congratulations.' %
-                            colored('Booked!', 'green', attrs=('bold',)))
+                    if self.try_to_book_or_sleep(docto, center, vaccine_list, start_date, end_date, args.only_second, args.only_third, args.dry_run):
                         return 0
 
-                    sleep(SLEEP_INTERVAL_AFTER_CENTER)
+                if args.additional_center:
+                    for additional_center in args.additional_center:
+                        log('')
+                        log('Additional center %s:', additional_center.split('/')[-1])
 
-                    log('')
+                        if self.try_to_book_or_sleep(docto, { "url": additional_center }, vaccine_list, start_date, end_date, args.only_second, args.only_third, args.dry_run):
+                            return 0
+
                 log('No free slots found at selected centers. Trying another round in %s sec...', SLEEP_INTERVAL_AFTER_RUN)
                 sleep(SLEEP_INTERVAL_AFTER_RUN)
             except CityNotFound as e:

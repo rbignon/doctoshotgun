@@ -63,6 +63,36 @@ def test_center_exclude_arg_should_filter_excluded_centers(MockDoctolibDE, tmp_p
         assert call_args_list.args[0]['city'] == city
 
 
+@responses.activate
+@patch('doctoshotgun.DoctolibDE')
+def test_additional_centers_arg_should_processed(MockDoctolibDE, tmp_path):
+    """
+    Check that additional centers are processed
+    """
+    # prepare
+    mock_doctolib_de = get_mocked_doctolib(MockDoctolibDE)
+
+    # patch find_centers to force usage of additional centers
+    mock_doctolib_de.find_centers.return_value = {}
+
+    # call for every additional center as every booking is successfull
+    city = ''
+    additional_centers = [
+        '/institut/koeln/ciz-koeln-koeln',
+        '/allgemeinmedizin/koeln/dr-dre'
+    ]
+
+    for additional_center in additional_centers:
+        call_application(city, cli_args=['--additional-center', additional_center])
+
+    # assert
+    assert mock_doctolib_de.get_patients.called
+    assert mock_doctolib_de.try_to_book.called
+
+    for i, call_args_list in enumerate(mock_doctolib_de.try_to_book.call_args_list):
+        assert call_args_list[0][0]['url'] == additional_centers[i]
+
+
 def get_mocked_doctolib(MockDoctolibDE):
     mock_doctolib_de = MagicMock(wraps=DoctolibDE)
     MockDoctolibDE.return_value = mock_doctolib_de

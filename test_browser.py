@@ -116,38 +116,6 @@ def test_find_centers_de_returns_502_should_fail(tmp_path):
 
 
 @responses.activate
-def test_find_centers_de_should_return_additional_centers(tmp_path):
-    docto = DoctolibDE("roger.phillibert@gmail.com",
-                       "1234", responses_dirname=tmp_path)
-    docto.BASEURL = "https://127.0.0.1"
-
-    responses.add(
-        responses.GET,
-        "https://127.0.0.1/impfung-covid-19-corona/K%C3%B6ln?ref_visit_motive_ids%5B%5D=6768&ref_visit_motive_ids%5B%5D=6769&ref_visit_motive_ids%5B%5D=6936&ref_visit_motive_ids%5B%5D=6937&ref_visit_motive_ids%5B%5D=7978&ref_visit_motive_ids%5B%5D=7109&ref_visit_motive_ids%5B%5D=7110&page=1",
-        status=200,
-        body="{}"
-    )
-
-    additional_centers = [
-        'Corona Impfzentren - Köln;Köln;/institut/koeln/ciz-koeln-koeln',
-        'Dr. Dre;Köln;/allgemeinmedizin/koeln/dr-dre'
-    ]
-
-    centers = 0
-    for result in docto.find_centers(["Köln"], None, 1, additional_centers):
-        splitted = additional_centers[centers].split(';')
-
-        assert result['name_with_title'] == splitted[0]
-        assert result['city'] == splitted[1]
-        assert result['url'] == splitted[2]
-
-        centers += 1
-
-    assert centers == len(additional_centers)
-    assert len(responses.calls) == 1
-
-
-@responses.activate
 def test_get_next_page_fr_should_return_2_on_page_1(tmp_path):
     """
     Check that get_next_page returns 2 when we are on page 1 and there is a next page available
