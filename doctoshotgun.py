@@ -577,9 +577,7 @@ class DoctolibDE(Doctolib):
     centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
     center = URL(r'/praxis/.*', CenterPage)
 
-
-class DoctolibFR(Doctolib):
-    BASEURL = 'https://www.doctolib.fr'
+class DoctolibFR_KEYS(Doctolib):
     KEY_PFIZER = '6970'
     KEY_PFIZER_SECOND = '6971'
     KEY_PFIZER_THIRD = '8192'
@@ -589,6 +587,11 @@ class DoctolibFR(Doctolib):
     KEY_JANSSEN = '7945'
     KEY_ASTRAZENECA = '7107'
     KEY_ASTRAZENECA_SECOND = '7108'
+
+class DoctolibFR(Doctolib):
+    BASEURL = 'https://www.doctolib.fr'
+    FR_keys = DoctolibFR_KEYS
+
     vaccine_motives = {
         KEY_PFIZER: 'Pfizer',
         KEY_PFIZER_SECOND: '2de.*Pfizer',
