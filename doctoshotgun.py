@@ -107,7 +107,7 @@ class CentersPage(HTMLPage):
             # JavaScript:
             # var t = (e = r()(e)).data("u")
             #     , n = atob(t.replace(/\s/g, '').split('').reverse().join(''));
-            
+
             import base64
             href = base64.urlsafe_b64decode(''.join(span.attrib['data-u'].split())[::-1]).decode()
             query = dict(parse.parse_qsl(parse.urlsplit(href).query))
@@ -121,7 +121,7 @@ class CentersPage(HTMLPage):
 
             if 'page' in query:
                 return int(query['page'])
-        
+
         return None
 
 class CenterResultPage(JsonPage):
@@ -547,9 +547,7 @@ class Doctolib(LoginBrowser):
 
         return self.page.doc['confirmed']
 
-
-class DoctolibDE(Doctolib):
-    BASEURL = 'https://www.doctolib.de'
+class DoctolibDE_KEYS(Doctolib):
     KEY_PFIZER = '6768'
     KEY_PFIZER_SECOND = '6769'
     KEY_PFIZER_THIRD = None
@@ -559,6 +557,12 @@ class DoctolibDE(Doctolib):
     KEY_JANSSEN = '7978'
     KEY_ASTRAZENECA = '7109'
     KEY_ASTRAZENECA_SECOND = '7110'
+
+
+class DoctolibDE(Doctolib):
+    BASEURL = 'https://www.doctolib.de'
+    DE_keys = DoctolibDE_KEYS
+
     vaccine_motives = {
         KEY_PFIZER: 'Pfizer',
         KEY_PFIZER_SECOND: 'Zweit.*Pfizer|Pfizer.*Zweit',
