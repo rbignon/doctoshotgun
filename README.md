@@ -54,6 +54,8 @@ Further optional arguments:
                       exclude centers
 --center-exclude-regex CENTER_EXCLUDE_REGEX
                       exclude centers by regex
+--additional-center "url", -ac "url"
+                      Add additional centers or doctors e.g. "/institut/berlin/ciz-berlin-berlin"
 --include-neighbor-city, -n
                       include neighboring cities
 --start-date START_DATE
