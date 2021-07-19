@@ -75,15 +75,15 @@ class Session(cloudscraper.CloudScraper):
 
 #Applied Aggregated Pattern For UserPage
 class UserPage:
-    page = dict()
+    pages = dict()
     def __init__(self):
         self.allocate()
          #Creating a batch
     def allocate(self):
-        self.page["login"] = URL('/login.json', LoginPage)
-        self.page["send_auth_code"] = URL('/api/accounts/send_auth_code', SendAuthCodePage)
-        self.page["challenge"] = URL('/login/challenge', ChallengePage)
-        self.page["master_patient"] = URL(r'/account/master_patients.json', MasterPatientPage)
+        self.pages["login"] = URL('/login.json', LoginPage)
+        self.pages["send_auth_code"] = URL('/api/accounts/send_auth_code', SendAuthCodePage)
+        self.pages["challenge"] = URL('/login/challenge', ChallengePage)
+        self.pages["master_patient"] = URL(r'/account/master_patients.json', MasterPatientPage)
         #Allocate the batch 
             
 
@@ -278,7 +278,7 @@ class Doctolib(LoginBrowser):
                 log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
             raise
         try:
-            self.userPages["login"].go(json={'kind': 'patient',
+            self.userPages.pages["login"].go(json={'kind': 'patient',
                                 'username': self.username,
                                 'password': self.password,
                                 'remember': True,
@@ -293,11 +293,11 @@ class Doctolib(LoginBrowser):
                 if not sys.__stdin__.isatty():
                     log("Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.", color='red')
                     return False
-                self.userPages["send_auth_code"].go(
+                self.userPages.pages["send_auth_code"].go(
                     json={'two_factor_auth_method': 'email'}, method="POST")
                 code = input("Enter auth code: ")
             try:
-                self.userPages["challenge"].go(
+                self.userPages.pages["challenge"].go(
                     json={'auth_code': code, 'two_factor_auth_method': 'email'}, method="POST")
             except HTTPNotFound:
                 print("Invalid auth code")
@@ -348,7 +348,7 @@ class Doctolib(LoginBrowser):
                     yield center
 
     def get_patients(self):
-        self.userPages["master_patient"].go()
+        self.userPages.pages["master_patient"].go()
         return self.page.get_patients()
 
     @classmethod
