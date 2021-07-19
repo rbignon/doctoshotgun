@@ -626,7 +626,8 @@ class Application:
         }
 
         parser = argparse.ArgumentParser(
-            description="Book a vaccine slot on Doctolib")
+            description="Book a vaccine slot on Doctolib",
+            fromfile_prefix_chars='@')
         parser.add_argument('--debug', '-d', action='store_true',
                             help='show debug information')
         parser.add_argument('--pfizer', '-z', action='store_true',
