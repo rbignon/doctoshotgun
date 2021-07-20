@@ -45,22 +45,6 @@ except ImportError:
         pass
 
 
-def log(text, *args, **kwargs):
-    args = (colored(arg, 'yellow') for arg in args)
-    if 'color' in kwargs:
-        text = colored(text, kwargs.pop('color'))
-    text = text % tuple(args)
-    print(text, **kwargs)
-
-
-def log_ts(text=None, *args, **kwargs):
-    ''' Log with timestamp'''
-    now = datetime.datetime.now()
-    print("[%s]" % now.isoformat(" ", "seconds"))
-    if text:
-        log(text, *args, **kwargs)
-
-
 class Session(cloudscraper.CloudScraper):
     def send(self, *args, **kwargs):
         callback = kwargs.pop('callback', lambda future, response: response)
@@ -347,7 +331,10 @@ class Doctolib(LoginBrowser):
             [c for c in nfkd if not unicodedata.combining(c)])
         normalized = re.sub(r'\W', '-', normalized)
         return normalized.lower()
+    
 
+    class BookAppointment(JSonPage):
+    ''' Place all instances of booking an appointment in one place '''
     def try_to_book(self, center, vaccine_list, start_date, end_date, only_second, only_third, dry_run=False):
         self.open(center['url'])
         p = urlparse(center['url'])
@@ -547,6 +534,7 @@ class Doctolib(LoginBrowser):
 
         return self.page.doc['confirmed']
 
+    
 
 class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
@@ -763,6 +751,28 @@ class Application:
 
         vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
 
+        
+
+        
+        class TimeandDate
+        ''' Placing all instances of logging time and date'''
+        
+        def log(text, *args, **kwargs):
+            args = (colored(arg, 'yellow') for arg in args)
+             if 'color' in kwargs:
+              text = colored(text, kwargs.pop('color'))
+             text = text % tuple(args)
+             print(text, **kwargs)
+
+
+        def log_ts(text=None, *args, **kwargs):
+            ''' Log with timestamp'''
+         now = datetime.datetime.now()
+            print("[%s]" % now.isoformat(" ", "seconds"))
+            if text:
+            log(text, *args, **kwargs)
+        
+        
         if args.start_date:
             try:
                 start_date = datetime.datetime.strptime(
@@ -787,7 +797,7 @@ class Application:
         log('Country: %s ', args.country)
         log('This may take a few minutes/hours, be patient!')
         cities = [docto.normalize(city) for city in args.city.split(',')]
-
+        
         while True:
             log_ts()
             try:
