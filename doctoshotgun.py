@@ -107,7 +107,7 @@ class CentersPage(HTMLPage):
             # JavaScript:
             # var t = (e = r()(e)).data("u")
             #     , n = atob(t.replace(/\s/g, '').split('').reverse().join(''));
-            
+
             import base64
             href = base64.urlsafe_b64decode(''.join(span.attrib['data-u'].split())[::-1]).decode()
             query = dict(parse.parse_qsl(parse.urlsplit(href).query))
@@ -121,7 +121,7 @@ class CentersPage(HTMLPage):
 
             if 'page' in query:
                 return int(query['page'])
-        
+
         return None
 
 class CenterResultPage(JsonPage):
@@ -214,6 +214,19 @@ class CityNotFound(Exception):
     pass
 
 
+class DocApp:
+
+    webs = {}
+
+    def __init__(self):
+        self.webs["appointment"] = URL(r'/appointments.json', AppointmentPage)
+        self.webs["appointment_edit"] = URL(
+            r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
+        self.webs["appointment_post"] = URL(
+            r'/appointments/(?P<id>.+).json', AppointmentPostPage)
+
+
+
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
     BASEURL = ""
@@ -229,12 +242,9 @@ class Doctolib(LoginBrowser):
     availabilities = URL(r'/availabilities.json', AvailabilitiesPage)
     second_shot_availabilities = URL(
         r'/second_shot_availabilities.json', AvailabilitiesPage)
-    appointment = URL(r'/appointments.json', AppointmentPage)
-    appointment_edit = URL(
-        r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
-    appointment_post = URL(
-        r'/appointments/(?P<id>.+).json', AppointmentPostPage)
     master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
+
+    docApp = DocApp()
 
     def _setup_session(self, profile):
         session = Session()
@@ -435,20 +445,20 @@ class Doctolib(LoginBrowser):
         log('  ├╴ Best slot found: %s', parse_date(
             slot_date_first).strftime('%c'))
 
-        appointment = {'profile_id':    profile_id,
+        self.docApp.webs["appointment"] = {'profile_id':    profile_id,
                        'source_action': 'profile',
                        'start_date':    slot_date_first,
                        'visit_motive_ids': str(motive_id),
                        }
 
         data = {'agenda_ids': '-'.join(agenda_ids),
-                'appointment': appointment,
+                'appointment': self.docApp.webs["appointment"],
                 'practice_ids': [practice_id]}
 
         headers = {
             'content-type': 'application/json',
         }
-        self.appointment.go(data=json.dumps(data), headers=headers)
+        self.docApp.webs["appointment"].go(data=json.dumps(data), headers=headers)
 
         if self.page.is_error():
             log('  └╴ Appointment not available anymore :( %s', self.page.get_error())
@@ -488,7 +498,7 @@ class Doctolib(LoginBrowser):
                 slot_date_second).strftime('%c'))
 
             data['second_slot'] = slot_date_second
-            self.appointment.go(data=json.dumps(data), headers=headers)
+            self.docApp.webs["appointment"].go(data=json.dumps(data), headers=headers)
 
             if self.page.is_error():
                 log('  └╴ Appointment not available anymore :( %s',
@@ -497,11 +507,11 @@ class Doctolib(LoginBrowser):
 
         a_id = self.page.doc['id']
 
-        self.appointment_edit.go(id=a_id)
+        self.docApp.webs["appointment_edit"].go(id=a_id)
 
         log('  ├╴ Booking for %(first_name)s %(last_name)s...' % self.patient)
 
-        self.appointment_edit.go(
+        self.docApp.webs["appointment_edit"].go(
             id=a_id, params={'master_patient_id': self.patient['id']})
 
         custom_fields = {}
@@ -534,14 +544,14 @@ class Doctolib(LoginBrowser):
                 'phone_number': None,
                 }
 
-        self.appointment_post.go(id=a_id, data=json.dumps(
+        self.docApp.webs["appointment_post"].go(id=a_id, data=json.dumps(
             data), headers=headers, method='PUT')
 
         if 'redirection' in self.page.doc and not 'confirmed-appointment' in self.page.doc['redirection']:
             log('  ├╴ Open %s to complete', self.BASEURL +
                 self.page.doc['redirection'])
 
-        self.appointment_post.go(id=a_id)
+        self.docApp.webs["appointment_post"].go(id=a_id)
 
         log('  └╴ Booking status: %s', self.page.doc['confirmed'])
 
