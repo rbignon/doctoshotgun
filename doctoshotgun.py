@@ -332,8 +332,9 @@ class Doctolib(LoginBrowser):
         normalized = re.sub(r'\W', '-', normalized)
         return normalized.lower()
     
-
-
+    
+    class BookAppointment(JSonPage):
+    ''' Place all instances of booking an appointment in one place '''
     def try_to_book(self, center, vaccine_list, start_date, end_date, only_second, only_third, dry_run=False):
         self.open(center['url'])
         p = urlparse(center['url'])
