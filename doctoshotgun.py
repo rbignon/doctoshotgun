@@ -754,7 +754,7 @@ class Application:
 
         
         class TimeandDate(JSonPage):
-        ''' Placing main instances of logging time and date in one class for aggregation'''
+        ''' Placing main instances of logging time and date in one class for aggregation '''
         
         def log(text, *args, **kwargs):
             args = (colored(arg, 'yellow') for arg in args)
