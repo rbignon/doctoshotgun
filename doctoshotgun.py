@@ -359,7 +359,7 @@ class Doctolib(LoginBrowser):
         motives_id = dict()
         for vaccine in vaccine_list:
             motives_id[vaccine] = self.page.find_motive(
-                r'.*({})'.format(vaccine), singleShot=(vaccine == self.vaccine_motives[self.KEY_JANSSEN] or only_second or only_third))
+                r'.*({})'.format(vaccine), singleShot=(vaccine == self.vaccine_motives[self.VACCINES['JANSSEN'].key] or only_second or only_third))
 
         motives_id = dict((k, v)
                           for k, v in motives_id.items() if v is not None)
@@ -547,28 +547,46 @@ class Doctolib(LoginBrowser):
 
         return self.page.doc['confirmed']
 
+class Vaccine:
+    def __init__(self, key, motive):
+        self.key = key
+        self.motive = motive
+class Pfizer(Vaccine):
+    def __init__(self, key, motive):
+        super().__init__(key, motive)
+class Moderna(Vaccine):
+    def __init__(self, key, motive):
+        super().__init__(key, motive)
+class Janssen(Vaccine):
+    def __init__(self, key, motive):
+        super().__init__(key, motive)
+class AstraZeneca(Vaccine):
+    def __init__(self, key, motive):
+        super().__init__(key, motive)
 
 class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
-    KEY_PFIZER = '6768'
-    KEY_PFIZER_SECOND = '6769'
-    KEY_PFIZER_THIRD = None
-    KEY_MODERNA = '6936'
-    KEY_MODERNA_SECOND = '6937'
-    KEY_MODERNA_THIRD = None
-    KEY_JANSSEN = '7978'
-    KEY_ASTRAZENECA = '7109'
-    KEY_ASTRAZENECA_SECOND = '7110'
+    VACCINES = {
+        'PFIZER' : Pfizer('6768', 'Pfizer'),
+        'PFIZER_SECOND' : Pfizer('6769', 'Zweit.*Pfizer|Pfizer.*Zweit'), 
+        'PFIZER_THIRD' : Pfizer(None, 'Dritt.*Pfizer|Pfizer.*Dritt'),
+        'MODERNA' : Moderna('6936', 'Moderna'),
+        'MODERNA_SECOND' : Moderna('6937', 'Zweit.*Moderna|Moderna.*Zweit'),
+        'MODERNA_THIRD' : Moderna(None, 'Dritt.*Moderna|Moderna.*Dritt'),
+        'JANSSEN' : Janssen('7978','Janssen'),
+        'ASTRAZENECA' : AstraZeneca('7109','AstraZeneca'),
+        'ASTRAZENECA_SECOND' : AstraZeneca('7110', 'Zweit.*AstraZeneca|AstraZeneca.*Zweit')
+    }
     vaccine_motives = {
-        KEY_PFIZER: 'Pfizer',
-        KEY_PFIZER_SECOND: 'Zweit.*Pfizer|Pfizer.*Zweit',
-        KEY_PFIZER_THIRD: 'Dritt.*Pfizer|Pfizer.*Dritt',
-        KEY_MODERNA: 'Moderna',
-        KEY_MODERNA_SECOND: 'Zweit.*Moderna|Moderna.*Zweit',
-        KEY_MODERNA_THIRD: 'Dritt.*Moderna|Moderna.*Dritt',
-        KEY_JANSSEN: 'Janssen',
-        KEY_ASTRAZENECA: 'AstraZeneca',
-        KEY_ASTRAZENECA_SECOND: 'Zweit.*AstraZeneca|AstraZeneca.*Zweit',
+        VACCINES['PFIZER'].key : VACCINES['PFIZER'].motive,
+        VACCINES['PFIZER_SECOND'].key :  VACCINES['PFIZER_SECOND'].motive,
+        VACCINES['PFIZER_THIRD'].key : VACCINES['PFIZER_THIRD'].motive,
+        VACCINES['MODERNA'].key : VACCINES['MODERNA'].motive,
+        VACCINES['MODERNA_SECOND'].key : VACCINES['MODERNA_SECOND'].motive,
+        VACCINES['MODERNA_THIRD'].key : VACCINES['MODERNA_THIRD'].motive,
+        VACCINES['JANSSEN'].key : VACCINES['JANSSEN'].motive,
+        VACCINES['ASTRAZENECA'].key: VACCINES['ASTRAZENECA'].motive,
+        VACCINES['ASTRAZENECA_SECOND'].key: VACCINES['ASTRAZENECA_SECOND'].motive
     }
     centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
     center = URL(r'/praxis/.*', CenterPage)
@@ -576,25 +594,27 @@ class DoctolibDE(Doctolib):
 
 class DoctolibFR(Doctolib):
     BASEURL = 'https://www.doctolib.fr'
-    KEY_PFIZER = '6970'
-    KEY_PFIZER_SECOND = '6971'
-    KEY_PFIZER_THIRD = '8192'
-    KEY_MODERNA = '7005'
-    KEY_MODERNA_SECOND = '7004'
-    KEY_MODERNA_THIRD = '8193'
-    KEY_JANSSEN = '7945'
-    KEY_ASTRAZENECA = '7107'
-    KEY_ASTRAZENECA_SECOND = '7108'
+    VACCINES = {
+        'PFIZER' : Pfizer('6970', 'Pfizer'),
+        'PFIZER_SECOND' : Pfizer('6971', '2de.*Pfizer'), 
+        'PFIZER_THIRD' : Pfizer('8192', '3e.*Pfizer'),
+        'MODERNA' : Moderna('7005', 'Moderna'),
+        'MODERNA_SECOND' : Moderna('7004', '2de.*Moderna'),
+        'MODERNA_THIRD' : Moderna('8193', '3e.*Moderna'),
+        'JANSSEN' : Janssen('7945','Janssen'),
+        'ASTRAZENECA' : AstraZeneca('7107','AstraZeneca'),
+        'ASTRAZENECA_SECOND' : AstraZeneca('7108', '2de.*AstraZeneca')
+    }
     vaccine_motives = {
-        KEY_PFIZER: 'Pfizer',
-        KEY_PFIZER_SECOND: '2de.*Pfizer',
-        KEY_PFIZER_THIRD: '3e.*Pfizer',
-        KEY_MODERNA: 'Moderna',
-        KEY_MODERNA_SECOND: '2de.*Moderna',
-        KEY_MODERNA_THIRD: '3e.*Moderna',
-        KEY_JANSSEN: 'Janssen',
-        KEY_ASTRAZENECA: 'AstraZeneca',
-        KEY_ASTRAZENECA_SECOND: '2de.*AstraZeneca',
+        VACCINES['PFIZER'].key : VACCINES['PFIZER'].motive,
+        VACCINES['PFIZER_SECOND'].key :  VACCINES['PFIZER_SECOND'].motive,
+        VACCINES['PFIZER_THIRD'].key : VACCINES['PFIZER_THIRD'].motive,
+        VACCINES['MODERNA'].key : VACCINES['MODERNA'].motive,
+        VACCINES['MODERNA_SECOND'].key : VACCINES['MODERNA_SECOND'].motive,
+        VACCINES['MODERNA_THIRD'].key : VACCINES['MODERNA_THIRD'].motive,
+        VACCINES['JANSSEN'].key : VACCINES['JANSSEN'].motive,
+        VACCINES['ASTRAZENECA'].key: VACCINES['ASTRAZENECA'].motive,
+        VACCINES['ASTRAZENECA_SECOND'].key: VACCINES['ASTRAZENECA_SECOND'].motive
     }
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
@@ -712,54 +732,54 @@ class Application:
         motives = []
         if not args.pfizer and not args.moderna and not args.janssen and not args.astrazeneca:
             if args.only_second:
-                motives.append(docto.KEY_PFIZER_SECOND)
-                motives.append(docto.KEY_MODERNA_SECOND)
-                # motives.append(docto.KEY_ASTRAZENECA_SECOND) #do not add AstraZeneca by default
+                motives.append(docto.VACCINES['PFIZER_SECOND'].key)
+                motives.append(docto.VACCINES['MODERNA_SECOND'].key)
+                # motives.append(docto.VACCINES['ASTRAZENECA_SECOND'].key) #do not add AstraZeneca by default
             elif args.only_third:
-                if not docto.KEY_PFIZER_THIRD and not docto.KEY_MODERNA_THIRD:
+                if not docto.VACCINES['PFIZER_THIRD'].key and not docto.VACCINES['MODERNA_THIRD'].key:
                     print('Invalid args: No third shot vaccinations in this country')
                     return 1
-                motives.append(docto.KEY_PFIZER_THIRD)
-                motives.append(docto.KEY_MODERNA_THIRD)
+                motives.append(docto.VACCINES['PFIZER_THIRD'].key)
+                motives.append(docto.VACCINES['MODERNA_THIRD'].key)
             else:
-                motives.append(docto.KEY_PFIZER)
-                motives.append(docto.KEY_MODERNA)
-                motives.append(docto.KEY_JANSSEN)
-                # motives.append(docto.KEY_ASTRAZENECA) #do not add AstraZeneca by default
+                motives.append(docto.VACCINES['PFIZER'].key)
+                motives.append(docto.VACCINES['MODERNA'].key)
+                motives.append(docto.VACCINES['JANSSEN'].key)
+                # motives.append(docto.VACCINES['ASTRAZENECA'].key) #do not add AstraZeneca by default
         if args.pfizer:
             if args.only_second:
-                motives.append(docto.KEY_PFIZER_SECOND)
+                motives.append(docto.VACCINES['PFIZER_SECOND'].key)
             elif args.only_third:
-                if not docto.KEY_PFIZER_THIRD:  # not available in all countries
+                if not docto.VACCINES['PFIZER_THIRD'].key:  # not available in all countries
                     print('Invalid args: Pfizer has no third shot in this country')
                     return 1
-                motives.append(docto.KEY_PFIZER_THIRD)
+                motives.append(docto.VACCINES['PFIZER_THIRD'].key)
             else:
-                motives.append(docto.KEY_PFIZER)
+                motives.append(docto.VACCINES['PFIZER'].key)
         if args.moderna:
             if args.only_second:
-                motives.append(docto.KEY_MODERNA_SECOND)
+                motives.append(docto.VACCINES['MODERNA_SECOND'].key)
             elif args.only_third:
-                if not docto.KEY_MODERNA_THIRD:  # not available in all countries
+                if not docto.VACCINES['MODERNA_THIRD'].key:  # not available in all countries
                     print('Invalid args: Moderna has no third shot in this country')
                     return 1
-                motives.append(docto.KEY_MODERNA_THIRD)
+                motives.append(docto.VACCINES['MODERNA_THIRD'].key)
             else:
-                motives.append(docto.KEY_MODERNA)
+                motives.append(docto.VACCINES['MODERNA'].key)
         if args.janssen:
             if args.only_second or args.only_third:
                 print('Invalid args: Janssen has no second or third shot')
                 return 1
             else:
-                motives.append(docto.KEY_JANSSEN)
+                motives.append(docto.VACCINES['JANSSEN'].key)
         if args.astrazeneca:
             if args.only_second:
-                motives.append(docto.KEY_ASTRAZENECA_SECOND)
+                motives.append(docto.VACCINES['ASTRAZENECA_SECOND'].key)
             elif args.only_third:
                 print('Invalid args: AstraZeneca has no third shot')
                 return 1
             else:
-                motives.append(docto.KEY_ASTRAZENECA)
+                motives.append(docto.VACCINES['ASTRAZENECA'].key)
 
         vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
 
