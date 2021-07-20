@@ -333,8 +333,7 @@ class Doctolib(LoginBrowser):
         return normalized.lower()
     
 
-    class BookAppointment(JSonPage):
-    ''' Place all instances of booking an appointment in one place '''
+
     def try_to_book(self, center, vaccine_list, start_date, end_date, only_second, only_third, dry_run=False):
         self.open(center['url'])
         p = urlparse(center['url'])
@@ -755,7 +754,7 @@ class Application:
 
         
         class TimeandDate
-        ''' Placing all instances of logging time and date'''
+        ''' Placing main instances of logging time and date in one class for aggregation'''
         
         def log(text, *args, **kwargs):
             args = (colored(arg, 'yellow') for arg in args)
