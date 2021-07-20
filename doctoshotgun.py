@@ -107,7 +107,7 @@ class CentersPage(HTMLPage):
             # JavaScript:
             # var t = (e = r()(e)).data("u")
             #     , n = atob(t.replace(/\s/g, '').split('').reverse().join(''));
-            
+
             import base64
             href = base64.urlsafe_b64decode(''.join(span.attrib['data-u'].split())[::-1]).decode()
             query = dict(parse.parse_qsl(parse.urlsplit(href).query))
@@ -121,7 +121,7 @@ class CentersPage(HTMLPage):
 
             if 'page' in query:
                 return int(query['page'])
-        
+
         return None
 
 class CenterResultPage(JsonPage):
@@ -857,7 +857,7 @@ class Application:
                 return 1
         return 0
 
-
+# shir too corona
 if __name__ == '__main__':
     try:
         sys.exit(Application().main())
