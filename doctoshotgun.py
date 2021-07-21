@@ -890,7 +890,6 @@ class Application:
                 return 1
         return 0
 
-# shir too corona
 if __name__ == '__main__':
     try:
         sys.exit(Application().main())
