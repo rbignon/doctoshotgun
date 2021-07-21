@@ -555,7 +555,7 @@ class Vaccine:
 
 
 class DoctolibDE(Doctolib):
-    def __init__(self, pfizer, pfizer2, pfizer3, moderna,moderna2, moderna3, janssen, astrazeneca, astrazeneca2):
+    def __init__(self, pfizer, pfizer2, pfizer3, moderna, moderna2, moderna3, janssen, astrazeneca, astrazeneca2):
         self.BASEURL = 'https://www.doctolib.de'
         self.PFIZER = pfizer
         self.PFIZER_SECOND = pfizer2
@@ -568,10 +568,21 @@ class DoctolibDE(Doctolib):
         self.ASTRAZENECA_SECOND = astrazeneca2
         self.centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
         self.center = URL(r'/praxis/.*', CenterPage)
+        self.vaccine_motives = {
+            self.PFIZER.key: self.PFIZER.motive,
+            self.PFIZER_SECOND.key: self.PFIZER_SECOND.motive,
+            self.PFIZER_THIRD.key: self.PFIZER_THIRD.motive,
+            self.MODERNA.key: self.MODERNA.motive,
+            self.MODERNA_SECOND.key: self.MODERNA_SECOND.motive,
+            self.MODERNA_THIRD.key: self.MODERNA_THIRD.motive,
+            self.JANSSEN.key: self.JANSSEN.motive,
+            self.ASTRAZENECA.key: self.ASTRAZENECA.motive,
+            self.ASTRAZENECA_SECOND.key: self.ASTRAZENECA_SECOND.motive,
+        }
 
 
 class DoctolibFR(Doctolib):
-    def __init__(self, pfizer, pfizer2, pfizer3, moderna,moderna2, moderna3, janssen, astrazeneca, astrazeneca2):
+    def __init__(self, pfizer, pfizer2, pfizer3, moderna, moderna2, moderna3, janssen, astrazeneca, astrazeneca2):
         self.BASEURL = 'https://www.doctolib.fr'
         self.PFIZER = pfizer
         self.PFIZER_SECOND = pfizer2
@@ -584,6 +595,17 @@ class DoctolibFR(Doctolib):
         self.ASTRAZENECA_SECOND = astrazeneca2
         self.centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
         self.center = URL(r'/centre-de-sante/.*', CenterPage)
+        self.vaccine_motives = {
+            self.PFIZER.key: self.PFIZER.motive,
+            self.PFIZER_SECOND.key: self.PFIZER_SECOND.motive,
+            self.PFIZER_THIRD.key: self.PFIZER_THIRD.motive,
+            self.MODERNA.key: self.MODERNA.motive,
+            self.MODERNA_SECOND.key: self.MODERNA_SECOND.motive,
+            self.MODERNA_THIRD.key: self.MODERNA_THIRD.motive,
+            self.JANSSEN.key: self.JANSSEN.motive,
+            self.ASTRAZENECA.key: self.ASTRAZENECA.motive,
+            self.ASTRAZENECA_SECOND.key: self.ASTRAZENECA_SECOND.motive,
+        }
 
 
 class Application:
