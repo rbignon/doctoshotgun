@@ -535,7 +535,7 @@ def test_book_slots_should_succeed(tmp_path):
     for result in docto.find_centers(["Köln"]):
         result_handled = True
 
-        center = result['search_result']
+        center = result.search_result
 
         # single shot vaccination
         assert docto.try_to_book(center=center,

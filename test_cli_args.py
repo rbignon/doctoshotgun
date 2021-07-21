@@ -1,21 +1,21 @@
 import responses
 from unittest.mock import patch, MagicMock
 
-from doctoshotgun import Application, DoctolibDE, DoctolibFR, MasterPatientPage
+from doctoshotgun import Application, DoctolibDE, DoctolibFR, MasterPatientPage, Center
 
 CENTERS = [
-    {
+    Center({
         "name_with_title": "Doktor",
         "city": "koln",
-    },
-    {
+    }),
+    Center({
         "name_with_title": "Doktor2",
         "city": "koln",
-    },
-    {
+    }),
+    Center({
         "name_with_title": "Doktor",
         "city": "neuss",
-    },
+    }),
 ]
 
 
@@ -37,8 +37,8 @@ def test_center_arg_should_filter_centers(MockDoctolibDE, tmp_path):
     assert mock_doctolib_de.get_patients.called
     assert mock_doctolib_de.try_to_book.called
     for call_args_list in mock_doctolib_de.try_to_book.call_args_list:
-        assert call_args_list.args[0]['name_with_title'] == center
-        assert call_args_list.args[0]['city'] == city
+        assert call_args_list[0][0]['name_with_title'] == center
+        assert call_args_list[0][0]['city'] == city
 
 
 @responses.activate
@@ -59,8 +59,8 @@ def test_center_exclude_arg_should_filter_excluded_centers(MockDoctolibDE, tmp_p
     assert mock_doctolib_de.get_patients.called
     assert mock_doctolib_de.try_to_book.called
     for call_args_list in mock_doctolib_de.try_to_book.call_args_list:
-        assert call_args_list.args[0]['name_with_title'] != excluded_center
-        assert call_args_list.args[0]['city'] == city
+        assert call_args_list[0][0]['name_with_title'] != excluded_center
+        assert call_args_list[0][0]['city'] == city
 
 
 def get_mocked_doctolib(MockDoctolibDE):
