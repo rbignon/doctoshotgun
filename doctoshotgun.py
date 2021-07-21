@@ -213,6 +213,15 @@ class MasterPatientPage(JsonPage):
 class CityNotFound(Exception):
     pass
 
+class Center(CenterResultPage):
+    def __init__(self, center):
+        if "name_with_title" in center:
+            self.name_with_title = center["name_with_title"]
+        if "city" in center:
+            self.city = center["city"]
+        if 'search_result' in center:
+            self.search_result = center["search_result"]
+        
 
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
@@ -327,13 +336,13 @@ class Doctolib(LoginBrowser):
                     }
                 )
                 try:
-                    yield page.doc['search_result']
+                    yield Center(page.doc['search_result'])
                 except KeyError:
                     pass
 
             if next_page:
                 for center in self.find_centers(where, motives, next_page):
-                    yield center
+                    yield Center(center)
 
     def get_patients(self):
         self.master_patient.go()
@@ -793,44 +802,44 @@ class Application:
             try:
                 for center in docto.find_centers(cities, motives):
                     if args.center:
-                        if center['name_with_title'] not in args.center:
+                        if center.name_with_title not in args.center:
                             logging.debug("Skipping center '%s'" %
-                                          center['name_with_title'])
+                                          center.name_with_title)
                             continue
                     if args.center_regex:
                         center_matched = False
                         for center_regex in args.center_regex:
-                            if re.match(center_regex, center['name_with_title']):
+                            if re.match(center_regex, center.name_with_title):
                                 center_matched = True
                             else:
                                 logging.debug(
-                                    "Skipping center '%(name_with_title)s'" % center)
+                                    "Skipping center '%s'" % center.name_with_title)
                         if not center_matched:
                             continue
                     if args.center_exclude:
-                        if center['name_with_title'] in args.center_exclude:
+                        if center.name_with_title in args.center_exclude:
                             logging.debug(
-                                "Skipping center '%(name_with_title)s' because it's excluded" % center)
+                                "Skipping center '%s' because it's excluded" % center.name_with_title)
                             continue
                     if args.center_exclude_regex:
                         center_excluded = False
                         for center_exclude_regex in args.center_exclude_regex:
-                            if re.match(center_exclude_regex, center['name_with_title']):
+                            if re.match(center_exclude_regex, center.name_with_title):
                                 logging.debug(
-                                    "Skipping center '%(name_with_title)s' because it's excluded" % center)
+                                    "Skipping center '%s' because it's excluded" % center.name_with_title)
                                 center_excluded = True
                         if center_excluded:
                             continue
-                    if not args.include_neighbor_city and not docto.normalize(center['city']).startswith(tuple(cities)):
+                    if not args.include_neighbor_city and not docto.normalize(center.city).startswith(tuple(cities)):
                         logging.debug(
-                            "Skipping city '%(city)s' %(name_with_title)s" % center)
+                            "Skipping city '%s' %s" % (center.city, center.name_with_title))
                         continue
 
                     log('')
 
-                    log('Center %(name_with_title)s (%(city)s):' % center)
+                    log('Center %s (%s):' %  (center.city, center.name_with_title))
 
-                    if docto.try_to_book(center, vaccine_list, start_date, end_date, args.only_second, args.only_third, args.dry_run):
+                    if docto.try_to_book(vars(center), vaccine_list, start_date, end_date, args.only_second, args.only_third, args.dry_run):
                         log('')
                         log('💉 %s Congratulations.' %
                             colored('Booked!', 'green', attrs=('bold',)))
