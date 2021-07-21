@@ -554,24 +554,6 @@ class Vaccine:
         self.motive = motive
 
 
-class MrnaVaccines:
-    def __init__(self, pfizer: Vaccine, moderna: Vaccine):
-        self.pfizer = pfizer
-        self.moderna = moderna
-
-
-class ViralVectorBasedVaccines:
-    def __init__(self, astrazeneca: Vaccine, janssen: Vaccine):
-        self.astrazeneca = astrazeneca
-        self.janssen = janssen
-
-
-class ListVaccines:
-    def __init__(self, mrna: MrnaVaccines, viral_based: ViralVectorBasedVaccines):
-        self.mrna = mrna
-        self.viral_based = viral_based
-
-
 class DoctolibDE(Doctolib):
     def __init__(self, pfizer, pfizer2, pfizer3, moderna,moderna2, moderna3, janssen, astrazeneca, astrazeneca2):
         self.BASEURL = 'https://www.doctolib.de'
