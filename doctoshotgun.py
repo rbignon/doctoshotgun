@@ -548,75 +548,60 @@ class Doctolib(LoginBrowser):
         return self.page.doc['confirmed']
 
 
-class Pfizer:
+class Vaccine:
     def __init__(self, key, motive):
         self.key = key
         self.motive = motive
 
 
-class Moderna:
-    def __init__(self, key, motive):
-        self.key = key
-        self.motive = motive
+class MrnaVaccines:
+    def __init__(self, pfizer: Vaccine, moderna: Vaccine):
+        self.pfizer = pfizer
+        self.moderna = moderna
 
 
-class Astrazeneca:
-    def __init__(self, key, motive):
-        self.key = key
-        self.motive = motive
+class ViralVectorBasedVaccines:
+    def __init__(self, astrazeneca: Vaccine, janssen: Vaccine):
+        self.astrazeneca = astrazeneca
+        self.janssen = janssen
 
 
-class Janssen:
-    def __init__(self, key, motive):
-        self.key = key
-        self.motive = motive
-
-
-class MrnaVaccine:
-    pfizer: Pfizer
-    moderna: Moderna
-
-
-class ViralVectorBasedVaccine:
-    astrazeneca: Astrazeneca
-    janssen: Janssen
-
-
-class Vaccines:
-    mrna: MrnaVaccine
-    viralBased: ViralVectorBasedVaccine
+class ListVaccines:
+    def __init__(self, mrna: MrnaVaccines, viral_based: ViralVectorBasedVaccines):
+        self.mrna = mrna
+        self.viral_based = viral_based
 
 
 class DoctolibDE(Doctolib):
-    BASEURL = 'https://www.doctolib.de'
-    PFIZER = Vaccines.MrnaVaccine.Pfizer('6768', 'Pfizer')
-    PFIZER_SECOND = Vaccines.MrnaVaccine.Pfizer('6769', 'Zweit.*Pfizer|Pfizer.*Zweit')
-    PFIZER_THIRD = Vaccines.MrnaVaccine.Pfizer(None, 'Dritt.*Pfizer|Pfizer.*Dritt')
-    MODERNA = Vaccines.MrnaVaccine.Moderna('6936', 'Moderna')
-    MODERNA_SECOND = Vaccines.MrnaVaccine.Moderna('6937', 'Zweit.*Moderna|Moderna.*Zweit')
-    MODERNA_THIRD = Vaccines.MrnaVaccine.Moderna(None, 'Dritt.*Moderna|Moderna.*Dritt')
-    JANSSEN = Vaccines.ViralVectorBasedVaccine.Janssen('7978', 'Janssen')
-    ASTRAZENECA = Vaccines.ViralVectorBasedVaccine.Astrazeneca('7109', 'AstraZeneca')
-    ASTRAZENECA_SECOND = Vaccines.ViralVectorBasedVaccine.Astrazeneca('7110', 'Zweit.*AstraZeneca|AstraZeneca.*Zweit')
-
-    centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
-    center = URL(r'/praxis/.*', CenterPage)
+    def __init__(self, pfizer, pfizer2, pfizer3, moderna,moderna2, moderna3, janssen, astrazeneca, astrazeneca2):
+        self.BASEURL = 'https://www.doctolib.de'
+        self.PFIZER = pfizer
+        self.PFIZER_SECOND = pfizer2
+        self.PFIZER_THIRD = pfizer3
+        self.MODERNA = moderna
+        self.MODERNA_SECOND = moderna2
+        self.MODERNA_THIRD = moderna3
+        self.JANSSEN = janssen
+        self.ASTRAZENECA = astrazeneca
+        self.ASTRAZENECA_SECOND = astrazeneca2
+        self.centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
+        self.center = URL(r'/praxis/.*', CenterPage)
 
 
 class DoctolibFR(Doctolib):
-    BASEURL = 'https://www.doctolib.fr'
-    PFIZER = Vaccines.MrnaVaccine.Pfizer('6970', 'Pfizer')
-    PFIZER_SECOND = Vaccines.MrnaVaccine.Pfizer('6971', '2de.*Pfizer')
-    PFIZER_THIRD = Vaccines.MrnaVaccine.Pfizer('8192', '3e.*Pfizer')
-    MODERNA = Vaccines.MrnaVaccine.Moderna('7005', 'Moderna')
-    MODERNA_SECOND = Vaccines.MrnaVaccine.Moderna('7004', '2de.*Moderna')
-    MODERNA_THIRD = Vaccines.MrnaVaccine.Moderna('8193', '3e.*Moderna')
-    JANSSEN = Vaccines.ViralVectorBasedVaccine.Janssen('7945', 'Janssen')
-    ASTRAZENECA = Vaccines.ViralVectorBasedVaccine.Astrazeneca('7107', 'AstraZeneca')
-    ASTRAZENECA_SECOND = Vaccines.ViralVectorBasedVaccine.Astrazeneca('7108', '2de.*AstraZeneca')
-
-    centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
-    center = URL(r'/centre-de-sante/.*', CenterPage)
+    def __init__(self, pfizer, pfizer2, pfizer3, moderna,moderna2, moderna3, janssen, astrazeneca, astrazeneca2):
+        self.BASEURL = 'https://www.doctolib.fr'
+        self.PFIZER = pfizer
+        self.PFIZER_SECOND = pfizer2
+        self.PFIZER_THIRD = pfizer3
+        self.MODERNA = moderna
+        self.MODERNA_SECOND = moderna2
+        self.MODERNA_THIRD = moderna3
+        self.JANSSEN = janssen
+        self.ASTRAZENECA = astrazeneca
+        self.ASTRAZENECA_SECOND = astrazeneca2
+        self.centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
+        self.center = URL(r'/centre-de-sante/.*', CenterPage)
 
 
 class Application:
@@ -638,9 +623,37 @@ class Application:
     def main(self, cli_args=None):
         colorama.init()  # needed for windows
 
+        # Creating vaccines for DoctolibFR
+        fr_pfizer = Vaccine('6970', 'Pfizer')
+        fr_pfizer2 = Vaccine('6971', '2de.*Pfizer')
+        fr_pfizer3 = Vaccine('8192', '3e.*Pfizer')
+        fr_moderna = Vaccine('7005', 'Moderna')
+        fr_moderna2 = Vaccine('7004', '2de.*Moderna')
+        fr_moderna3 = Vaccine('8193', '3e.*Moderna')
+        fr_janssen = Vaccine('7945', 'Janssen')
+        fr_astrazeneca = Vaccine('7107', 'AstraZeneca')
+        fr_astrazeneca2 = Vaccine('7108', '2de.*AstraZeneca')
+
+        doctolibFR = DoctolibFR(fr_pfizer, fr_pfizer2, fr_pfizer3, fr_moderna, fr_moderna2,
+                                fr_moderna3, fr_janssen, fr_astrazeneca, fr_astrazeneca2)
+
+        # Creating vaccines for DoctolibDE
+        de_pfizer = Vaccine('6768', 'Pfizer')
+        de_pfizer2 = Vaccine('6769', 'Zweit.*Pfizer|Pfizer.*Zweit')
+        de_pfizer3 = Vaccine(None, 'Dritt.*Pfizer|Pfizer.*Dritt')
+        de_moderna = Vaccine('6936', 'Moderna')
+        de_moderna2 = Vaccine('6937', 'Zweit.*Moderna|Moderna.*Zweit')
+        de_moderna3 = Vaccine(None, 'Dritt.*Moderna|Moderna.*Dritt')
+        de_janssen = Vaccine('7978', 'Janssen')
+        de_astrazeneca = Vaccine('7109', 'AstraZeneca')
+        de_astrazeneca2 = Vaccine('7110', 'Zweit.*AstraZeneca|AstraZeneca.*Zweit')
+
+        doctolibDE = DoctolibDE(de_pfizer, de_pfizer2, de_pfizer3, de_moderna, de_moderna2,
+                                de_moderna3, de_janssen, de_astrazeneca, de_astrazeneca2)
+
         doctolib_map = {
-            "fr": DoctolibFR,
-            "de": DoctolibDE
+            "fr": doctolibFR,
+            "de": doctolibDE
         }
 
         parser = argparse.ArgumentParser(
