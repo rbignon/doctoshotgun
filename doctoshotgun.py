@@ -76,67 +76,66 @@ class Session(cloudscraper.CloudScraper):
 class Page():
     def __init__(self, JsonPage=JsonPage, HTMLPage=HTMLPage):
         self.loginpage = LoginPage(JsonPage)
-        self.SendAuthCodePage = SendAuthCodePage(JsonPage)
-        self.ChallengePage = ChallengePage(JasonPage)
-        self.CentersPage = CentersPage(HTMLpage)
-        self.CenterResultPage = CenterResultPage(JsonPage)
-        self.CenterBookingPage = CenterBookingPage(JsonPage)
-        self.AvailabilitiesPage = AvailabilitiesPage(JasonPage)
-        self.AppointmentPage = AppointmentPage(JsonPage)
-        self.AppointmentEditPage = get_custom_fields(JsonPage)
-        self.AppointmentPostPage = AppointmentPostPage(JsonPage)
-        self.MasterPatientPage = MasterPatientPage(JsonPage)
+        self.sendAuthCodePage = SendAuthCodePage(JsonPage)
+        self.challengePage = ChallengePage(JasonPage)
+        self.centersPage = CentersPage(HTMLpage)
+        self.centerResultPage = CenterResultPage(JsonPage)
+        self.centerBookingPage = CenterBookingPage(JsonPage)
+        self.availabilitiesPage = AvailabilitiesPage(JasonPage)
+        self.appointmentPage = AppointmentPage(JsonPage)
+        self.appointmentEditPage = get_custom_fields(JsonPage)
+        self.appointmentPostPage = AppointmentPostPage(JsonPage)
+        self.masterPatientPage = MasterPatientPage(JsonPage)
 
     def redirect(self):
-        return LoginPage.redirect
+        return loginPage.redirect
 
     def iter_centers_ids(self):
-        return CentersPage.iter_centers_ids
+        return centersPage.iter_centers_ids
 
     def get_next_page(self):
         return CentersPage.get_next_page
 
     def get_patients(self)
-        return MasterPatientPage.get_patients
+        return masterPatientPage.get_patients
 
     def doc(self)
-        return CenterBookingPage.doc
+        return centerBookingPage.doc
 
     def get_motives(self):
-        return CenterBookingPage.get_motives
+        return centerBookingPage.get_motives
 
     def get_places(self):
-        return CenterBookingPage.get_places
+        return centerBookingPage.get_places
 
     def get_practice(self):
-        return CenterBookingPage.get_practice
+        return centerBookingPage.get_practice
 
     def get_agenda_ids(self):
         motives_id = self.get_motives
         practice_id = self.get_practice
-        return CenterBookingPage.get_agenda_ids
+        return centerBookingPage.get_agenda_ids
 
     def get_profile_id(self):
-        return CenterBookingPage.get_profile_id
+        return centerBookingPage.get_profile_id
 
     def find_best_slot(self):
-        return AvailabilitiesPage.find_best_slot
+        return availabilitiesPage.find_best_slot
 
     def is_error(self):
-        return AppointmentPage.is_error
+        return appointmentPage.is_error
 
     def get_error(self):
-        return AppointmentPage.get_error
+        return appointmentPage.get_error
 
     def get_error(self):
-        return AppointmentEditPage
+        return appointmentEditPage
 
     def get_patients(self):
-        return MasterPatientPage.get_patients()
+        return masterPatientPage.get_patients()
 
     def get_name(self)
-        return MasterPatientPage.get_name()
-
+        return masterPatientPage.get_name()
 
 
 class LoginPage(JsonPage):
