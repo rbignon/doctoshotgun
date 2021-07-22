@@ -73,19 +73,6 @@ class Session(cloudscraper.CloudScraper):
 
         return callback(self, resp)
 
-#Applied Aggregated Pattern For UserPage
-class UserPage:
-    pages = dict()
-    def __init__(self):
-        self.allocate()
-         #Creating a batch
-    def allocate(self):
-        self.pages["login"] = URL('/login.json', LoginPage)
-        self.pages["send_auth_code"] = URL('/api/accounts/send_auth_code', SendAuthCodePage)
-        self.pages["challenge"] = URL('/login/challenge', ChallengePage)
-        self.pages["master_patient"] = URL(r'/account/master_patients.json', MasterPatientPage)
-        #Allocate the batch 
-            
 
 class LoginPage(JsonPage):
     def redirect(self):
@@ -194,7 +181,8 @@ class AvailabilitiesPage(JsonPage):
             if len(a['slots']) == 0:
                 continue
             return a['slots'][-1]
-    
+
+
 class AppointmentPage(JsonPage):
     def get_error(self):
         return self.doc['error']
@@ -226,16 +214,30 @@ class CityNotFound(Exception):
     pass
 
 
+class DoctolibPatientLogin:
+     def __init__(self, login : URL, send_auth_code : URL, challenge : URL, masterPatient : URL):
+        self.login = login
+        self.send_auth_code = send_auth_code
+        self.challenge = challenge
+        self.masterPatient = masterPatient
+     def changeLoginURL(self, login : URL):
+        self.login = login
+     def changeSendAuthCodeURL(self, send_auth_code : URL):
+        self.send_auth_code = send_auth_code
+     def changeChallengeURL(self, challenge : URL):
+        self.challenge = challenge
+     def masterPatientURL(self, masterPatient : URL):
+         self.masterPatient = masterPatient
+
+
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
     BASEURL = ""
     vaccine_motives = {}
     centers = URL('')
     center = URL('')
-
-    ## Bring Aggregate Root called <<userPages>>
-    userPages = UserPage()
-
+ 
+    doctolibPatientLogin = DoctolibPatientLogin(URL('/login.json', LoginPage), URL('/api/accounts/send_auth_code', SendAuthCodePage), URL('/login/challenge', ChallengePage),URL(r'/account/master_patients.json', MasterPatientPage)); 
     # common properties
     center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
     center_booking = URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage)
@@ -278,7 +280,7 @@ class Doctolib(LoginBrowser):
                 log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
             raise
         try:
-            self.userPages.pages["login"].go(json={'kind': 'patient',
+            self.doctolibPatientLogin.login.go(json={'kind': 'patient',
                                 'username': self.username,
                                 'password': self.password,
                                 'remember': True,
@@ -293,11 +295,11 @@ class Doctolib(LoginBrowser):
                 if not sys.__stdin__.isatty():
                     log("Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.", color='red')
                     return False
-                self.userPages.pages["send_auth_code"].go(
+                self.doctolibPatientLogin.send_auth_code.go(
                     json={'two_factor_auth_method': 'email'}, method="POST")
                 code = input("Enter auth code: ")
             try:
-                self.userPages.pages["challenge"].go(
+                self.doctolibPatientLogin.challenge.go(
                     json={'auth_code': code, 'two_factor_auth_method': 'email'}, method="POST")
             except HTTPNotFound:
                 print("Invalid auth code")
@@ -348,7 +350,8 @@ class Doctolib(LoginBrowser):
                     yield center
 
     def get_patients(self):
-        self.userPages.pages["master_patient"].go()
+        self.doctolibPatientLogin.master_patient.go()
+
         return self.page.get_patients()
 
     @classmethod
