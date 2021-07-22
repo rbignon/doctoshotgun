@@ -603,7 +603,6 @@ class DoctolibFR(Doctolib):
 class Patient:
 
     def get_patients_agg(self, patient_argument, patients):
-        patients = docto.get_patients()
         if len(patients) == 0:
             print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
             return 1
