@@ -548,35 +548,6 @@ class Doctolib(LoginBrowser):
         return self.page.doc['confirmed']
 
 
-class Patient(object):
-
-    def get_patients_agg(self, patient_argument):
-        if len(patients) == 0:
-            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
-            return 1
-        if patient_argument >= 0 and patient_argument < len(patients):
-            docto.patient = patients[patient_argument]
-        elif len(patients) > 1:
-            print('Available patients are:')
-            for i, patient in enumerate(patients):
-                print('* [%s] %s %s' %
-                      (i, patient['first_name'], patient['last_name']))
-            while True:
-                print('For which patient do you want to book a slot?',
-                      end=' ', flush=True)
-                try:
-                    docto.patient = patients[int(sys.stdin.readline().strip())]
-                except (ValueError, IndexError):
-                    continue
-                else:
-                    break
-        else:
-            docto.patient = patients[0]
-
-        return docto.patient
-
-
-
 class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
     KEY_PFIZER = '6768'
@@ -628,6 +599,34 @@ class DoctolibFR(Doctolib):
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
+
+class Patient:
+
+    def get_patients_agg(self, patient_argument, patients):
+        patients = docto.get_patients()
+        if len(patients) == 0:
+            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
+            return 1
+        if patient_argument >= 0 and patient_argument < len(patients):
+            docto.patient = patients[patient_argument]
+        elif len(patients) > 1:
+            print('Available patients are:')
+            for i, patient in enumerate(patients):
+                print('* [%s] %s %s' %
+                      (i, patient['first_name'], patient['last_name']))
+            while True:
+                print('For which patient do you want to book a slot?',
+                      end=' ', flush=True)
+                try:
+                    docto.patient = patients[int(sys.stdin.readline().strip())]
+                except (ValueError, IndexError):
+                    continue
+                else:
+                    break
+        else:
+            docto.patient = patients[0]
+
+        return docto.patient
 
 
 class Application:
@@ -737,10 +736,8 @@ class Application:
         #             break
         # else:
         #     docto.patient = patients[0]
-
-        #  Aggregate
         patients_agg = Patient()
-        docto.patient = patients_agg.get_patients_agg(args.patient)
+        docto.patient = patients_agg.get_patients_agg(args.patient, patients)
 
         motives = []
         if not args.pfizer and not args.moderna and not args.janssen and not args.astrazeneca:
@@ -889,6 +886,7 @@ class Application:
                 print(message)
                 return 1
         return 0
+
 
 if __name__ == '__main__':
     try:
