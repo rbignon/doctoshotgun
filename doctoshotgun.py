@@ -600,32 +600,32 @@ class DoctolibFR(Doctolib):
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
 
-class Patient:
 
-    def get_patients_agg(self, patient_argument, patients):
-        if len(patients) == 0:
-            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
-            return 1
-        if patient_argument >= 0 and patient_argument < len(patients):
-            docto.patient = patients[patient_argument]
-        elif len(patients) > 1:
-            print('Available patients are:')
-            for i, patient in enumerate(patients):
-                print('* [%s] %s %s' %
-                      (i, patient['first_name'], patient['last_name']))
-            while True:
-                print('For which patient do you want to book a slot?',
-                      end=' ', flush=True)
-                try:
-                    docto.patient = patients[int(sys.stdin.readline().strip())]
-                except (ValueError, IndexError):
-                    continue
-                else:
-                    break
+class DateAgg:
+
+    def date_agg(self, start_date_argument, end_date_argument, time_window_argument):
+        if start_date_argument:
+            try:
+                start_date = datetime.datetime.strptime(
+                    start_date_argument, '%d/%m/%Y').date()
+            except ValueError as e:
+                print('Invalid value for --start-date: %s' % e)
+                return 1
         else:
-            docto.patient = patients[0]
+            start_date = datetime.date.today()
+        if end_date_argument:
+            try:
+                end_date = datetime.datetime.strptime(
+                    end_date_argument, '%d/%m/%Y').date()
+            except ValueError as e:
+                print('Invalid value for --end-date: %s' % e)
+                return 1
+        else:
+            end_date = start_date + relativedelta(days=time_window_argument)
 
-        return docto.patient
+        return_list = []
+        return_list.append(start_date)
+        return_list.append(end_date)
 
 
 class Application:
@@ -714,29 +714,27 @@ class Application:
             return 1
 
         patients = docto.get_patients()
-        # if len(patients) == 0:
-        #     print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
-        #     return 1
-        # if args.patient >= 0 and args.patient < len(patients):
-        #     docto.patient = patients[args.patient]
-        # elif len(patients) > 1:
-        #     print('Available patients are:')
-        #     for i, patient in enumerate(patients):
-        #         print('* [%s] %s %s' %
-        #               (i, patient['first_name'], patient['last_name']))
-        #     while True:
-        #         print('For which patient do you want to book a slot?',
-        #               end=' ', flush=True)
-        #         try:
-        #             docto.patient = patients[int(sys.stdin.readline().strip())]
-        #         except (ValueError, IndexError):
-        #             continue
-        #         else:
-        #             break
-        # else:
-        #     docto.patient = patients[0]
-        patients_agg = Patient()
-        docto.patient = patients_agg.get_patients_agg(args.patient, patients)
+        if len(patients) == 0:
+            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
+            return 1
+        if args.patient >= 0 and args.patient < len(patients):
+            docto.patient = patients[args.patient]
+        elif len(patients) > 1:
+            print('Available patients are:')
+            for i, patient in enumerate(patients):
+                print('* [%s] %s %s' %
+                      (i, patient['first_name'], patient['last_name']))
+            while True:
+                print('For which patient do you want to book a slot?',
+                      end=' ', flush=True)
+                try:
+                    docto.patient = patients[int(sys.stdin.readline().strip())]
+                except (ValueError, IndexError):
+                    continue
+                else:
+                    break
+        else:
+            docto.patient = patients[0]
 
         motives = []
         if not args.pfizer and not args.moderna and not args.janssen and not args.astrazeneca:
@@ -792,24 +790,30 @@ class Application:
 
         vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
 
-        if args.start_date:
-            try:
-                start_date = datetime.datetime.strptime(
-                    args.start_date, '%d/%m/%Y').date()
-            except ValueError as e:
-                print('Invalid value for --start-date: %s' % e)
-                return 1
-        else:
-            start_date = datetime.date.today()
-        if args.end_date:
-            try:
-                end_date = datetime.datetime.strptime(
-                    args.end_date, '%d/%m/%Y').date()
-            except ValueError as e:
-                print('Invalid value for --end-date: %s' % e)
-                return 1
-        else:
-            end_date = start_date + relativedelta(days=args.time_window)
+        # if args.start_date:
+        #     try:
+        #         start_date = datetime.datetime.strptime(
+        #             args.start_date, '%d/%m/%Y').date()
+        #     except ValueError as e:
+        #         print('Invalid value for --start-date: %s' % e)
+        #         return 1
+        # else:
+        #     start_date = datetime.date.today()
+        # if args.end_date:
+        #     try:
+        #         end_date = datetime.datetime.strptime(
+        #             args.end_date, '%d/%m/%Y').date()
+        #     except ValueError as e:
+        #         print('Invalid value for --end-date: %s' % e)
+        #         return 1
+        # else:
+        #     end_date = start_date + relativedelta(days=args.time_window)
+        date_object = DateAgg()
+        date_list = date_object(args.start_date, args.end_date, args.time_window)
+        start_time = date_list[0]
+        end_time = date_list[1]
+
+
         log('Starting to look for vaccine slots for %s %s between %s and %s...',
             docto.patient['first_name'], docto.patient['last_name'], start_date, end_date)
         log('Vaccines: %s', ', '.join(vaccine_list))
