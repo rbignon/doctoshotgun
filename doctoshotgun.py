@@ -213,6 +213,21 @@ class MasterPatientPage(JsonPage):
 class CityNotFound(Exception):
     pass
 
+class DoctolibPatientLogin:
+     def __init__(self, login : URL, send_auth_code : URL, challenge : URL, masterPatient : URL):
+        self.login = login
+        self.send_auth_code = send_auth_code
+        self.challenge = challenge
+        self.masterPatient = masterPatient
+     def changeLoginURL(self, login : URL) -> None:
+        self.login = login
+     def changeSendAuthCodeURL(self, send_auth_code : URL) -> None:
+        self.send_auth_code = send_auth_code
+     def changeChallengeURL(self, challenge : URL) -> None:
+        self.challenge = challenge
+     def masterPatientURL(self, masterPatient : URL) -> None:
+         self.masterPatient = masterPatient
+
 
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
@@ -221,9 +236,8 @@ class Doctolib(LoginBrowser):
     centers = URL('')
     center = URL('')
     # common properties
-    login = URL('/login.json', LoginPage)
-    send_auth_code = URL('/api/accounts/send_auth_code', SendAuthCodePage)
-    challenge = URL('/login/challenge', ChallengePage)
+    doctolibPatientLogin = DoctolibPatientLogin(URL('/login.json', LoginPage), URL('/api/accounts/send_auth_code', SendAuthCodePage), URL('/login/challenge', ChallengePage),URL(r'/account/master_patients.json', MasterPatientPage)); 
+    #Center_result 
     center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
     center_booking = URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage)
     availabilities = URL(r'/availabilities.json', AvailabilitiesPage)
@@ -234,7 +248,7 @@ class Doctolib(LoginBrowser):
         r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
     appointment_post = URL(
         r'/appointments/(?P<id>.+).json', AppointmentPostPage)
-    master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
+    #master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
 
     def _setup_session(self, profile):
         session = Session()
@@ -266,7 +280,7 @@ class Doctolib(LoginBrowser):
                 log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
             raise
         try:
-            self.login.go(json={'kind': 'patient',
+            self. doctolibPatientLogin.login.go(json={'kind': 'patient',
                                 'username': self.username,
                                 'password': self.password,
                                 'remember': True,
@@ -281,11 +295,11 @@ class Doctolib(LoginBrowser):
                 if not sys.__stdin__.isatty():
                     log("Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.", color='red')
                     return False
-                self.send_auth_code.go(
+                self. doctolibPatientLogin.send_auth_code.go(
                     json={'two_factor_auth_method': 'email'}, method="POST")
                 code = input("Enter auth code: ")
             try:
-                self.challenge.go(
+                self. doctolibPatientLogin.challenge.go(
                     json={'auth_code': code, 'two_factor_auth_method': 'email'}, method="POST")
             except HTTPNotFound:
                 print("Invalid auth code")
@@ -336,7 +350,7 @@ class Doctolib(LoginBrowser):
                     yield center
 
     def get_patients(self):
-        self.master_patient.go()
+        self.doctolibPatientLogin.masterPatient.go()
 
         return self.page.get_patients()
 
@@ -547,6 +561,12 @@ class Doctolib(LoginBrowser):
 
         return self.page.doc['confirmed']
 
+class Firstshot:
+    pass
+class SecondShot:
+    pass
+class ThridShot:
+    pass
 
 class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
