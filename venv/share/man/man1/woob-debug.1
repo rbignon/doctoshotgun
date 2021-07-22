@@ -1,0 +1,125 @@
+.\" -*- coding: utf-8 -*-
+.\" This file was generated automatically by tools/make_man.sh.
+.TH WOOB-DEBUG 1 "11 April 2021" "woob-debug 3\&.0"
+.SH NAME
+woob-debug \- debug backends
+.SH SYNOPSIS
+.B woob
+debug [\-h] [\-dqv] [\-b \fIbackends\fR] ...
+.br
+.B woob
+debug [\-\-help] [\-\-version]
+
+.SH DESCRIPTION
+.LP
+
+Console application to debug backends.
+
+.SH OPTIONS
+.TP
+\fB\-\-version\fR
+show program's version number and exit
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+show this help message and exit
+.TP
+\fB\-b BACKENDS\fR, \fB\-\-backends=BACKENDS\fR
+what backend(s) to enable (comma separated)
+.TP
+\fB\-e EXCLUDE_BACKENDS\fR, \fB\-\-exclude\-backends=EXCLUDE_BACKENDS\fR
+what backend(s) to exclude (comma separated)
+.TP
+\fB\-I\fR, \fB\-\-insecure\fR
+do not validate SSL
+.TP
+\fB\-\-nss\fR
+Use NSS instead of OpenSSL
+
+.SH LOGGING OPTIONS
+.TP
+\fB\-d\fR, \fB\-\-debug\fR
+display debug messages. Set up it twice to more verbosity
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+display only error messages
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+display info messages
+.TP
+\fB\-\-logging\-file=LOGGING_FILE\fR
+file to save logs
+.TP
+\fB\-a\fR, \fB\-\-save\-responses\fR
+save every response
+.TP
+\fB\-\-export\-session\fR
+log browser session cookies after login
+
+.SH DEBUG OPTIONS
+.TP
+\fB\-B\fR, \fB\-\-bpython\fR
+Prefer bpython over ipython
+
+.SH CONDITION
+The \-c and \-\-condition is a flexible way to filter and get only interesting results. It supports conditions on numerical values, dates, durations and strings. Dates are given in YYYY\-MM\-DD or YYYY\-MM\-DD HH:MM format. Durations look like XhYmZs where X, Y and Z are integers. Any of them may be omitted. For instance, YmZs, XhZs or Ym are accepted.
+The syntax of one expression is "\fBfield operator value\fR". The field to test is always the left member of the expression.
+.LP
+The field is a member of the objects returned by the command. For example, a bank account has "balance", "coming" or "label" fields.
+.SS The following operators are supported:
+.TP
+=
+Test if object.field is equal to the value.
+.TP
+!=
+Test if object.field is not equal to the value.
+.TP
+>
+Test if object.field is greater than the value. If object.field is date, return true if value is before that object.field.
+.TP
+<
+Test if object.field is less than the value. If object.field is date, return true if value is after that object.field.
+.TP
+|
+This operator is available only for string fields. It works like the Unix standard \fBgrep\fR command, and returns True if the pattern specified in the value is in object.field.
+.SS Expression combination
+.LP
+You can make a expression combinations with the keywords \fB" AND "\fR, \fB" OR "\fR an \fB" LIMIT "\fR.
+.LP
+The \fBLIMIT\fR keyword can be used to limit the number of items upon which running the expression. \fBLIMIT\fR can only be placed at the end of the expression followed by the number of elements you want.
+.SS Examples:
+.nf
+.B woob bank ls \-\-condition 'label=Livret A'
+.fi
+Display only the "Livret A" account.
+.PP
+.nf
+.B woob bank ls \-\-condition 'balance>10000'
+.fi
+Display accounts with a lot of money.
+.PP
+.nf
+.B woob bank history account@backend \-\-condition 'label|rewe'
+.fi
+Get transactions containing "rewe".
+.PP
+.nf
+.B woob bank history account@backend \-\-condition 'date>2013\-12\-01 AND date<2013\-12\-09'
+.fi
+Get transactions betweens the 2th December and 8th December 2013.
+.PP
+.nf
+.B woob bank history account@backend \-\-condition 'date>2013\-12\-01  LIMIT 10'
+.fi
+Get transactions after the 2th December in the last 10 transactions
+
+.SH COPYRIGHT
+Copyright(C) 2010-2021 Christophe Benz
+.LP
+For full copyright information see the COPYING file in the woob package.
+.LP
+.RE
+.SH FILES
+"~/.config/woob/backends" 
+
+.SH SEE ALSO
+Home page: https://woob.tech/applications/debug

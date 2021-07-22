@@ -1,0 +1,420 @@
+Woob is a free software written by:
+
+Romain Bignon <romain@weboob.org>
+        * Core team;
+        * Qt Applications;
+        * Maintainer of too many modules.
+
+Laurent Bachelier <laurent@bachelier.name>
+        * Core team;
+        * Citelis, Pastealacon, Pastebin, PayPal, RadioFrance and YouTube
+          modules maintainer.
+
+Florent Fourcot <weboob@flo.fourcot.fr>
+        * Core team;
+        * Maintainer of too many modules.
+
+Benjamin Carton <carton_ben@yahoo.fr>
+        * Core team;
+        * Maintainer of too many modules:
+
+Julien Hebert <juke@free.fr>
+        * Developer of masstransit;
+        * Inrocks, LeFigaro, Minutes20 and Transilien modules
+          maintainer.
+
+Noe Rubinstein <noe.rubinstein@gmail.com>
+        * Bototo, Eatmanga, MangaFox, MangaHere, MangaReader, Mangatoshokan
+          and Simplyreadit modules maintainer.
+
+Julien Veyssier <eneiluj@gmx.fr>
+        * Suboob, Cineoob, QCineoob, Cookboob, QCookboob,
+          Booblyrics and QBooblyrics developer;
+        * CreditMutuel, Geolocip, Ipinfodb, Tvsubtitle, Piratebay, Podnapisi,
+          Attilasub, Opensubtitles, Kickass, Btmon, Imdb, Allocine, Cpasbien,
+          Marmiton, 750g, Allrecipes, CuisineAZ, T411, Parolesnet,
+          Paroles2chansons, Parolesmusique and Parolesmania modules maintainer.
+
+Christophe Benz <christophe.benz@gmail.com>
+        * Bouygues, INA, SFR and Youtube modules maintainer.
+        * Ex-member of the core team.
+
+Vincent A. <dev@indigo.re>
+        * funmooc, github, guerrillamail, imgur, lutim, mailinator,
+          ovs, pariskiwi, pixtoilelibre, quvi, sueurdemetal, unsee
+          modules maintainer;
+        * Many patches on too many code parts.
+        * Port of qt applications to qt5.
+
+Baptiste Delpey <bdelpey@budget-insight.com>
+        * Many fixes and improvement on bank and bill modules.
+        * Author of CapBankTransfer API.
+
+Lucas Verney (Phyks) <phyks@phyks.me>
+        * Author of gitlab-ci part.
+        * Fixes on many tests.
+        * Fixes on some modules.
+
+Edouard Lambert <elambert@budget-insight.com>
+        * Many fixes and improvement of bank modules.
+
+Roger Philibert <roger.philibert@gmail.com>
+        * Ehentai, Izneo, JacquieEtMichel, OKC and Youjizz modules maintainer.
+
+Nicolas Duhamel <nicolas@jombi.fr>
+        * BP, CanalPlus and Orange modules maintainer.
+
+Clément Schreiner <clemux@clemux.info>
+        * MediaWiki and Newsfeed modules maintainer.
+
+François Revol <revol@free.fr>
+        * Europarl, GDCVault, linuxjobs and Vimeo modules maintainer.
+        * Canaplus and qvideoob fixes
+        * Patchs for Haiku support
+        * Patchs on dailymotion and arte module.
+        * Ambassador of weboob in magazine and conferences.
+
+Pierre Mazière <pierre.maziere@gmx.com>
+        * RockRadio module maintainer;
+        * lcl ex-maintener;
+        * BNPorc fixes.
+
+Xavier Guerrin <xavier@tuxfamily.org>
+        * Author of the CrAgr module.
+
+Gabriel Kerneis <kerneis@pps.jussieu.fr>
+        * Boursorama module maintainer.
+
+Oleg Plakhotniuk <olegus8@gmail.com>
+        * Maintainer of Walls Fargo and CitiBank;
+        * Improvements on the PayPal module;
+        * Various fixes;
+        * Several tools.
+
+Vicnet <vo.publique@gmail.com>
+        * lacentrale module maintainer.
+
+Kevin Pouget <weboob@kevin.pouget.me>
+        * CreditCooperatif module maintainer.
+
+Gilles Quenot <gilles.quenot@gmail.com>
+        * Fortuneo module maintainer.
+
+Mathieu Jourdan <mathieu.jourdan@gresille.org>
+        * GdfSuez module maintainer.
+
+Benjamin Drieu <benjamin@drieu.org>
+        * TricTracTV module maintainer.
+
+Jeremy Monnet <jmonnet@gmail.com>
+        * Opacwebaloes module maintainer.
+
+Lord <lord@lordtoniok.com>
+        * CappedTV module maintainer.
+
+Lucien Loiseau <loiseau.lucien@gmail.com>
+        * GoogleTranslate module maintainer.
+
+Christophe Lampin <weboob@lampin.net>
+        * HelloBank, ameli and amelipro modules maintainer.
+        * Patchs on cragr and freemobile
+
+Sébastien Monel <sebastien.monel@gmail.com>
+        * QHandJoob application.
+
+Alexandre Lissy <github@lissy.me>
+        * JVMalin module maintainer.
+
+Arno Renevier <arno@renevier.net>
+        * Weather module maintainer.
+
+Matthieu Weber <mweber+weboob@free.fr>
+        * Unpronounceable and torrentz modules maintainer.
+        * Fix on formatter encoding.
+        * Fixes on t411, btdigg, and more.
+        * Improvement of encoding output on boobank.
+
+Jocelyn Jaubert <jocelyn.jaubert@gmail.com>
+        * SocieteGenerale module maintainer.
+
+Alexandre Morignot <erdnaxeli@cervoi.se>
+        * residentadivsor module maintainer.
+        * Documentation to write a module with Browser2
+        * Adapt munin scripts to python3
+
+Johann Broudin <johann.broudin@6-8.fr>
+        * CMB module maintainer.
+        * Fix on virginradio.
+
+Guilhem Bonnefille <guilhem.bonnefille@gmail.com>
+        * RMLL module maintainer.
+
+Cedric Defortis <cedric@aiur.fr>
+        * MeteoFrance module maintainer.
+
+P4ncake <me@p4ncake.fr>
+        * Vice module maintainer.
+
+Matthieu Rakotojaona <matthieu.rakotojaona@gmail.com>
+        * Btdigg module maintainer.
+
+François D. <franek@chicour.net>
+        * ArretsurImages module maintainer.
+
+Christophe Gouiran <bechris13250@gmail.com>
+        * EDF module maintainer.
+
+Cédric Félizard <cedric@felizard.fr>
+        * KiwiBank module maintainer.
+        * Support of currencies in boobank.
+
+Hervé Werner <dud225@hotmail.com>
+        * Velib module maintainer.
+
+Thomas Lecavelier <thomas-weboob@lecavelier.name>
+        * Patches on radioob.
+        * nihonnooto module maintainer.
+
+Benjamin Bouvier <public@benj.me>
+        * Number26 maintener.
+
+Clément Calmels <cboulte@gmail.com>
+        * Patches on NoLifeTV.
+
+Gabriel Serme <gabriel@serme.net>
+        * Support of two-factor authentication for Boursorama.
+
+Jean-Philippe Dutrève <jdutreve@winancial.com>
+        * Fixes on bank modules.
+
+Vincent Texier <vit@free.fr>
+        * Fixes on YouJizz and Dailymotion.
+
+Ahmed Boussadia <ahmed.boussadia@gmail.com>
+        * Fixes on OKC module.
+
+John Morrow <caramdache@gmail.com>
+        * OFX formatter in boobank.
+
+Mathieu Lordon <mathieu.lordon@gmail.com>
+        * Fixes on bank modules.
+
+Erwan Jahier <Erwan.Jahier@imag.fr>
+        * Patches on BP.
+
+Yann Rouillard <yann@pleiades.fr.eu.org>
+        * Add kids.dailymotion.com for dailymotion
+
+Raphaël Rigo <devel-weboob@syscall.eu>
+        * Patch for poleemploi
+        * support for credit card history in boursorama
+
+theo <theocrite@theocrite.org>
+        * Ergonomics enhancements.
+
+Willy Villard <wvillard@yahoo.fr>
+        * Patches on modules.
+
+Alexandre Flament <alex@al-f.net>
+        * Script contrib/downloadboob.
+
+BohwaZ <bohwaz@bohwaz.net>
+        * Script contrib/report_accounts.sh.
+
+Grmbl Frechneu <gloupagloups@hotmail.fr>
+        * Anonymizer script.
+
+Jérôme Poisson <goffi@goffi.org>
+        * Patches on webcontentedit.
+
+Laurent Dufréchou <laurent.dufrechou@gmail.com>
+        * Windows support.
+
+Fabien Grumelard <fabix-symlink@grumi.net>
+        * Fixes in FranceTelevision.
+
+leto <leto@weboob.org>
+        * AuM anti-spam updates.
+
+Vincent Paredes <vincentparedes@gmail.com>
+        * Changes in Repl.
+        * Many fixes and patchs on banking modules.
+
+Richard Genoud <richard.genoud@gmail.com>
+        * Fixes on CrArg.
+
+Jean-Christophe Dubacq <jcdubacq1@free.fr>
+        * Fix on FreeMobile.
+
+Lucas Nussbaum <lucas@lucas-nussbaum.net>
+        * Fix on Credit Mutuel.
+
+Jerem <jer151@gmail.com>
+        * Fix on BP authentication.
+
+Camille Baldock <camille.baldock@student.ecp.fr>
+        * Fixes on BP.
+
+Alexandre Franke <alexandre.franke@gmail.com>
+        * Contribution to boobank.
+
+Loic Bontonou <lobotomi51@gmail.com>
+        * Fix on arretsurimages module.
+
+Olivier Schwander <olivier.schwander@ens-lyon.org>
+        * Fix XDG support.
+
+Luc Didry <luc@didry.org>
+        * Fixes on LCL.
+
+Jean-Benoist Leger <leger@jblg.fr>
+        * Fix on Dailymotion.
+
+Stefano Zacchiroli <zack@upsilon.cc>
+        * Patch on the build system.
+
+Adrien Kunysz <adrien@kunysz.be>
+        * Fixes on setup.py.
+
+Damien Cassou <damien.cassou@gmail.com>
+        * Minor fixes on housing modules.
+
+ianux <ianux@free.fr>
+        * Patches on videoob.
+
+Laurent George <setog3@gmail.com>
+        * Fixes on AuM.
+
+Romain Garbage <romain.garbage@gmail.com>
+        * Fixes for FreeBSD.
+
+Pierre-Louis Bonicoli <pierre-louis.bonicoli@gmx.fr>
+        * Fix on bash completion script.
+        * Fixes on documentation
+
+Philippe Fremy <phil@freehackers.org>
+        * Fixes for Windows.
+
+Antoine <antoine.underlinux@orange.fr>
+        * QVideoob fixes.
+
+Ryan Nowakowski <tubaman@fattuba.com>
+        * Import error.
+
+David Jeanneteau <david.jeanneteau@gmail.com>
+        * Fix on ING and icon of ING.
+
+Juliette Stehlé <juliette.stehle@gmail.com>
+        * Enable LDD and PEL accounts on Boursorama.
+
+Etienne Carriere <etienne.carriere@gmail.com>
+        * Fix on dailymotion
+
+Simon Murail <simurail@yahoo.fr>
+        * Contribution to bank capability and browser2.
+        * Add deepcopy to BaseObject
+
+Alexandre Bonhomme <alexandre.bonhomme@etudiant.univ-lille1.fr>
+        * Fix and tests on several modules
+
+Camille Dehecq <camille@dehecq.fr>
+        * Contributions on weboob-generic munin script
+
+Samuel Loury <samuel.loury@cosmo-platform.org>
+        * Fix on the documentation
+
+Caram Dache <caramdache@gmail.com>
+        * Patch on boobank OFX export
+
+Mickaël Thomas <mickael9@gmail.com>
+        * Patch to use gpg by default rather than gpg
+
+James Galt <james.galt.bi@gmail.com.com>
+        * Many fixes and improvement on bank and bill modules.
+
+Simon Lipp
+        * Add url attribute to BaseObject, and fill it.
+        * Tapatalk and openedx maintener.
+
+Yannick Heinrich
+        * Documentation for installation statement on OSX
+
+Roland Mas <lolando@debian.org>
+        * imm-o-matic script author
+
+Jean Walrave <jean.walrave@budget-insight.com>
+        * Many fixes on bill and bank modules;
+        * Added PDF document conversion.
+
+Jonathan Schmidt <jonathan.schmidt@budget-insight.com>
+        * Fix on bill and bank modules.
+
+ZeHiro <mail-github@abossy.fr>
+        * Add support for banque de Savoie on banquepopulaire;
+        * Fixes on bank modules;
+        * Fixes on subtitles capability and modules.
+
+Edouard Lefebvre du Prey <edouard.lefebvreduprey@geneanet.org>
+        * Patch on browser.
+        * Add italian translation for dates.
+
+Julien Danjou <julien@danjou.info>
+        * Fix on seloger.
+
+Edmond Van Overtveldt
+Julia Leven
+Jérémy Bossut
+Valentin Lefils
+        * Tests for the browser
+
+Jean Sébastien
+        * Fixes on browser core.
+
+Arthur Huillet
+        * suravenir, binck modules maintainer.
+
+Sylvie Ye <sylvie.ye@budget-insight.com>
+        * Many bank and transfer modules fixes;
+        * Multiple changes to CapBankTransfer and recipients.
+
+Florian Duguet <florian.duguet@budget-insight.com>
+        * Many bank and bill modules fixes.
+
+András Bartók <andras.bartok@budget-insight.com>
+        * Multiple bank and bill modules fixes;
+        * Changes in CapDocument;
+        * Author of CapCurrencyRate.
+
+Célande Adrien <celande.adrien@budget-insight.com>
+Théo Dorée <theo.doree@budget-insight.com>
+Quentin Defenouillère <quentin.defenouillere@budget-insight.com>
+Étienne Lacheré <etienne.lachere@budget-insight.com>
+        * Many bank and bill modules fixes.
+
+Victor Kannemacher <victor.kannemacher@budget-insight.com>
+Maxime Gasselin <maxime.gasselin@budget-insight.com>
+Benjamin Tampigny <benjamin.tampigny@budget-insight.com>
+Fong Ngo <fong.ngo@budget-insight.com>
+Tony Malto <tony.malto@budget-insight.com>
+Frédéric Lépy <frederic.lepy@budget-insight.com>
+Olivier Da Rocha <olivier.darocha@budget-insight.com>
+        * Fixes on bank and bill modules.
+
+Sébastien Marie <semarie@users.noreply.github.com>
+        * Fixes for OpenBSD compatibility.
+
+Denis Carikli <GNUtoo@no-log.org>
+        * Fix on radiofrance module.
+
+Bruno Chabrier <bruno_chabrier@hotmail.com>
+        * Author of boomoney application.
+
+Nicolas Frandeboeuf <mail@nicofrand.eu>
+        * Multiple fixes on bank modules.
+
+Damien Cassou <damien@cassou.me>
+        * Author of nef module.
+
+
+Discover how to contribute to this great software:
+http://dev.woob.tech/guides/contribute
