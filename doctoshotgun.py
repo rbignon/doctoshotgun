@@ -592,6 +592,7 @@ class DoctolibFR(Doctolib):
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
 
+
  
 """
 # Aggregate Class #2 <<Inner Aggregate>>       
