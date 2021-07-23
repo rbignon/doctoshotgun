@@ -190,6 +190,113 @@ class AppointmentPage(JsonPage):
     def is_error(self):
         return 'error' in self.doc
 
+# First Aggregate Class
+# Gets the available time slot/window do
+class AvailableSlot:
+    def __init__(self, docto, args, vaccine_list):
+        self.docto = docto
+        self.args = args
+        self.vaccine_list = vaccine_list
+
+    def getTimeWindow(self, args):
+        if args.start_date:
+            try:
+                start_date = datetime.datetime.strptime(
+                    args.start_date, '%d/%m/%Y').date()
+            except ValueError as e:
+                print('Invalid value for --start-date: %s' % e)
+                return 1
+        else:
+            start_date = datetime.date.today()
+        if args.end_date:
+            try:
+                end_date = datetime.datetime.strptime(
+                    args.end_date, '%d/%m/%Y').date()
+            except ValueError as e:
+                print('Invalid value for --end-date: %s' % e)
+                return 1
+        else:
+            end_date = start_date + relativedelta(days=args.time_window)
+
+    def getTimeSlot(self, args, docto, vaccine_list, start_date, end_date):
+        log('Starting to look for vaccine slots for %s %s between %s and %s...',
+            docto.patient['first_name'], docto.patient['last_name'], start_date, end_date)
+        log('Vaccines: %s', ', '.join(vaccine_list))
+        log('Country: %s ', args.country)
+        log('This may take a few minutes/hours, be patient!')
+        cities = [docto.normalize(city) for city in args.city.split(',')]
+
+        while True:
+            log_ts()
+            try:
+                for center in docto.find_centers(cities, motives):
+                    if args.center:
+                        if center['name_with_title'] not in args.center:
+                            logging.debug("Skipping center '%s'" %
+                                          center['name_with_title'])
+                            continue
+                    if args.center_regex:
+                        center_matched = False
+                        for center_regex in args.center_regex:
+                            if re.match(center_regex, center['name_with_title']):
+                                center_matched = True
+                            else:
+                                logging.debug(
+                                    "Skipping center '%(name_with_title)s'" % center)
+                        if not center_matched:
+                            continue
+                    if args.center_exclude:
+                        if center['name_with_title'] in args.center_exclude:
+                            logging.debug(
+                                "Skipping center '%(name_with_title)s' because it's excluded" % center)
+                            continue
+                    if args.center_exclude_regex:
+                        center_excluded = False
+                        for center_exclude_regex in args.center_exclude_regex:
+                            if re.match(center_exclude_regex, center['name_with_title']):
+                                logging.debug(
+                                    "Skipping center '%(name_with_title)s' because it's excluded" % center)
+                                center_excluded = True
+                        if center_excluded:
+                            continue
+                    if not args.include_neighbor_city and not docto.normalize(center['city']).startswith(tuple(cities)):
+                        logging.debug(
+                            "Skipping city '%(city)s' %(name_with_title)s" % center)
+                        continue
+
+                    log('')
+
+                    log('Center %(name_with_title)s (%(city)s):' % center)
+
+                    if docto.try_to_book(center, vaccine_list, start_date, end_date, args.only_second, args.only_third, args.dry_run):
+                        log('')
+                        log('💉 %s Congratulations.' %
+                            colored('Booked!', 'green', attrs=('bold',)))
+                        return 0
+
+                    sleep(SLEEP_INTERVAL_AFTER_CENTER)
+
+                    log('')
+                log('No free slots found at selected centers. Trying another round in %s sec...', SLEEP_INTERVAL_AFTER_RUN)
+                sleep(SLEEP_INTERVAL_AFTER_RUN)
+            except CityNotFound as e:
+                print('\n%s: City %s not found. Make sure you selected a city from the available countries.' % (
+                    colored('Error', 'red'), colored(e, 'yellow')))
+                return 1
+            except (ReadTimeout, ConnectionError, NewConnectionError) as e:
+                print('\n%s' % (colored(
+                    'Connection error. Check your internet connection. Retrying ...', 'red')))
+                print(str(e))
+                sleep(SLEEP_INTERVAL_AFTER_CONNECTION_ERROR)
+            except Exception as e:
+                template = "An unexpected exception of type {0} occurred. Arguments:\n{1!r}"
+                message = template.format(type(e).__name__, e.args)
+                print(message)
+                return 1
+        return 0
+        
+
+# Second aggregate class
 class BookAppointment(JsonPage):
     # AppointmentEditPage
     def get_custom_fields(self):
@@ -708,7 +815,7 @@ class Application:
         if not docto.do_login(args.code):
             return 1
 
-        # insert line here
+        # call on aggregate class to get the patient for the appointment
         docto.patient = BookAppointment().get_patient(args, docto)
 
         motives = []
@@ -765,99 +872,10 @@ class Application:
 
         vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
 
-        if args.start_date:
-            try:
-                start_date = datetime.datetime.strptime(
-                    args.start_date, '%d/%m/%Y').date()
-            except ValueError as e:
-                print('Invalid value for --start-date: %s' % e)
-                return 1
-        else:
-            start_date = datetime.date.today()
-        if args.end_date:
-            try:
-                end_date = datetime.datetime.strptime(
-                    args.end_date, '%d/%m/%Y').date()
-            except ValueError as e:
-                print('Invalid value for --end-date: %s' % e)
-                return 1
-        else:
-            end_date = start_date + relativedelta(days=args.time_window)
-        log('Starting to look for vaccine slots for %s %s between %s and %s...',
-            docto.patient['first_name'], docto.patient['last_name'], start_date, end_date)
-        log('Vaccines: %s', ', '.join(vaccine_list))
-        log('Country: %s ', args.country)
-        log('This may take a few minutes/hours, be patient!')
-        cities = [docto.normalize(city) for city in args.city.split(',')]
+        # call on aggregate class to search for available slots
+        AvailableSlot(vaccine_list)
 
-        while True:
-            log_ts()
-            try:
-                for center in docto.find_centers(cities, motives):
-                    if args.center:
-                        if center['name_with_title'] not in args.center:
-                            logging.debug("Skipping center '%s'" %
-                                          center['name_with_title'])
-                            continue
-                    if args.center_regex:
-                        center_matched = False
-                        for center_regex in args.center_regex:
-                            if re.match(center_regex, center['name_with_title']):
-                                center_matched = True
-                            else:
-                                logging.debug(
-                                    "Skipping center '%(name_with_title)s'" % center)
-                        if not center_matched:
-                            continue
-                    if args.center_exclude:
-                        if center['name_with_title'] in args.center_exclude:
-                            logging.debug(
-                                "Skipping center '%(name_with_title)s' because it's excluded" % center)
-                            continue
-                    if args.center_exclude_regex:
-                        center_excluded = False
-                        for center_exclude_regex in args.center_exclude_regex:
-                            if re.match(center_exclude_regex, center['name_with_title']):
-                                logging.debug(
-                                    "Skipping center '%(name_with_title)s' because it's excluded" % center)
-                                center_excluded = True
-                        if center_excluded:
-                            continue
-                    if not args.include_neighbor_city and not docto.normalize(center['city']).startswith(tuple(cities)):
-                        logging.debug(
-                            "Skipping city '%(city)s' %(name_with_title)s" % center)
-                        continue
-
-                    log('')
-
-                    log('Center %(name_with_title)s (%(city)s):' % center)
-
-                    if docto.try_to_book(center, vaccine_list, start_date, end_date, args.only_second, args.only_third, args.dry_run):
-                        log('')
-                        log('💉 %s Congratulations.' %
-                            colored('Booked!', 'green', attrs=('bold',)))
-                        return 0
-
-                    sleep(SLEEP_INTERVAL_AFTER_CENTER)
-
-                    log('')
-                log('No free slots found at selected centers. Trying another round in %s sec...', SLEEP_INTERVAL_AFTER_RUN)
-                sleep(SLEEP_INTERVAL_AFTER_RUN)
-            except CityNotFound as e:
-                print('\n%s: City %s not found. Make sure you selected a city from the available countries.' % (
-                    colored('Error', 'red'), colored(e, 'yellow')))
-                return 1
-            except (ReadTimeout, ConnectionError, NewConnectionError) as e:
-                print('\n%s' % (colored(
-                    'Connection error. Check your internet connection. Retrying ...', 'red')))
-                print(str(e))
-                sleep(SLEEP_INTERVAL_AFTER_CONNECTION_ERROR)
-            except Exception as e:
-                template = "An unexpected exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(e).__name__, e.args)
-                print(message)
-                return 1
-        return 0
+        
 
 
 if __name__ == '__main__':
