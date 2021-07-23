@@ -202,14 +202,6 @@ class AppointmentPostPage(JsonPage):
     pass
 
 
-class MasterPatientPage(JsonPage):
-    def get_patients(self):
-        return self.doc
-
-    def get_name(self):
-        return '%s %s' % (self.doc[0]['first_name'], self.doc[0]['last_name'])
-
-
 class CityNotFound(Exception):
     pass
 
@@ -234,11 +226,9 @@ class Doctolib(LoginBrowser):
         r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
     appointment_post = URL(
         r'/appointments/(?P<id>.+).json', AppointmentPostPage)
-    master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
 
     def _setup_session(self, profile):
         session = Session()
-
         session.hooks['response'].append(self.set_normalized_url)
         if self.responses_dirname is not None:
             session.hooks['response'].append(self.save_response)
@@ -334,11 +324,6 @@ class Doctolib(LoginBrowser):
             if next_page:
                 for center in self.find_centers(where, motives, next_page):
                     yield center
-
-    def get_patients(self):
-        self.master_patient.go()
-
-        return self.page.get_patients()
 
     @classmethod
     def normalize(cls, string):
@@ -499,10 +484,10 @@ class Doctolib(LoginBrowser):
 
         self.appointment_edit.go(id=a_id)
 
-        log('  ├╴ Booking for %(first_name)s %(last_name)s...' % self.patient)
+        log('  ├╴ Booking for %s...' % self.patient.getName())
 
         self.appointment_edit.go(
-            id=a_id, params={'master_patient_id': self.patient['id']})
+            id=a_id, params={'master_patient_id': self.patient.givePatientInfo()['id']})
 
         custom_fields = {}
         for field in self.page.get_custom_fields():
@@ -528,7 +513,7 @@ class Doctolib(LoginBrowser):
                                 },
                 'bypass_mandatory_relative_contact_info': False,
                 'email': None,
-                'master_patient': self.patient,
+                'master_patient': self.patient.givePatientInfo(),
                 'new_patient': True,
                 'patient': None,
                 'phone_number': None,
@@ -600,6 +585,79 @@ class DoctolibFR(Doctolib):
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
 
+"""
+# Aggregate Class #1 <<Inner Aggregate>>       
+# This class gets the patient information, and encapsulates it to protect it,
+# and ensures that the data is correct.
+# 
+# The only class that has access to this info is the aggregate root Class. 
+#
+# Invariant: Guarentees that patient data exists, if not the program stops and
+# requests the user to fill in the patient data on the DoctoLib Website.
+"""
+class PatientInfo:
+    
+    # Instantiate Patient Info
+    def __init__(self, docto, num):
+        self._info = self.createPatientData(docto, num)
+       
+    # createPatientData for Patient Info
+    def createPatientData(self, docto, num):
+        docto.master_patient.go()
+        masterPatientList = docto.page.doc
+        if len(masterPatientList) == 0:
+            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
+            sys.exit(1)
+        if num >= 0 and num < len(masterPatientList):
+            return masterPatientList[num]
+        elif len(masterPatientList) > 1:
+            print('Available patients are:')
+            for i, patient in enumerate(masterPatientList):
+                print('* [%s] %s %s' %
+                      (i, patient['first_name'], patient['last_name']))
+            while True:
+                print('For which patient do you want to book a slot?',
+                      end=' ', flush=True)
+                try:
+                     return masterPatientList[int(sys.stdin.readline().strip())]
+                except (ValueError, IndexError):
+                    continue
+                else:
+                    break
+        else:
+            return masterPatientList[0]
+        
+     # Method - get Patient Info
+    def getInfo(self):
+        return self._info
+
+"""
+# Aggregate Class #1 <<Root>>       
+# This class helps protect the patient info gathered from the website,
+# and ensures that the data is correct, and any issues will be resolved
+# within this aggregate class.
+# 
+# The SUD can access the information of the patient for booking purposes
+# but this class holds the information and access to it.
+#
+# Invariant: PatientInfo class guarentees that patient data exists, if not the program stops and
+# requests the user to fill in the patient data on the DoctoLib Website.
+"""
+class Patient(PatientInfo):
+    
+    # Instantiate Patient
+    def __init__(self, patientNum, docto):
+        self.patientNum = patientNum
+        self.patientInfo = PatientInfo(docto,patientNum).getInfo()
+        
+    # Give patient data to be used
+    def givePatientInfo(self):
+        return self.patientInfo
+    
+    # Give patient name formatted
+    def getName(self):
+        return '%s %s' % (self.patientInfo['first_name'], self.patientInfo['last_name'])
+    
 
 class Application:
     @classmethod
@@ -686,29 +744,12 @@ class Application:
         if not docto.do_login(args.code):
             return 1
 
-        patients = docto.get_patients()
-        if len(patients) == 0:
-            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
-            return 1
-        if args.patient >= 0 and args.patient < len(patients):
-            docto.patient = patients[args.patient]
-        elif len(patients) > 1:
-            print('Available patients are:')
-            for i, patient in enumerate(patients):
-                print('* [%s] %s %s' %
-                      (i, patient['first_name'], patient['last_name']))
-            while True:
-                print('For which patient do you want to book a slot?',
-                      end=' ', flush=True)
-                try:
-                    docto.patient = patients[int(sys.stdin.readline().strip())]
-                except (ValueError, IndexError):
-                    continue
-                else:
-                    break
-        else:
-            docto.patient = patients[0]
-
+        # Create Aggregate Patient class and fill it with information from profile page on website
+        PatientData = Patient(args.patient, docto)
+        
+        docto.patient = PatientData
+        
+        
         motives = []
         if not args.pfizer and not args.moderna and not args.janssen and not args.astrazeneca:
             if args.only_second:
@@ -760,9 +801,9 @@ class Application:
                 return 1
             else:
                 motives.append(docto.KEY_ASTRAZENECA)
-
+        
         vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
-
+        
         if args.start_date:
             try:
                 start_date = datetime.datetime.strptime(
@@ -781,11 +822,12 @@ class Application:
                 return 1
         else:
             end_date = start_date + relativedelta(days=args.time_window)
-        log('Starting to look for vaccine slots for %s %s between %s and %s...',
-            docto.patient['first_name'], docto.patient['last_name'], start_date, end_date)
+        log('Starting to look for vaccine slots for %s between %s and %s...',
+            docto.patient.getName(), start_date, end_date)
         log('Vaccines: %s', ', '.join(vaccine_list))
         log('Country: %s ', args.country)
         log('This may take a few minutes/hours, be patient!')
+        
         cities = [docto.normalize(city) for city in args.city.split(',')]
 
         while True:
