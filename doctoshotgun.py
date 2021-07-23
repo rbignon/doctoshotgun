@@ -60,7 +60,7 @@ def log_ts(text=None, *args, **kwargs):
     if text:
         log(text, *args, **kwargs)
 
-class Vaccine:
+class listofVaccines:
     def __init__(self, vaccine_list: str, bathces: List[Batch]):
         self.vaccine_list = vaccine_list #we want to get the product from vaccine_list
         self.batches = batches
