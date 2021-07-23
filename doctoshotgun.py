@@ -132,6 +132,32 @@ class CenterPage(HTMLPage):
     pass
 
 
+class MotivesManager():
+    def __init__(self, vaccine_list, vaccine_motives=None, motives = None)
+        self.motives = motives
+        self.motives_id = dict()
+        self.vaccine_motives = vaccine_motives
+
+    def motives(self):
+        if motives is None:
+            return  self.vaccine_motives.keys()
+
+    def get_motives_id(self):
+        # extract motive ids based on the vaccine names
+        for vaccine in vaccine_list:
+            motives_id[vaccine] = self.page.find_motive(
+                r'.*({})'.format(vaccine), singleShot=(vaccine == self.vaccine_motives[self.KEY_JANSSEN] or only_second or only_third))
+
+        return dict((k, v) for k, v in motives_id.items() if v is not None)
+
+    def get_motives(self):
+        return [s['name'] for s in self.doc['data']['visit_motives']]
+
+    def find_motive(self):
+        return CenterBookingPage.find_motive()
+
+
+
 class CenterBookingPage(JsonPage):
     def find_motive(self, regex, singleShot=False):
         for s in self.doc['data']['visit_motives']:
@@ -149,8 +175,6 @@ class CenterBookingPage(JsonPage):
 
         return None
 
-    def get_motives(self):
-        return [s['name'] for s in self.doc['data']['visit_motives']]
 
     def get_places(self):
         return self.doc['data']['places']
@@ -294,8 +318,9 @@ class Doctolib(LoginBrowser):
         return True
 
     def find_centers(self, where, motives=None, page=1):
-        if motives is None:
-            motives = self.vaccine_motives.keys()
+
+        motives = MotivesManager(self.vaccine_list, self.vaccine_motives, motives = motives).motives
+
         for city in where:
             try:
                 self.centers.go(where=city, params={
@@ -355,17 +380,12 @@ class Doctolib(LoginBrowser):
 
         center_page = self.center_booking.go(center_id=center_id)
         profile_id = self.page.get_profile_id()
-        # extract motive ids based on the vaccine names
-        motives_id = dict()
-        for vaccine in vaccine_list:
-            motives_id[vaccine] = self.page.find_motive(
-                r'.*({})'.format(vaccine), singleShot=(vaccine == self.vaccine_motives[self.KEY_JANSSEN] or only_second or only_third))
 
-        motives_id = dict((k, v)
-                          for k, v in motives_id.items() if v is not None)
+        motives_id = MotivesManager(vaccine_list).get_motives_id
+
         if len(motives_id.values()) == 0:
             log('Unable to find requested vaccines in motives')
-            log('Motives: %s', ', '.join(self.page.get_motives()))
+            log('Motives: %s', ', '.join(self.MotivesManager.get_motives()))
             return False
 
         for place in self.page.get_places():
