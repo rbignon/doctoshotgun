@@ -214,18 +214,37 @@ class CityNotFound(Exception):
     pass
 
 
+class VaccineCenter:
+    def __init__(self,centerResult : URL, centerBooking : URL):
+        self.BASEURL = ""
+        self.vaccine_motives = {}
+        self.centers = URL('')
+        self.center = URL('')
+        self.centerResult = centerResult
+        self.centerBooking = centerBooking
+    def changeBASEURL(self,BASEURL: URL):
+        self.BASEURL = BASEURL
+    def changeVaccineMotives(self,vaccine_motives: dict()):
+        self.vaccine_motives = vaccine_motives 
+    def changeCenters(self,centers: URL):
+        self.centers = centers
+    def changeCenter(self,center: URL):
+        self.center = center
+    def changeCenterResult(self,centerResult: URL):
+        self.centerResult = centerResult
+    def changeCenterBooking(self,centerBooking: URL):
+        self.centerBooking = centerBooking
+    
+
 class Doctolib(LoginBrowser):
-    # individual properties for each country. To be defined in subclasses
-    BASEURL = ""
-    vaccine_motives = {}
-    centers = URL('')
-    center = URL('')
+    # Brings aggregate root for Vaccine Center
+    vc = VaccineCenter(URL(r'/search_results/(?P<id>\d+).json', CenterResultPage), URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage))
     # common properties
     login = URL('/login.json', LoginPage)
     send_auth_code = URL('/api/accounts/send_auth_code', SendAuthCodePage)
     challenge = URL('/login/challenge', ChallengePage)
-    center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
-    center_booking = URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage)
+    center_result = vc.centerResult
+    center_booking = vc.centerBooking
     availabilities = URL(r'/availabilities.json', AvailabilitiesPage)
     second_shot_availabilities = URL(
         r'/second_shot_availabilities.json', AvailabilitiesPage)
@@ -548,6 +567,8 @@ class Doctolib(LoginBrowser):
         return self.page.doc['confirmed']
 
 
+    
+
 class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
     KEY_PFIZER = '6768'
@@ -572,6 +593,8 @@ class DoctolibDE(Doctolib):
     }
     centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
     center = URL(r'/praxis/.*', CenterPage)
+    VaccineCenter(URL(''),URL(''))
+
 
 
 class DoctolibFR(Doctolib):
@@ -599,6 +622,7 @@ class DoctolibFR(Doctolib):
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
+    VaccineCenter(URL(''),URL(''))
 
 
 class Application:
