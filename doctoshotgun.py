@@ -132,8 +132,9 @@ class CenterPage(HTMLPage):
     pass
 
 
-class CenterBookingPage(JsonPage):
-    def find_motive(self, regex, singleShot=False):
+class Booking:
+     def CenterBooking(self):
+       def find_motive(self, regex, singleShot=False):
         for s in self.doc['data']['visit_motives']:
             # ignore case as some doctors use their own spelling
             if re.search(regex, s['name'], re.IGNORECASE):
@@ -170,185 +171,8 @@ class CenterBookingPage(JsonPage):
 
     def get_profile_id(self):
         return self.doc['data']['profile']['id']
-
-
-class AvailabilitiesPage(JsonPage):
-    def find_best_slot(self, start_date=None, end_date=None):
-        for a in self.doc['availabilities']:
-            date = parse_date(a['date']).date()
-            if start_date and date < start_date or end_date and date > end_date:
-                continue
-            if len(a['slots']) == 0:
-                continue
-            return a['slots'][-1]
-
-
-class AppointmentPage(JsonPage):
-    def get_error(self):
-        return self.doc['error']
-
-    def is_error(self):
-        return 'error' in self.doc
-
-
-class AppointmentEditPage(JsonPage):
-    def get_custom_fields(self):
-        for field in self.doc['appointment']['custom_fields']:
-            if field['required']:
-                yield field
-
-
-class AppointmentPostPage(JsonPage):
-    pass
-
-
-class MasterPatientPage(JsonPage):
-    def get_patients(self):
-        return self.doc
-
-    def get_name(self):
-        return '%s %s' % (self.doc[0]['first_name'], self.doc[0]['last_name'])
-
-
-class CityNotFound(Exception):
-    pass
-
-
-class Doctolib(LoginBrowser):
-    # individual properties for each country. To be defined in subclasses
-    BASEURL = ""
-    vaccine_motives = {}
-    centers = URL('')
-    center = URL('')
-    # common properties
-    login = URL('/login.json', LoginPage)
-    send_auth_code = URL('/api/accounts/send_auth_code', SendAuthCodePage)
-    challenge = URL('/login/challenge', ChallengePage)
-    center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
-    center_booking = URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage)
-    availabilities = URL(r'/availabilities.json', AvailabilitiesPage)
-    second_shot_availabilities = URL(
-        r'/second_shot_availabilities.json', AvailabilitiesPage)
-    appointment = URL(r'/appointments.json', AppointmentPage)
-    appointment_edit = URL(
-        r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
-    appointment_post = URL(
-        r'/appointments/(?P<id>.+).json', AppointmentPostPage)
-    master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
-
-    def _setup_session(self, profile):
-        session = Session()
-
-        session.hooks['response'].append(self.set_normalized_url)
-        if self.responses_dirname is not None:
-            session.hooks['response'].append(self.save_response)
-
-        self.session = session
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.session.headers['sec-fetch-dest'] = 'document'
-        self.session.headers['sec-fetch-mode'] = 'navigate'
-        self.session.headers['sec-fetch-site'] = 'same-origin'
-        self.session.headers['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'
-
-        self.patient = None
-
-    def do_login(self, code):
-        try:
-            self.open(self.BASEURL + '/sessions/new')
-        except ServerError as e:
-            if e.response.status_code in [503] \
-                and 'text/html' in e.response.headers['Content-Type'] \
-                    and ('cloudflare' in e.response.text or 'Checking your browser before accessing' in e .response.text):
-                log('Request blocked by CloudFlare', color='red')
-            if e.response.status_code in [520]:
-                log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
-            raise
-        try:
-            self.login.go(json={'kind': 'patient',
-                                'username': self.username,
-                                'password': self.password,
-                                'remember': True,
-                                'remember_username': True})
-        except ClientError:
-            print('Wrong login/password')
-            return False
-
-        if self.page.redirect() == "/sessions/two-factor":
-            print("Requesting 2fa code...")
-            if not code:
-                if not sys.__stdin__.isatty():
-                    log("Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.", color='red')
-                    return False
-                self.send_auth_code.go(
-                    json={'two_factor_auth_method': 'email'}, method="POST")
-                code = input("Enter auth code: ")
-            try:
-                self.challenge.go(
-                    json={'auth_code': code, 'two_factor_auth_method': 'email'}, method="POST")
-            except HTTPNotFound:
-                print("Invalid auth code")
-                return False
-
-        return True
-
-    def find_centers(self, where, motives=None, page=1):
-        if motives is None:
-            motives = self.vaccine_motives.keys()
-        for city in where:
-            try:
-                self.centers.go(where=city, params={
-                                'ref_visit_motive_ids[]': motives, 'page': page})
-            except ServerError as e:
-                if e.response.status_code in [503]:
-                    if 'text/html' in e.response.headers['Content-Type'] \
-                        and ('cloudflare' in e.response.text or
-                             'Checking your browser before accessing' in e .response.text):
-                        log('Request blocked by CloudFlare', color='red')
-                    return
-                if e.response.status_code in [520]:
-                    log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
-                    return
-                raise
-            except HTTPNotFound as e:
-                raise CityNotFound(city) from e
-
-            next_page = self.page.get_next_page()
-
-            for i in self.page.iter_centers_ids():
-                page = self.center_result.open(
-                    id=i,
-                    params={
-                        'limit': '4',
-                        'ref_visit_motive_ids[]': motives,
-                        'speciality_id': '5494',
-                        'search_result_format': 'json'
-                    }
-                )
-                try:
-                    yield page.doc['search_result']
-                except KeyError:
-                    pass
-
-            if next_page:
-                for center in self.find_centers(where, motives, next_page):
-                    yield center
-
-    def get_patients(self):
-        self.master_patient.go()
-
-        return self.page.get_patients()
-
-    @classmethod
-    def normalize(cls, string):
-        nfkd = unicodedata.normalize('NFKD', string)
-        normalized = u"".join(
-            [c for c in nfkd if not unicodedata.combining(c)])
-        normalized = re.sub(r'\W', '-', normalized)
-        return normalized.lower()
-
-    def try_to_book(self, center, vaccine_list, start_date, end_date, only_second, only_third, dry_run=False):
+    
+      def try_to_book(self, center, vaccine_list, start_date, end_date, only_second, only_third, dry_run=False):
         self.open(center['url'])
         p = urlparse(center['url'])
         center_id = p.path.split('/')[-1]
@@ -546,6 +370,187 @@ class Doctolib(LoginBrowser):
         log('  └╴ Booking status: %s', self.page.doc['confirmed'])
 
         return self.page.doc['confirmed']
+
+
+BookRoot = Booking()
+    
+class AvailabilitiesPage(JsonPage):
+    def find_best_slot(self, start_date=None, end_date=None):
+        for a in self.doc['availabilities']:
+            date = parse_date(a['date']).date()
+            if start_date and date < start_date or end_date and date > end_date:
+                continue
+            if len(a['slots']) == 0:
+                continue
+            return a['slots'][-1]
+
+
+class AppointmentPage(JsonPage):
+    def get_error(self):
+        return self.doc['error']
+
+    def is_error(self):
+        return 'error' in self.doc
+
+
+class AppointmentEditPage(JsonPage):
+    def get_custom_fields(self):
+        for field in self.doc['appointment']['custom_fields']:
+            if field['required']:
+                yield field
+
+
+class AppointmentPostPage(JsonPage):
+    pass
+
+
+class MasterPatientPage(JsonPage):
+    def get_patients(self):
+        return self.doc
+
+    def get_name(self):
+        return '%s %s' % (self.doc[0]['first_name'], self.doc[0]['last_name'])
+
+
+class CityNotFound(Exception):
+    pass
+
+
+class Doctolib(LoginBrowser):
+    # individual properties for each country. To be defined in subclasses
+    BASEURL = ""
+    vaccine_motives = {}
+    centers = URL('')
+    center = URL('')
+    # common properties
+    login = URL('/login.json', LoginPage)
+    send_auth_code = URL('/api/accounts/send_auth_code', SendAuthCodePage)
+    challenge = URL('/login/challenge', ChallengePage)
+    center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
+    center_booking = URL(r'/booking/(?P<center_id>.+).json', BookRoot.CenterBooking)
+    availabilities = URL(r'/availabilities.json', AvailabilitiesPage)
+    second_shot_availabilities = URL(
+        r'/second_shot_availabilities.json', AvailabilitiesPage)
+    appointment = URL(r'/appointments.json', AppointmentPage)
+    appointment_edit = URL(
+        r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
+    appointment_post = URL(
+        r'/appointments/(?P<id>.+).json', AppointmentPostPage)
+    master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
+
+    def _setup_session(self, profile):
+        session = Session()
+
+        session.hooks['response'].append(self.set_normalized_url)
+        if self.responses_dirname is not None:
+            session.hooks['response'].append(self.save_response)
+
+        self.session = session
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.session.headers['sec-fetch-dest'] = 'document'
+        self.session.headers['sec-fetch-mode'] = 'navigate'
+        self.session.headers['sec-fetch-site'] = 'same-origin'
+        self.session.headers['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'
+
+        self.patient = None
+
+    def do_login(self, code):
+        try:
+            self.open(self.BASEURL + '/sessions/new')
+        except ServerError as e:
+            if e.response.status_code in [503] \
+                and 'text/html' in e.response.headers['Content-Type'] \
+                    and ('cloudflare' in e.response.text or 'Checking your browser before accessing' in e .response.text):
+                log('Request blocked by CloudFlare', color='red')
+            if e.response.status_code in [520]:
+                log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
+            raise
+        try:
+            self.login.go(json={'kind': 'patient',
+                                'username': self.username,
+                                'password': self.password,
+                                'remember': True,
+                                'remember_username': True})
+        except ClientError:
+            print('Wrong login/password')
+            return False
+
+        if self.page.redirect() == "/sessions/two-factor":
+            print("Requesting 2fa code...")
+            if not code:
+                if not sys.__stdin__.isatty():
+                    log("Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.", color='red')
+                    return False
+                self.send_auth_code.go(
+                    json={'two_factor_auth_method': 'email'}, method="POST")
+                code = input("Enter auth code: ")
+            try:
+                self.challenge.go(
+                    json={'auth_code': code, 'two_factor_auth_method': 'email'}, method="POST")
+            except HTTPNotFound:
+                print("Invalid auth code")
+                return False
+
+        return True
+
+    def find_centers(self, where, motives=None, page=1):
+        if motives is None:
+            motives = self.vaccine_motives.keys()
+        for city in where:
+            try:
+                self.centers.go(where=city, params={
+                                'ref_visit_motive_ids[]': motives, 'page': page})
+            except ServerError as e:
+                if e.response.status_code in [503]:
+                    if 'text/html' in e.response.headers['Content-Type'] \
+                        and ('cloudflare' in e.response.text or
+                             'Checking your browser before accessing' in e .response.text):
+                        log('Request blocked by CloudFlare', color='red')
+                    return
+                if e.response.status_code in [520]:
+                    log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
+                    return
+                raise
+            except HTTPNotFound as e:
+                raise CityNotFound(city) from e
+
+            next_page = self.page.get_next_page()
+
+            for i in self.page.iter_centers_ids():
+                page = self.center_result.open(
+                    id=i,
+                    params={
+                        'limit': '4',
+                        'ref_visit_motive_ids[]': motives,
+                        'speciality_id': '5494',
+                        'search_result_format': 'json'
+                    }
+                )
+                try:
+                    yield page.doc['search_result']
+                except KeyError:
+                    pass
+
+            if next_page:
+                for center in self.find_centers(where, motives, next_page):
+                    yield center
+
+    def get_patients(self):
+        self.master_patient.go()
+
+        return self.page.get_patients()
+
+    @classmethod
+    def normalize(cls, string):
+        nfkd = unicodedata.normalize('NFKD', string)
+        normalized = u"".join(
+            [c for c in nfkd if not unicodedata.combining(c)])
+        normalized = re.sub(r'\W', '-', normalized)
+        return normalized.lower()
+
+  
 
 
 class DoctolibDE(Doctolib):
@@ -830,7 +835,7 @@ class Application:
 
                     log('Center %(name_with_title)s (%(city)s):' % center)
 
-                    if docto.try_to_book(center, vaccine_list, start_date, end_date, args.only_second, args.only_third, args.dry_run):
+                    if BookRoot.try_to_book(center, vaccine_list, start_date, end_date, args.only_second, args.only_third, args.dry_run):
                         log('')
                         log('💉 %s Congratulations.' %
                             colored('Booked!', 'green', attrs=('bold',)))
