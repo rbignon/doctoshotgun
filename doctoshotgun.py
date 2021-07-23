@@ -74,7 +74,7 @@ class listofVaccines:
             raise OutofStock(f"Out of stock for vaccine")
 
 class appointmentCenters:
-    def __init__(self, center: str, bathces: List[Batch]):
+    def __init__(self, center: str, batches: List[Batch]):
         self.center = center #we want to get the product from center which has the vaccine centers
         self.batches = batches
 
