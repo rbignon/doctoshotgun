@@ -182,25 +182,41 @@ class AvailabilitiesPage(JsonPage):
                 continue
             return a['slots'][-1]
 
+class Appointment(JsonPage):
+    
+    def AppointmentEdit(self):
+          for field in self.doc['appointment']['custom_fields']:
+            if field['required']:
+                yield field
+        
+    def AppointmentPostPage(self):
+        pass
+  
+   def __init__(self):
+   self.appointment_edit = URL(
+        r'/appointments/(?P<id>.+)/edit.json', AppointmentEdit)
+    self.appointment_post = URL(
+        r'/appointments/(?P<id>.+).json', AppointmentPostPage)
+    
+    appointment = {'profile_id':    profile_id,
+                       'source_action': 'profile',
+                       'start_date':    slot_date_first,
+                       'visit_motive_ids': str(motive_id),
+                       }
+  
 
+
+ApAccess = Appointment()
+    
+    
+
+        
 class AppointmentPage(JsonPage):
     def get_error(self):
         return self.doc['error']
 
     def is_error(self):
         return 'error' in self.doc
-
-
-class AppointmentEditPage(JsonPage):
-    def get_custom_fields(self):
-        for field in self.doc['appointment']['custom_fields']:
-            if field['required']:
-                yield field
-
-
-class AppointmentPostPage(JsonPage):
-    pass
-
 
 class MasterPatientPage(JsonPage):
     def get_patients(self):
@@ -430,12 +446,9 @@ class Doctolib(LoginBrowser):
         log('found!', color='green')
         log('  ├╴ Best slot found: %s', parse_date(
             slot_date_first).strftime('%c'))
-
-        appointment = {'profile_id':    profile_id,
-                       'source_action': 'profile',
-                       'start_date':    slot_date_first,
-                       'visit_motive_ids': str(motive_id),
-                       }
+        
+        appointment = ApAccess.appointment
+       
 
         data = {'agenda_ids': '-'.join(agenda_ids),
                 'appointment': appointment,
