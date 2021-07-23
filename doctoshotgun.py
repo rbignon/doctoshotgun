@@ -190,24 +190,22 @@ class AppointmentPage(JsonPage):
     def is_error(self):
         return 'error' in self.doc
 
-
-class AppointmentEditPage(JsonPage):
+class BookAppointment(JsonPage):
+    # AppointmentEditPage
     def get_custom_fields(self):
         for field in self.doc['appointment']['custom_fields']:
             if field['required']:
                 yield field
 
-
-class AppointmentPostPage(JsonPage):
-    pass
-
-
-class MasterPatientPage(JsonPage):
+    # Get patient for appointment (MasterPatientPage)
     def get_patients(self):
         return self.doc
 
     def get_name(self):
         return '%s %s' % (self.doc[0]['first_name'], self.doc[0]['last_name'])
+
+class AppointmentPostPage(JsonPage):
+    pass
 
 
 class CityNotFound(Exception):
@@ -231,10 +229,10 @@ class Doctolib(LoginBrowser):
         r'/second_shot_availabilities.json', AvailabilitiesPage)
     appointment = URL(r'/appointments.json', AppointmentPage)
     appointment_edit = URL(
-        r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
+        r'/appointments/(?P<id>.+)/edit.json', BookAppointment)
     appointment_post = URL(
         r'/appointments/(?P<id>.+).json', AppointmentPostPage)
-    master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
+    master_patient = URL(r'/account/master_patients.json', BookAppointment)
 
     def _setup_session(self, profile):
         session = Session()
