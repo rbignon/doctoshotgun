@@ -60,6 +60,19 @@ def log_ts(text=None, *args, **kwargs):
     if text:
         log(text, *args, **kwargs)
 
+class Vaccine:
+    def __init__(self, vaccine_list: str, bathces: List[Batch]):
+        self.vaccine_list = vaccine_list #we want to get the product from vaccine_list
+        self.batches = batches
+
+    def allocate(self, center: VaccineBatch) -> str: #method on the vaccinebatch aggregate
+        try:
+            batch = next(b for b in sorted(self.batches) if b.can_allocate(VaccineBatch))
+            batch.allocate(VaccineBatch)
+            return batch.reference
+        except StopIteration:
+            raise OutofStock(f"Out of stock for vaccine")
+
 
 class Session(cloudscraper.CloudScraper):
     def send(self, *args, **kwargs):
