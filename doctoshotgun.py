@@ -600,7 +600,19 @@ class DoctolibFR(Doctolib):
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
 
+#Agregate #1 The patients wants to check the centre he/she booked for their vaccine
+#Invariant: Premise that theres an appointent in set with the location of choice
+class center_location_lookup():
+    def __init__(self, centreName):
+        self.centreName = centreName
 
+    def getVaxCentreName(self):
+        if self.centreName != "":
+            print(f"Center" + str(self.centreName))
+        else:
+            print(f"You need to book an appointment")
+        
+        
 class Application:
     @classmethod
     def create_default_logger(cls):
