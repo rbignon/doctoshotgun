@@ -610,7 +610,7 @@ class center_location_lookup():
         if self.centreName != "":
             print(f"Center" + str(self.centreName))
         else:
-            print(f"You need to book an appointment")
+            print(f"You need to book an appointment") 
         
         
 class Application:
