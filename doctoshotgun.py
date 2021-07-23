@@ -226,6 +226,7 @@ class Doctolib(LoginBrowser):
         r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
     appointment_post = URL(
         r'/appointments/(?P<id>.+).json', AppointmentPostPage)
+    master_patient = URL(r'/account/master_patients.json', JsonPage)
 
     def _setup_session(self, profile):
         session = Session()
@@ -654,7 +655,7 @@ class Patient(PatientInfo):
     def givePatientInfo(self):
         return self.patientInfo
     
-    # Give patient name formatted
+    # Give patient data to be used
     def getName(self):
         return '%s %s' % (self.patientInfo['first_name'], self.patientInfo['last_name'])
     
