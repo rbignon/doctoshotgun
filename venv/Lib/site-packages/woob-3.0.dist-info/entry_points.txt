@@ -1,0 +1,3 @@
+[console_scripts]
+woob = woob.applications.main:WoobMain.run
+

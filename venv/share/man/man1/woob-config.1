@@ -1,0 +1,214 @@
+.\" -*- coding: utf-8 -*-
+.\" This file was generated automatically by tools/make_man.sh.
+.TH WOOB-CONFIG 1 "11 April 2021" "woob-config 3\&.0"
+.SH NAME
+woob-config \- manage backends or register new accounts
+.SH SYNOPSIS
+.B woob
+config [\-dqv] [\-b \fIbackends\fR] [\-cnfs] [\fIcommand\fR [\fIarguments\fR..]]
+.br
+.B woob
+config [\-\-help] [\-\-version]
+
+.SH DESCRIPTION
+.LP
+
+Console application to add/edit/remove backends, and to register new website accounts.
+
+.SH CONFIG COMMANDS
+.TP
+\fBadd\fR \fIMODULE_NAME\fR [\fIBACKEND_NAME\fR] [\fIPARAMETERS\fR ...]
+.br
+Create a backend from a module. By default, if BACKEND_NAME is omitted,
+.br
+that's the module name which is used.
+.br
+
+.br
+You can specify parameters from command line in form "key=value".
+.TP
+\fBconfirm\fR \fIBACKEND\fR
+.br
+For a backend which support CapAccount, parse a confirmation mail
+.br
+after using the 'register' command to automatically confirm the
+.br
+subscribe.
+.br
+
+.br
+It takes mail from stdin. Use it with postfix for example.
+.TP
+\fBdebug\fR
+.br
+Launch a debug Python shell
+.TP
+\fBdisable\fR \fINAME\fR
+.br
+Disable a backend.
+.TP
+\fBedit\fR \fIBACKEND\fR
+.br
+Edit a backend
+.TP
+\fBenable\fR \fINAME\fR
+.br
+Enable a backend.
+.TP
+\fBinfo\fR \fINAME\fR
+.br
+Display information about a module.
+.TP
+\fBlist\fR [\fICAPS\fR ..]
+.br
+Show backends.
+.TP
+\fBmodules\fR [\fICAPS\fR ...]
+.br
+Show available modules.
+.TP
+\fBregister\fR \fIMODULE\fR
+.br
+Register a new account on a module.
+.TP
+\fBremove\fR \fINAME\fR
+.br
+Remove a backend.
+.TP
+\fBupdate\fR
+.br
+Update woob.
+
+.SH OPTIONS
+.TP
+\fB\-\-version\fR
+show program's version number and exit
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+show this help message and exit
+.TP
+\fB\-b BACKENDS\fR, \fB\-\-backends=BACKENDS\fR
+what backend(s) to enable (comma separated)
+.TP
+\fB\-e EXCLUDE_BACKENDS\fR, \fB\-\-exclude\-backends=EXCLUDE_BACKENDS\fR
+what backend(s) to exclude (comma separated)
+.TP
+\fB\-I\fR, \fB\-\-insecure\fR
+do not validate SSL
+.TP
+\fB\-\-nss\fR
+Use NSS instead of OpenSSL
+.TP
+\fB\-\-auto\-update\fR
+Automatically check for updates when a bug in a module is encountered
+
+.SH LOGGING OPTIONS
+.TP
+\fB\-d\fR, \fB\-\-debug\fR
+display debug messages. Set up it twice to more verbosity
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+display only error messages
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+display info messages
+.TP
+\fB\-\-logging\-file=LOGGING_FILE\fR
+file to save logs
+.TP
+\fB\-a\fR, \fB\-\-save\-responses\fR
+save every response
+.TP
+\fB\-\-export\-session\fR
+log browser session cookies after login
+
+.SH RESULTS OPTIONS
+.TP
+\fB\-c CONDITION\fR, \fB\-\-condition=CONDITION\fR
+filter result items to display given a boolean expression. See CONDITION section
+for the syntax
+.TP
+\fB\-n COUNT\fR, \fB\-\-count=COUNT\fR
+limit number of results (from each backends)
+.TP
+\fB\-s SELECT\fR, \fB\-\-select=SELECT\fR
+select result item keys to display (comma separated)
+
+.SH FORMATTING OPTIONS
+.TP
+\fB\-f FORMATTER\fR, \fB\-\-formatter=FORMATTER\fR
+select output formatter (csv, htmltable, info_formatter, json, json_line,
+multiline, simple, table, webkit)
+.TP
+\fB\-\-no\-header\fR
+do not display header
+.TP
+\fB\-\-no\-keys\fR
+do not display item keys
+.TP
+\fB\-O OUTFILE\fR, \fB\-\-outfile=OUTFILE\fR
+file to export result
+
+.SH CONDITION
+The \-c and \-\-condition is a flexible way to filter and get only interesting results. It supports conditions on numerical values, dates, durations and strings. Dates are given in YYYY\-MM\-DD or YYYY\-MM\-DD HH:MM format. Durations look like XhYmZs where X, Y and Z are integers. Any of them may be omitted. For instance, YmZs, XhZs or Ym are accepted.
+The syntax of one expression is "\fBfield operator value\fR". The field to test is always the left member of the expression.
+.LP
+The field is a member of the objects returned by the command. For example, a bank account has "balance", "coming" or "label" fields.
+.SS The following operators are supported:
+.TP
+=
+Test if object.field is equal to the value.
+.TP
+!=
+Test if object.field is not equal to the value.
+.TP
+>
+Test if object.field is greater than the value. If object.field is date, return true if value is before that object.field.
+.TP
+<
+Test if object.field is less than the value. If object.field is date, return true if value is after that object.field.
+.TP
+|
+This operator is available only for string fields. It works like the Unix standard \fBgrep\fR command, and returns True if the pattern specified in the value is in object.field.
+.SS Expression combination
+.LP
+You can make a expression combinations with the keywords \fB" AND "\fR, \fB" OR "\fR an \fB" LIMIT "\fR.
+.LP
+The \fBLIMIT\fR keyword can be used to limit the number of items upon which running the expression. \fBLIMIT\fR can only be placed at the end of the expression followed by the number of elements you want.
+.SS Examples:
+.nf
+.B woob bank ls \-\-condition 'label=Livret A'
+.fi
+Display only the "Livret A" account.
+.PP
+.nf
+.B woob bank ls \-\-condition 'balance>10000'
+.fi
+Display accounts with a lot of money.
+.PP
+.nf
+.B woob bank history account@backend \-\-condition 'label|rewe'
+.fi
+Get transactions containing "rewe".
+.PP
+.nf
+.B woob bank history account@backend \-\-condition 'date>2013\-12\-01 AND date<2013\-12\-09'
+.fi
+Get transactions betweens the 2th December and 8th December 2013.
+.PP
+.nf
+.B woob bank history account@backend \-\-condition 'date>2013\-12\-01  LIMIT 10'
+.fi
+Get transactions after the 2th December in the last 10 transactions
+
+.SH COPYRIGHT
+Copyright(C) 2010-2021 Christophe Benz, Romain Bignon
+.LP
+For full copyright information see the COPYING file in the woob package.
+.LP
+.RE
+.SH FILES
+"~/.config/woob/backends" 
+
+.SH SEE ALSO
+Home page: https://woob.tech/applications/config

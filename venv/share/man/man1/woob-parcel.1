@@ -1,0 +1,319 @@
+.\" -*- coding: utf-8 -*-
+.\" This file was generated automatically by tools/make_man.sh.
+.TH WOOB-PARCEL 1 "11 April 2021" "woob-parcel 3\&.0"
+.SH NAME
+woob-parcel \- manage your parcels
+.SH SYNOPSIS
+.B woob
+parcel [\-dqv] [\-b \fIbackends\fR] [\-cnfs] [\fIcommand\fR [\fIarguments\fR..]]
+.br
+.B woob
+parcel [\-\-help] [\-\-version]
+
+.SH DESCRIPTION
+.LP
+
+Console application to track your parcels.
+
+.SS Supported websites:
+* chronopost (Chronopost)
+.br
+* colisprive (Colisprive parcel tracking website)
+.br
+* colissimo (Colissimo parcel tracking website)
+.br
+* dhl (DHL website)
+.br
+* dpd (DPD website)
+.br
+* gls (GLS website)
+.br
+* itella (Itella website)
+.br
+* relaiscolis (Relais colis parcel tracking website)
+.SH PARCEL COMMANDS
+.TP
+\fBdebug\fR
+.br
+Launch a debug Python shell
+.TP
+\fBinfo\fR \fIID\fR
+.br
+Get information about a parcel.
+.TP
+\fBstatus\fR
+.br
+Display status for all of the tracked parcels.
+.TP
+\fBtrack\fR \fIID\fR
+.br
+Track a parcel.
+.TP
+\fBuntrack\fR \fIID\fR
+.br
+Stop tracking a parcel.
+.SH WOOB COMMANDS
+.TP
+\fBbackends\fR [\fIACTION\fR] [\fIBACKEND_NAME\fR]...
+.br
+Select used backends.
+.br
+
+.br
+ACTION is one of the following (default: list):
+.br
+* enable         enable given backends
+.br
+* disable        disable given backends
+.br
+* only           enable given backends and disable the others
+.br
+* list           list backends
+.br
+* add            add a backend
+.br
+* register       register a new account on a website
+.br
+* edit           edit a backend
+.br
+* remove         remove a backend
+.br
+* list\-modules   list modules
+.TP
+\fBcd\fR [\fIPATH\fR]
+.br
+Follow a path.
+.br
+".." is a special case and goes up one directory.
+.br
+"" is a special case and goes home.
+.TP
+\fBcondition\fR [\fIEXPRESSION\fR | off]
+.br
+If an argument is given, set the condition expression used to filter the results. See CONDITION section for more details and the expression.
+.br
+If the "off" value is given, conditional filtering is disabled.
+.br
+
+.br
+If no argument is given, print the current condition expression.
+.TP
+\fBcount\fR [\fINUMBER\fR | off]
+.br
+If an argument is given, set the maximum number of results fetched.
+.br
+NUMBER must be at least 1.
+.br
+"off" value disables counting, and allows infinite searches.
+.br
+
+.br
+If no argument is given, print the current count value.
+.TP
+\fBformatter\fR [list | \fIFORMATTER\fR [\fICOMMAND\fR] | option \fIOPTION_NAME\fR [on | off]]
+.br
+If a FORMATTER is given, set the formatter to use.
+.br
+You can add a COMMAND to apply the formatter change only to
+.br
+a given command.
+.br
+
+.br
+If the argument is "list", print the available formatters.
+.br
+
+.br
+If the argument is "option", set the formatter options.
+.br
+Valid options are: header, keys.
+.br
+If on/off value is given, set the value of the option.
+.br
+If not, print the current value for the option.
+.br
+
+.br
+If no argument is given, print the current formatter.
+.TP
+\fBlogging\fR [\fILEVEL\fR]
+.br
+Set logging level.
+.br
+
+.br
+Availables: debug, info, warning, error.
+.br
+* quiet is an alias for error
+.br
+* default is an alias for warning
+.TP
+\fBls\fR [\-d] [\-\fIU\fR] [\fIPATH\fR]
+.br
+List objects in current path.
+.br
+If an argument is given, list the specified path.
+.br
+Use \-U option to not sort results. It allows you to use a "fast path" to
+.br
+return results as soon as possible.
+.br
+Use \-d option to display information about a collection (and to not
+.br
+display the content of it). It has the same behavior than the well
+.br
+known UNIX "ls" command.
+.br
+
+.br
+Default is limited to 40 results.
+.TP
+\fBquit\fR
+.br
+Quit the application.
+.TP
+\fBselect\fR [\fIFIELD_NAME\fR]... | "$direct" | "$full"
+.br
+If an argument is given, set the selected fields.
+.br
+$direct selects all fields loaded in one http request.
+.br
+$full selects all fields using as much http requests as necessary.
+.br
+
+.br
+If no argument is given, print the currently selected fields.
+
+.SH OPTIONS
+.TP
+\fB\-\-version\fR
+show program's version number and exit
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+show this help message and exit
+.TP
+\fB\-b BACKENDS\fR, \fB\-\-backends=BACKENDS\fR
+what backend(s) to enable (comma separated)
+.TP
+\fB\-e EXCLUDE_BACKENDS\fR, \fB\-\-exclude\-backends=EXCLUDE_BACKENDS\fR
+what backend(s) to exclude (comma separated)
+.TP
+\fB\-I\fR, \fB\-\-insecure\fR
+do not validate SSL
+.TP
+\fB\-\-nss\fR
+Use NSS instead of OpenSSL
+.TP
+\fB\-\-auto\-update\fR
+Automatically check for updates when a bug in a module is encountered
+
+.SH LOGGING OPTIONS
+.TP
+\fB\-d\fR, \fB\-\-debug\fR
+display debug messages. Set up it twice to more verbosity
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+display only error messages
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+display info messages
+.TP
+\fB\-\-logging\-file=LOGGING_FILE\fR
+file to save logs
+.TP
+\fB\-a\fR, \fB\-\-save\-responses\fR
+save every response
+.TP
+\fB\-\-export\-session\fR
+log browser session cookies after login
+
+.SH RESULTS OPTIONS
+.TP
+\fB\-c CONDITION\fR, \fB\-\-condition=CONDITION\fR
+filter result items to display given a boolean expression. See CONDITION section
+for the syntax
+.TP
+\fB\-n COUNT\fR, \fB\-\-count=COUNT\fR
+limit number of results (from each backends)
+.TP
+\fB\-s SELECT\fR, \fB\-\-select=SELECT\fR
+select result item keys to display (comma separated)
+
+.SH FORMATTING OPTIONS
+.TP
+\fB\-f FORMATTER\fR, \fB\-\-formatter=FORMATTER\fR
+select output formatter (csv, history, htmltable, json, json_line, multiline,
+simple, status, table, webkit)
+.TP
+\fB\-\-no\-header\fR
+do not display header
+.TP
+\fB\-\-no\-keys\fR
+do not display item keys
+.TP
+\fB\-O OUTFILE\fR, \fB\-\-outfile=OUTFILE\fR
+file to export result
+
+.SH CONDITION
+The \-c and \-\-condition is a flexible way to filter and get only interesting results. It supports conditions on numerical values, dates, durations and strings. Dates are given in YYYY\-MM\-DD or YYYY\-MM\-DD HH:MM format. Durations look like XhYmZs where X, Y and Z are integers. Any of them may be omitted. For instance, YmZs, XhZs or Ym are accepted.
+The syntax of one expression is "\fBfield operator value\fR". The field to test is always the left member of the expression.
+.LP
+The field is a member of the objects returned by the command. For example, a bank account has "balance", "coming" or "label" fields.
+.SS The following operators are supported:
+.TP
+=
+Test if object.field is equal to the value.
+.TP
+!=
+Test if object.field is not equal to the value.
+.TP
+>
+Test if object.field is greater than the value. If object.field is date, return true if value is before that object.field.
+.TP
+<
+Test if object.field is less than the value. If object.field is date, return true if value is after that object.field.
+.TP
+|
+This operator is available only for string fields. It works like the Unix standard \fBgrep\fR command, and returns True if the pattern specified in the value is in object.field.
+.SS Expression combination
+.LP
+You can make a expression combinations with the keywords \fB" AND "\fR, \fB" OR "\fR an \fB" LIMIT "\fR.
+.LP
+The \fBLIMIT\fR keyword can be used to limit the number of items upon which running the expression. \fBLIMIT\fR can only be placed at the end of the expression followed by the number of elements you want.
+.SS Examples:
+.nf
+.B woob bank ls \-\-condition 'label=Livret A'
+.fi
+Display only the "Livret A" account.
+.PP
+.nf
+.B woob bank ls \-\-condition 'balance>10000'
+.fi
+Display accounts with a lot of money.
+.PP
+.nf
+.B woob bank history account@backend \-\-condition 'label|rewe'
+.fi
+Get transactions containing "rewe".
+.PP
+.nf
+.B woob bank history account@backend \-\-condition 'date>2013\-12\-01 AND date<2013\-12\-09'
+.fi
+Get transactions betweens the 2th December and 8th December 2013.
+.PP
+.nf
+.B woob bank history account@backend \-\-condition 'date>2013\-12\-01  LIMIT 10'
+.fi
+Get transactions after the 2th December in the last 10 transactions
+
+.SH COPYRIGHT
+Copyright(C) 2013-2021 Romain Bignon
+.LP
+For full copyright information see the COPYING file in the woob package.
+.LP
+.RE
+.SH FILES
+"~/.config/woob/backends" 
+
+.SH SEE ALSO
+Home page: https://woob.tech/applications/parcel

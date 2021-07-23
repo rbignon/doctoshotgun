@@ -213,6 +213,51 @@ class MasterPatientPage(JsonPage):
 class CityNotFound(Exception):
     pass
 
+class Login:
+
+    login = URL('/login.json', LoginPage)
+
+    def do_login(self, code):
+        try:
+            self.open(self.BASEURL + '/sessions/new')
+        except ServerError as e:
+            if e.response.status_code in [503] \
+                    and 'text/html' in e.response.headers['Content-Type'] \
+                    and (
+                    'cloudflare' in e.response.text or 'Checking your browser before accessing' in e.response.text):
+                log('Request blocked by CloudFlare', color='red')
+            if e.response.status_code in [520]:
+                log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
+            raise
+        try:
+            self.login.go(json={'kind': 'patient',
+                                'username': self.username,
+                                'password': self.password,
+                                'remember': True,
+                                'remember_username': True})
+        except ClientError:
+            print('Wrong login/password')
+            return False
+
+        if self.page.redirect() == "/sessions/two-factor":
+            print("Requesting 2fa code...")
+            if not code:
+                if not sys.__stdin__.isatty():
+                    log("Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.",
+                        color='red')
+                    return False
+                self.send_auth_code.go(
+                    json={'two_factor_auth_method': 'email'}, method="POST")
+                code = input("Enter auth code: ")
+            try:
+                self.challenge.go(
+                    json={'auth_code': code, 'two_factor_auth_method': 'email'}, method="POST")
+            except HTTPNotFound:
+                print("Invalid auth code")
+                return False
+
+        return True
+
 
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
@@ -221,7 +266,7 @@ class Doctolib(LoginBrowser):
     centers = URL('')
     center = URL('')
     # common properties
-    login = URL('/login.json', LoginPage)
+    login = Login.login
     send_auth_code = URL('/api/accounts/send_auth_code', SendAuthCodePage)
     challenge = URL('/login/challenge', ChallengePage)
     center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
@@ -254,44 +299,9 @@ class Doctolib(LoginBrowser):
 
         self.patient = None
 
-    def do_login(self, code):
-        try:
-            self.open(self.BASEURL + '/sessions/new')
-        except ServerError as e:
-            if e.response.status_code in [503] \
-                and 'text/html' in e.response.headers['Content-Type'] \
-                    and ('cloudflare' in e.response.text or 'Checking your browser before accessing' in e .response.text):
-                log('Request blocked by CloudFlare', color='red')
-            if e.response.status_code in [520]:
-                log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
-            raise
-        try:
-            self.login.go(json={'kind': 'patient',
-                                'username': self.username,
-                                'password': self.password,
-                                'remember': True,
-                                'remember_username': True})
-        except ClientError:
-            print('Wrong login/password')
-            return False
-
-        if self.page.redirect() == "/sessions/two-factor":
-            print("Requesting 2fa code...")
-            if not code:
-                if not sys.__stdin__.isatty():
-                    log("Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.", color='red')
-                    return False
-                self.send_auth_code.go(
-                    json={'two_factor_auth_method': 'email'}, method="POST")
-                code = input("Enter auth code: ")
-            try:
-                self.challenge.go(
-                    json={'auth_code': code, 'two_factor_auth_method': 'email'}, method="POST")
-            except HTTPNotFound:
-                print("Invalid auth code")
-                return False
-
-        return True
+    def user_login(self, code):
+        if (Login.do_login(self, code)):
+            return 1
 
     def find_centers(self, where, motives=None, page=1):
         if motives is None:
@@ -379,173 +389,173 @@ class Doctolib(LoginBrowser):
                     # do not filter to give a chance
                     agenda_ids = center_page.get_agenda_ids(motive_id)
 
-                if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, vac_name.lower(), start_date, end_date, only_second, only_third, dry_run):
+                if self.try_to_book_place( profile_id, motive_id, practice_id, agenda_ids, vac_name.lower(), start_date, end_date, only_second, only_third, dry_run):
                     return True
 
         return False
 
     def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, vac_name, start_date, end_date, only_second, only_third, dry_run=False):
-        date = start_date.strftime('%Y-%m-%d')
-        while date is not None:
-            self.availabilities.go(
-                params={'start_date': date,
-                        'visit_motive_ids': motive_id,
-                        'agenda_ids': '-'.join(agenda_ids),
-                        'insurance_sector': 'public',
-                        'practice_ids': practice_id,
-                        'destroy_temporary': 'true',
-                        'limit': 3})
-            if 'next_slot' in self.page.doc:
-                date = self.page.doc['next_slot']
-            else:
-                date = None
+            date = start_date.strftime('%Y-%m-%d')
+            while date is not None:
+                self.availabilities.go(
+                    params={'start_date': date,
+                            'visit_motive_ids': motive_id,
+                            'agenda_ids': '-'.join(agenda_ids),
+                            'insurance_sector': 'public',
+                            'practice_ids': practice_id,
+                            'destroy_temporary': 'true',
+                            'limit': 3})
+                if 'next_slot' in self.page.doc:
+                    date = self.page.doc['next_slot']
+                else:
+                    date = None
 
-        if len(self.page.doc['availabilities']) == 0:
-            log('no availabilities', color='red')
-            return False
-
-        slot = self.page.find_best_slot(start_date, end_date)
-        if not slot:
-            if only_second == False and only_third == False:
-                log('First slot not found :(', color='red')
-            else:
-                log('Slot not found :(', color='red')
-            return False
-
-        # depending on the country, the slot is returned in a different format. Go figure...
-        if isinstance(slot, dict) and 'start_date' in slot:
-            slot_date_first = slot['start_date']
-            if vac_name != "janssen":
-                slot_date_second = slot['steps'][1]['start_date']
-        elif isinstance(slot, str):
-            if vac_name != "janssen" and not only_second and not only_third:
-                log('Only one slot for multi-shot vaccination found')
-            # should be for Janssen, second or third shots only, otherwise it is a list
-            slot_date_first = slot
-        elif isinstance(slot, list):
-            slot_date_first = slot[0]
-            if vac_name != "janssen":  # maybe redundant?
-                slot_date_second = slot[1]
-        else:
-            log('Error while fetching first slot.', color='red')
-            return False
-        if vac_name != "janssen" and not only_second and not only_third:
-            assert slot_date_second
-        log('found!', color='green')
-        log('  ├╴ Best slot found: %s', parse_date(
-            slot_date_first).strftime('%c'))
-
-        appointment = {'profile_id':    profile_id,
-                       'source_action': 'profile',
-                       'start_date':    slot_date_first,
-                       'visit_motive_ids': str(motive_id),
-                       }
-
-        data = {'agenda_ids': '-'.join(agenda_ids),
-                'appointment': appointment,
-                'practice_ids': [practice_id]}
-
-        headers = {
-            'content-type': 'application/json',
-        }
-        self.appointment.go(data=json.dumps(data), headers=headers)
-
-        if self.page.is_error():
-            log('  └╴ Appointment not available anymore :( %s', self.page.get_error())
-            return False
-
-        playsound('ding.mp3')
-
-        if vac_name != "janssen" and not only_second and not only_third:  # janssen has only one shot
-            self.second_shot_availabilities.go(
-                params={'start_date': slot_date_second.split('T')[0],
-                        'visit_motive_ids': motive_id,
-                        'agenda_ids': '-'.join(agenda_ids),
-                        'first_slot': slot_date_first,
-                        'insurance_sector': 'public',
-                        'practice_ids': practice_id,
-                        'limit': 3})
-
-            second_slot = self.page.find_best_slot()
-            if not second_slot:
-                log('  └╴ No second shot found')
+            if len(self.page.doc['availabilities']) == 0:
+                log('no availabilities', color='red')
                 return False
 
-            # in theory we could use the stored slot_date_second result from above,
-            # but we refresh with the new results to play safe
-            if isinstance(second_slot, dict) and 'start_date' in second_slot:
-                slot_date_second = second_slot['start_date']
+            slot = self.page.find_best_slot(start_date, end_date)
+            if not slot:
+                if only_second == False and only_third == False:
+                    log('First slot not found :(', color='red')
+                else:
+                    log('Slot not found :(', color='red')
+                return False
+
+            # depending on the country, the slot is returned in a different format. Go figure...
+            if isinstance(slot, dict) and 'start_date' in slot:
+                slot_date_first = slot['start_date']
+                if vac_name != "janssen":
+                    slot_date_second = slot['steps'][1]['start_date']
             elif isinstance(slot, str):
-                slot_date_second = second_slot
-            # TODO: is this else needed?
-            # elif isinstance(slot, list):
-            #    slot_date_second = second_slot[1]
+                if vac_name != "janssen" and not only_second and not only_third:
+                    log('Only one slot for multi-shot vaccination found')
+                # should be for Janssen, second or third shots only, otherwise it is a list
+                slot_date_first = slot
+            elif isinstance(slot, list):
+                slot_date_first = slot[0]
+                if vac_name != "janssen":  # maybe redundant?
+                    slot_date_second = slot[1]
             else:
-                log('Error while fetching second slot.', color='red')
+                log('Error while fetching first slot.', color='red')
                 return False
+            if vac_name != "janssen" and not only_second and not only_third:
+                assert slot_date_second
+            log('found!', color='green')
+            log('  ├╴ Best slot found: %s', parse_date(
+                slot_date_first).strftime('%c'))
 
-            log('  ├╴ Second shot: %s', parse_date(
-                slot_date_second).strftime('%c'))
+            appointment = {'profile_id': profile_id,
+                           'source_action': 'profile',
+                           'start_date': slot_date_first,
+                           'visit_motive_ids': str(motive_id),
+                           }
 
-            data['second_slot'] = slot_date_second
+            data = {'agenda_ids': '-'.join(agenda_ids),
+                    'appointment': appointment,
+                    'practice_ids': [practice_id]}
+
+            headers = {
+                'content-type': 'application/json',
+            }
             self.appointment.go(data=json.dumps(data), headers=headers)
 
             if self.page.is_error():
-                log('  └╴ Appointment not available anymore :( %s',
-                    self.page.get_error())
+                log('  └╴ Appointment not available anymore :( %s', self.page.get_error())
                 return False
 
-        a_id = self.page.doc['id']
+            playsound('ding.mp3')
 
-        self.appointment_edit.go(id=a_id)
+            if vac_name != "janssen" and not only_second and not only_third:  # janssen has only one shot
+                self.second_shot_availabilities.go(
+                    params={'start_date': slot_date_second.split('T')[0],
+                            'visit_motive_ids': motive_id,
+                            'agenda_ids': '-'.join(agenda_ids),
+                            'first_slot': slot_date_first,
+                            'insurance_sector': 'public',
+                            'practice_ids': practice_id,
+                            'limit': 3})
 
-        log('  ├╴ Booking for %(first_name)s %(last_name)s...' % self.patient)
+                second_slot = self.page.find_best_slot()
+                if not second_slot:
+                    log('  └╴ No second shot found')
+                    return False
 
-        self.appointment_edit.go(
-            id=a_id, params={'master_patient_id': self.patient['id']})
+                # in theory we could use the stored slot_date_second result from above,
+                # but we refresh with the new results to play safe
+                if isinstance(second_slot, dict) and 'start_date' in second_slot:
+                    slot_date_second = second_slot['start_date']
+                elif isinstance(slot, str):
+                    slot_date_second = second_slot
+                # TODO: is this else needed?
+                # elif isinstance(slot, list):
+                #    slot_date_second = second_slot[1]
+                else:
+                    log('Error while fetching second slot.', color='red')
+                    return False
 
-        custom_fields = {}
-        for field in self.page.get_custom_fields():
-            if field['id'] == 'cov19':
-                value = 'Non'
-            elif field['placeholder']:
-                value = field['placeholder']
-            else:
-                print('%s (%s):' %
-                      (field['label'], field['placeholder']), end=' ', flush=True)
-                value = sys.stdin.readline().strip()
+                log('  ├╴ Second shot: %s', parse_date(
+                    slot_date_second).strftime('%c'))
 
-            custom_fields[field['id']] = value
+                data['second_slot'] = slot_date_second
+                self.appointment.go(data=json.dumps(data), headers=headers)
 
-        if dry_run:
-            log('  └╴ Booking status: %s', 'fake')
-            return True
+                if self.page.is_error():
+                    log('  └╴ Appointment not available anymore :( %s',
+                        self.page.get_error())
+                    return False
 
-        data = {'appointment': {'custom_fields_values': custom_fields,
-                                'new_patient': True,
-                                'qualification_answers': {},
-                                'referrer_id': None,
-                                },
-                'bypass_mandatory_relative_contact_info': False,
-                'email': None,
-                'master_patient': self.patient,
-                'new_patient': True,
-                'patient': None,
-                'phone_number': None,
-                }
+            a_id = self.page.doc['id']
 
-        self.appointment_post.go(id=a_id, data=json.dumps(
-            data), headers=headers, method='PUT')
+            self.appointment_edit.go(id=a_id)
 
-        if 'redirection' in self.page.doc and not 'confirmed-appointment' in self.page.doc['redirection']:
-            log('  ├╴ Open %s to complete', self.BASEURL +
-                self.page.doc['redirection'])
+            log('  ├╴ Booking for %(first_name)s %(last_name)s...' % self.patient)
 
-        self.appointment_post.go(id=a_id)
+            self.appointment_edit.go(
+                id=a_id, params={'master_patient_id': self.patient['id']})
 
-        log('  └╴ Booking status: %s', self.page.doc['confirmed'])
+            custom_fields = {}
+            for field in self.page.get_custom_fields():
+                if field['id'] == 'cov19':
+                    value = 'Non'
+                elif field['placeholder']:
+                    value = field['placeholder']
+                else:
+                    print('%s (%s):' %
+                          (field['label'], field['placeholder']), end=' ', flush=True)
+                    value = sys.stdin.readline().strip()
 
-        return self.page.doc['confirmed']
+                custom_fields[field['id']] = value
+
+            if dry_run:
+                log('  └╴ Booking status: %s', 'fake')
+                return True
+
+            data = {'appointment': {'custom_fields_values': custom_fields,
+                                    'new_patient': True,
+                                    'qualification_answers': {},
+                                    'referrer_id': None,
+                                    },
+                    'bypass_mandatory_relative_contact_info': False,
+                    'email': None,
+                    'master_patient': self.patient,
+                    'new_patient': True,
+                    'patient': None,
+                    'phone_number': None,
+                    }
+
+            self.appointment_post.go(id=a_id, data=json.dumps(
+                data), headers=headers, method='PUT')
+
+            if 'redirection' in self.page.doc and not 'confirmed-appointment' in self.page.doc['redirection']:
+                log('  ├╴ Open %s to complete', self.BASEURL +
+                    self.page.doc['redirection'])
+
+            self.appointment_post.go(id=a_id)
+
+            log('  └╴ Booking status: %s', self.page.doc['confirmed'])
+
+            return self.page.doc['confirmed']
 
 
 class DoctolibDE(Doctolib):
@@ -683,7 +693,7 @@ class Application:
 
         docto = doctolib_map[args.country](
             args.username, args.password, responses_dirname=responses_dirname)
-        if not docto.do_login(args.code):
+        if not docto.user_login(args.code):
             return 1
 
         patients = docto.get_patients()

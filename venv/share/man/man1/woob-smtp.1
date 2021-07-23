@@ -1,0 +1,221 @@
+.\" -*- coding: utf-8 -*-
+.\" This file was generated automatically by tools/make_man.sh.
+.TH WOOB-SMTP 1 "11 April 2021" "woob-smtp 3\&.0"
+.SH NAME
+woob-smtp \- daemon to send and check messages
+.SH SYNOPSIS
+.B woob
+smtp [\-dqv] [\-b \fIbackends\fR] [\-cnfs] [\fIcommand\fR [\fIarguments\fR..]]
+.br
+.B woob
+smtp [\-\-help] [\-\-version]
+
+.SH DESCRIPTION
+.LP
+
+Daemon allowing to regularly check for new messages on various websites, and send an email for each message, and post a reply to a message on a website.
+
+.SS Supported websites:
+* aum ("Adopte un Mec" French dating website)
+.br
+* blogspot (Blog reader for blogspot. Read\-only and without comments.)
+.br
+* bnporc (BNP Paribas)
+.br
+* dlfp (Da Linux French Page news website)
+.br
+* feedly (handle the popular RSS reading service Feedly)
+.br
+* freemobile (Free Mobile website)
+.br
+* guerrillamail (GuerrillaMail temp mailbox)
+.br
+* happn (Happn dating mobile application)
+.br
+* hds (Histoires de Sexe French erotic novels)
+.br
+* inrocks (Les Inrocks French news website)
+.br
+* lefigaro (Le Figaro French newspaper website)
+.br
+* liberation (Libération newspaper website)
+.br
+* mailinator (mailinator temp mailbox)
+.br
+* minutes20 (20 Minutes French newspaper website)
+.br
+* newsfeed (Loads RSS and Atom feeds from any website)
+.br
+* openedx (Discussions on OpenEDX\-powered coursewares)
+.br
+* phpbb (phpBB forum)
+.br
+* presseurop (Presseurop website)
+.br
+* reddit (reddit website)
+.br
+* tapatalk (Tapatalk\-compatible sites)
+.br
+* taz (Taz newspaper website)
+.br
+* tinder (Tinder dating mobile application)
+.br
+* twitter (twitter website)
+.SH SMTP COMMANDS
+.TP
+\fBdebug\fR
+.br
+Launch a debug Python shell
+.TP
+\fBonce\fR
+.br
+Send mails only once, then exit.
+.TP
+\fBpost\fR
+.br
+Pipe with a mail to post message.
+.TP
+\fBrun\fR
+.br
+Run the fetching daemon.
+
+.SH OPTIONS
+.TP
+\fB\-\-version\fR
+show program's version number and exit
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+show this help message and exit
+.TP
+\fB\-b BACKENDS\fR, \fB\-\-backends=BACKENDS\fR
+what backend(s) to enable (comma separated)
+.TP
+\fB\-e EXCLUDE_BACKENDS\fR, \fB\-\-exclude\-backends=EXCLUDE_BACKENDS\fR
+what backend(s) to exclude (comma separated)
+.TP
+\fB\-I\fR, \fB\-\-insecure\fR
+do not validate SSL
+.TP
+\fB\-\-nss\fR
+Use NSS instead of OpenSSL
+.TP
+\fB\-\-auto\-update\fR
+Automatically check for updates when a bug in a module is encountered
+
+.SH SMTP OPTIONS
+.TP
+\fB\-S SMTPD\fR, \fB\-\-smtpd=SMTPD\fR
+run a fake smtpd server and set the port
+
+.SH LOGGING OPTIONS
+.TP
+\fB\-d\fR, \fB\-\-debug\fR
+display debug messages. Set up it twice to more verbosity
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+display only error messages
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+display info messages
+.TP
+\fB\-\-logging\-file=LOGGING_FILE\fR
+file to save logs
+.TP
+\fB\-a\fR, \fB\-\-save\-responses\fR
+save every response
+.TP
+\fB\-\-export\-session\fR
+log browser session cookies after login
+
+.SH RESULTS OPTIONS
+.TP
+\fB\-c CONDITION\fR, \fB\-\-condition=CONDITION\fR
+filter result items to display given a boolean expression. See CONDITION section
+for the syntax
+.TP
+\fB\-n COUNT\fR, \fB\-\-count=COUNT\fR
+limit number of results (from each backends)
+.TP
+\fB\-s SELECT\fR, \fB\-\-select=SELECT\fR
+select result item keys to display (comma separated)
+
+.SH FORMATTING OPTIONS
+.TP
+\fB\-f FORMATTER\fR, \fB\-\-formatter=FORMATTER\fR
+select output formatter (csv, htmltable, json, json_line, multiline, simple,
+table, webkit)
+.TP
+\fB\-\-no\-header\fR
+do not display header
+.TP
+\fB\-\-no\-keys\fR
+do not display item keys
+.TP
+\fB\-O OUTFILE\fR, \fB\-\-outfile=OUTFILE\fR
+file to export result
+
+.SH CONDITION
+The \-c and \-\-condition is a flexible way to filter and get only interesting results. It supports conditions on numerical values, dates, durations and strings. Dates are given in YYYY\-MM\-DD or YYYY\-MM\-DD HH:MM format. Durations look like XhYmZs where X, Y and Z are integers. Any of them may be omitted. For instance, YmZs, XhZs or Ym are accepted.
+The syntax of one expression is "\fBfield operator value\fR". The field to test is always the left member of the expression.
+.LP
+The field is a member of the objects returned by the command. For example, a bank account has "balance", "coming" or "label" fields.
+.SS The following operators are supported:
+.TP
+=
+Test if object.field is equal to the value.
+.TP
+!=
+Test if object.field is not equal to the value.
+.TP
+>
+Test if object.field is greater than the value. If object.field is date, return true if value is before that object.field.
+.TP
+<
+Test if object.field is less than the value. If object.field is date, return true if value is after that object.field.
+.TP
+|
+This operator is available only for string fields. It works like the Unix standard \fBgrep\fR command, and returns True if the pattern specified in the value is in object.field.
+.SS Expression combination
+.LP
+You can make a expression combinations with the keywords \fB" AND "\fR, \fB" OR "\fR an \fB" LIMIT "\fR.
+.LP
+The \fBLIMIT\fR keyword can be used to limit the number of items upon which running the expression. \fBLIMIT\fR can only be placed at the end of the expression followed by the number of elements you want.
+.SS Examples:
+.nf
+.B woob bank ls \-\-condition 'label=Livret A'
+.fi
+Display only the "Livret A" account.
+.PP
+.nf
+.B woob bank ls \-\-condition 'balance>10000'
+.fi
+Display accounts with a lot of money.
+.PP
+.nf
+.B woob bank history account@backend \-\-condition 'label|rewe'
+.fi
+Get transactions containing "rewe".
+.PP
+.nf
+.B woob bank history account@backend \-\-condition 'date>2013\-12\-01 AND date<2013\-12\-09'
+.fi
+Get transactions betweens the 2th December and 8th December 2013.
+.PP
+.nf
+.B woob bank history account@backend \-\-condition 'date>2013\-12\-01  LIMIT 10'
+.fi
+Get transactions after the 2th December in the last 10 transactions
+
+.SH COPYRIGHT
+Copyright(C) 2010-2021 Romain Bignon
+.LP
+For full copyright information see the COPYING file in the woob package.
+.LP
+.RE
+.SH FILES
+"~/.config/woob/backends" 
+
+"~/.config/woob/smtp"
+
+.SH SEE ALSO
+Home page: https://woob.tech/applications/smtp
