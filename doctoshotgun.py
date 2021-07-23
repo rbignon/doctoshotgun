@@ -73,71 +73,6 @@ class Session(cloudscraper.CloudScraper):
 
         return callback(self, resp)
 
-class Page():
-    def __init__(self, JsonPage=JsonPage, HTMLPage=HTMLPage):
-        self.loginpage = LoginPage(JsonPage)
-        self.SendAuthCodePage = SendAuthCodePage(JsonPage)
-        self.ChallengePage = ChallengePage(JasonPage)
-        self.CentersPage = CentersPage(HTMLpage)
-        self.CenterResultPage = CenterResultPage(JsonPage)
-        self.CenterBookingPage = CenterBookingPage(JsonPage)
-        self.AvailabilitiesPage = AvailabilitiesPage(JasonPage)
-        self.AppointmentPage = AppointmentPage(JsonPage)
-        self.AppointmentEditPage = get_custom_fields(JsonPage)
-        self.AppointmentPostPage = AppointmentPostPage(JsonPage)
-        self.MasterPatientPage = MasterPatientPage(JsonPage)
-
-    def redirect(self):
-        return LoginPage.redirect
-
-    def iter_centers_ids(self):
-        return CentersPage.iter_centers_ids
-
-    def get_next_page(self):
-        return CentersPage.get_next_page
-
-    def get_patients(self)
-        return MasterPatientPage.get_patients
-
-    def doc(self)
-        return CenterBookingPage.doc
-
-    def get_motives(self):
-        return CenterBookingPage.get_motives
-
-    def get_places(self):
-        return CenterBookingPage.get_places
-
-    def get_practice(self):
-        return CenterBookingPage.get_practice
-
-    def get_agenda_ids(self):
-        motives_id = self.get_motives
-        practice_id = self.get_practice
-        return CenterBookingPage.get_agenda_ids
-
-    def get_profile_id(self):
-        return CenterBookingPage.get_profile_id
-
-    def find_best_slot(self):
-        return AvailabilitiesPage.find_best_slot
-
-    def is_error(self):
-        return AppointmentPage.is_error
-
-    def get_error(self):
-        return AppointmentPage.get_error
-
-    def get_error(self):
-        return AppointmentEditPage
-
-    def get_patients(self):
-        return MasterPatientPage.get_patients()
-
-    def get_name(self)
-        return MasterPatientPage.get_name()
-
-
 
 class LoginPage(JsonPage):
     def redirect(self):
@@ -689,8 +624,6 @@ class Application:
             "fr": DoctolibFR,
             "de": DoctolibDE
         }
-
-        page = Page(JsonPage, HTMLPage)
 
         parser = argparse.ArgumentParser(
             description="Book a vaccine slot on Doctolib")
