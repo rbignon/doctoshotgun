@@ -623,9 +623,8 @@ class DoctolibFR(Doctolib):
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
+class Parser:
 
-
-class Application:
     @classmethod
     def create_default_logger(cls):
         # stderr logger
@@ -641,9 +640,7 @@ class Application:
         logging.root.setLevel(level)
         logging.root.addHandler(self.create_default_logger())
 
-    def main(self, cli_args=None):
-        colorama.init()  # needed for windows
-
+    def argument_parser(self,cli_args):
         doctolib_map = {
             "fr": DoctolibFR,
             "de": DoctolibDE
@@ -886,10 +883,18 @@ class Application:
         return 0
 
 
+class Application:
+
+    def main(self, cli_args=None):
+        colorama.init()  # needed for windows
+        parser=Parser()
+        parser.argument_parser(cli_args)
+
+
+
 if __name__ == '__main__':
     try:
         sys.exit(Application().main())
     except KeyboardInterrupt:
         print('Abort.')
         sys.exit(1)
-
