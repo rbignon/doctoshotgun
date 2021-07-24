@@ -206,6 +206,9 @@ class MasterPatientPage(JsonPage):
     def get_patients(self):
         return self.doc
 
+    def get_patients_len(self):
+        return(len*self.doc)
+
     def get_name(self):
         return '%s %s' % (self.doc[0]['first_name'], self.doc[0]['last_name'])
 
@@ -339,6 +342,11 @@ class Doctolib(LoginBrowser):
         self.master_patient.go()
 
         return self.page.get_patients()
+
+    def get_patients_len(self):
+        self.master_patient.go()
+
+        return len(self.page.get_patients())
 
     @classmethod
     def normalize(cls, string):
@@ -687,12 +695,13 @@ class Application:
             return 1
 
         patients = docto.get_patients()
-        if len(patients) == 0:
+        patientsLen = docto.get_patients_len()
+        if patientsLen == 0:
             print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
             return 1
-        if args.patient >= 0 and args.patient < len(patients):
+        if args.patient >= 0 and args.patient < patientsLen:
             docto.patient = patients[args.patient]
-        elif len(patients) > 1:
+        elif patientsLen > 1:
             print('Available patients are:')
             for i, patient in enumerate(patients):
                 print('* [%s] %s %s' %
