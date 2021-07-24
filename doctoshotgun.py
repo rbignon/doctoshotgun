@@ -213,19 +213,40 @@ class MasterPatientPage(JsonPage):
 class CityNotFound(Exception):
     pass
 
+class VaccineCenter:
+    def __init__(self,centerResult : URL, centerBooking : URL):
+            self.BASEURL = ""
+            self.vaccine_motives = {}
+            self.centers = URL('')
+            self.center = URL('')
+            self.centerResult = centerResult
+            self.centerBooking = centerBooking
+    def changeBASEURL(self,BASEURL: URL):
+        self.BASEURL = BASEURL
+    def changeVaccineMotives(self,vaccine_motives: dict()):
+        self.vaccine_motives = vaccine_motives
+    def changeCenters(self,centers: URL):
+        self.centers = centers
+    def changeCenter(self,center: URL):
+        self.center = center
+    def changeCenterResult(self,centerResult: URL):
+        self.centerResult = centerResult
+    def changeCenterBooking(self,centerBooking: URL):
+        self.centerBooking = centerBooking
 
 class Doctolib(LoginBrowser):
-    # individual properties for each country. To be defined in subclasses
-    BASEURL = ""
-    vaccine_motives = {}
-    centers = URL('')
-    center = URL('')
+
+    # Brings aggregate root for Vaccine Center
+    vc = VaccineCenter(URL(r'/search_results/(?P<id>\d+).json', CenterResultPage), URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage))
+
     # common properties
     login = URL('/login.json', LoginPage)
     send_auth_code = URL('/api/accounts/send_auth_code', SendAuthCodePage)
     challenge = URL('/login/challenge', ChallengePage)
-    center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
-    center_booking = URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage)
+
+    center_result = vc.centerResult
+    center_booking = vc.centerBooking
+
     availabilities = URL(r'/availabilities.json', AvailabilitiesPage)
     second_shot_availabilities = URL(
         r'/second_shot_availabilities.json', AvailabilitiesPage)
@@ -335,10 +356,6 @@ class Doctolib(LoginBrowser):
                 for center in self.find_centers(where, motives, next_page):
                     yield center
 
-    def get_patients(self):
-        self.master_patient.go()
-
-        return self.page.get_patients()
 
     @classmethod
     def normalize(cls, string):
@@ -572,6 +589,10 @@ class DoctolibDE(Doctolib):
     }
     centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
     center = URL(r'/praxis/.*', CenterPage)
+    # TODO
+    VaccineCenter(URL(''), URL(''))
+
+
 
 
 class DoctolibFR(Doctolib):
@@ -599,6 +620,37 @@ class DoctolibFR(Doctolib):
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
+    # TODO
+    VaccineCenter(URL(''), URL(''))
+
+# TODO
+class Patient:
+    def getpatient(self, docto, args):
+
+        patients = docto.get_patients()
+        if len(patients) == 0:
+            print(
+                "It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
+            return 1
+        if args.patient >= 0 and args.patient < len(patients):
+            docto.patient = patients[args.patient]
+        elif len(patients) > 1:
+            print('Available patients are:')
+            for i, patient in enumerate(patients):
+                print('* [%s] %s %s' %
+                      (i, patient['first_name'], patient['last_name']))
+            while True:
+                print('For which patient do you want to book a slot?',
+                      end=' ', flush=True)
+                try:
+                    docto.patient = patients[int(sys.stdin.readline().strip())]
+                except (ValueError, IndexError):
+                    continue
+                else:
+                    break
+        else:
+            docto.patient = patients[0]
+        return docto.patient
 
 
 class Application:
@@ -686,28 +738,6 @@ class Application:
         if not docto.do_login(args.code):
             return 1
 
-        patients = docto.get_patients()
-        if len(patients) == 0:
-            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
-            return 1
-        if args.patient >= 0 and args.patient < len(patients):
-            docto.patient = patients[args.patient]
-        elif len(patients) > 1:
-            print('Available patients are:')
-            for i, patient in enumerate(patients):
-                print('* [%s] %s %s' %
-                      (i, patient['first_name'], patient['last_name']))
-            while True:
-                print('For which patient do you want to book a slot?',
-                      end=' ', flush=True)
-                try:
-                    docto.patient = patients[int(sys.stdin.readline().strip())]
-                except (ValueError, IndexError):
-                    continue
-                else:
-                    break
-        else:
-            docto.patient = patients[0]
 
         motives = []
         if not args.pfizer and not args.moderna and not args.janssen and not args.astrazeneca:
