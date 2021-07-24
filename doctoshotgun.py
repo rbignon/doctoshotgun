@@ -213,6 +213,51 @@ class MasterPatientPage(JsonPage):
 class CityNotFound(Exception):
     pass
 
+# User login separted from Doctolib class. Accessible from root class Doctolib
+class Login:
+
+    login = URL('/login.json', LoginPage)
+
+    def do_login(self, code):
+        try:
+            self.open(self.BASEURL + '/sessions/new')
+        except ServerError as e:
+            if e.response.status_code in [503] \
+                    and 'text/html' in e.response.headers['Content-Type'] \
+                    and (
+                    'cloudflare' in e.response.text or 'Checking your browser before accessing' in e.response.text):
+                log('Request blocked by CloudFlare', color='red')
+            if e.response.status_code in [520]:
+                log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
+            raise
+        try:
+            self.login.go(json={'kind': 'patient',
+                                'username': self.username,
+                                'password': self.password,
+                                'remember': True,
+                                'remember_username': True})
+        except ClientError:
+            print('Wrong login/password')
+            return False
+
+        if self.page.redirect() == "/sessions/two-factor":
+            print("Requesting 2fa code...")
+            if not code:
+                if not sys.__stdin__.isatty():
+                    log("Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.",
+                        color='red')
+                    return False
+                self.send_auth_code.go(
+                    json={'two_factor_auth_method': 'email'}, method="POST")
+                code = input("Enter auth code: ")
+            try:
+                self.challenge.go(
+                    json={'auth_code': code, 'two_factor_auth_method': 'email'}, method="POST")
+            except HTTPNotFound:
+                print("Invalid auth code")
+                return False
+
+        return True
 
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
@@ -221,7 +266,7 @@ class Doctolib(LoginBrowser):
     centers = URL('')
     center = URL('')
     # common properties
-    login = URL('/login.json', LoginPage)
+    login = Login.login
     send_auth_code = URL('/api/accounts/send_auth_code', SendAuthCodePage)
     challenge = URL('/login/challenge', ChallengePage)
     center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
@@ -253,6 +298,10 @@ class Doctolib(LoginBrowser):
         self.session.headers['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'
 
         self.patient = None
+
+    def user_login(self, code):
+        if (Login.do_login(self, code)):
+            return 1
 
     def do_login(self, code):
         try:
@@ -683,7 +732,7 @@ class Application:
 
         docto = doctolib_map[args.country](
             args.username, args.password, responses_dirname=responses_dirname)
-        if not docto.do_login(args.code):
+        if not docto.user_login(args.code):
             return 1
 
         patients = docto.get_patients()
