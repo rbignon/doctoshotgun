@@ -617,6 +617,8 @@ class Application:
         logging.root.setLevel(level)
         logging.root.addHandler(self.create_default_logger())
 
+#aggregate 2
+class Country():
     def main(self, cli_args=None):
         colorama.init()  # needed for windows
 
