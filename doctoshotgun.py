@@ -212,6 +212,7 @@ class CenterBookingPage(JsonPage):
             docto.patient = patients[0]
 
 
+# Aggregate Root
 class AvailabilitiesPage(JsonPage):
     def find_best_slot(self, start_date=None, end_date=None):
         for a in self.doc['availabilities']:
