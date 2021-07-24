@@ -1,4 +1,4 @@
-#Aggregation 2
+#Aggregation 2 
 #!/usr/bin/env python3
 import sys
 import re
@@ -89,7 +89,7 @@ class StartupPage(JsonPage):
      elif self.PageType is not LoginPage:
         return self.PageType.build_doc(content)
      return ""
-     
+
 class LoginPage(JsonPage):
     def redirect(self):
         return self.doc['redirection']
