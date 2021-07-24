@@ -600,6 +600,32 @@ class DoctolibFR(Doctolib):
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
 
+class Book_place_information(Doctolib):
+    # Aggregate root
+    def __init__(self, profile_id, motive_id, agenda_ids, vac_name, start_date, end_date, only_second, only_third):
+        self.profile_id = profile_id
+        self.motive_id = motive_id
+        self.agenda_ids = agenda_ids
+        self. vac_name = vac_name
+        self. start_date  = start_date
+        self.end_data = end_date
+        self.only_second =only_second
+        self.only_third = only_third
+    def define_the_data(self):
+       date = self.start_date.strftime('%Y-%m-%d')
+       while date is not None:
+            self.availabilities.go(
+                params={'start_date': self.date,
+                        'visit_motive_ids': self.motive_id,
+                        'agenda_ids': '-'.join(self.agenda_ids),
+                        'insurance_sector': 'public',
+                        'practice_ids': self.practice_id,
+                        'destroy_temporary': 'true',
+                        'limit': 3})
+            if 'next_slot' in self.page.doc:
+                date = self.page.doc['next_slot']
+            else:
+                date = None
 
 class Application:
     @classmethod
