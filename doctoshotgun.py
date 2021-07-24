@@ -201,8 +201,43 @@ class AppointmentEditPage(JsonPage):
 class AppointmentPostPage(JsonPage):
     pass
 
+class Patient(JsonPage):
+    def __init__(self, docto = None, patient = None):
+        self.doctovalue = docto
+        self.patientvalue = patient
+        self.fetchpatientdata = FetchPatient(JsonPage)
+        
+    def access_patient(self):
+        patients = self.doctovalue.get_patients()
+        if len(patients) == 0:
+            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
+            return 1
+        if self.patientvalue >= 0 and self.patientvalue < len(patients):
+            self.doctovalue = patients[self.patientvalue]
+        elif len(patients) > 1:
+            print('Available patients are:')
+            for i, patient in enumerate(patients):
+                print('* [%s] %s %s' %
+                      (i, patient['first_name'], patient['last_name']))
+            while True:
+                print('For which patient do you want to book a slot?',
+                      end=' ', flush=True)
+                try:
+                    self.doctovalue.patient = patients[int(sys.stdin.readline().strip())]
+                except (ValueError, IndexError):
+                    continue
+                else:
+                    break
+        else:
+            self.doctovalue.patient = patients[0]
+    
+    def get_patients_data(self):
+        return self.fetchpatientdata.get_patients()
 
-class MasterPatientPage(JsonPage):
+    def get_patient_name(self):
+        return self.fetchpatientdata.get_name()
+
+class FetchPatient(JsonPage):
     def get_patients(self):
         return self.doc
 
@@ -234,7 +269,7 @@ class Doctolib(LoginBrowser):
         r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
     appointment_post = URL(
         r'/appointments/(?P<id>.+).json', AppointmentPostPage)
-    master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
+    master_patient = URL(r'/account/master_patients.json', Patient)
 
     def _setup_session(self, profile):
         session = Session()
@@ -337,8 +372,8 @@ class Doctolib(LoginBrowser):
 
     def get_patients(self):
         self.master_patient.go()
-
-        return self.page.get_patients()
+        
+        return self.page.get_patients_data()
 
     @classmethod
     def normalize(cls, string):
@@ -363,6 +398,7 @@ class Doctolib(LoginBrowser):
 
         motives_id = dict((k, v)
                           for k, v in motives_id.items() if v is not None)
+
         if len(motives_id.values()) == 0:
             log('Unable to find requested vaccines in motives')
             log('Motives: %s', ', '.join(self.page.get_motives()))
@@ -685,29 +721,9 @@ class Application:
             args.username, args.password, responses_dirname=responses_dirname)
         if not docto.do_login(args.code):
             return 1
-
-        patients = docto.get_patients()
-        if len(patients) == 0:
-            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
-            return 1
-        if args.patient >= 0 and args.patient < len(patients):
-            docto.patient = patients[args.patient]
-        elif len(patients) > 1:
-            print('Available patients are:')
-            for i, patient in enumerate(patients):
-                print('* [%s] %s %s' %
-                      (i, patient['first_name'], patient['last_name']))
-            while True:
-                print('For which patient do you want to book a slot?',
-                      end=' ', flush=True)
-                try:
-                    docto.patient = patients[int(sys.stdin.readline().strip())]
-                except (ValueError, IndexError):
-                    continue
-                else:
-                    break
-        else:
-            docto.patient = patients[0]
+        
+        patient_object = Patient(docto, args.patient)
+        patient_object.access_patient()
 
         motives = []
         if not args.pfizer and not args.moderna and not args.janssen and not args.astrazeneca:
@@ -839,7 +855,8 @@ class Application:
                     sleep(SLEEP_INTERVAL_AFTER_CENTER)
 
                     log('')
-                log('No free slots found at selected centers. Trying another round in %s sec...', SLEEP_INTERVAL_AFTER_RUN)
+                log('No free slots found at selected centers. Trying another round in %s sec...',
+                 SLEEP_INTERVAL_AFTER_RUN)
                 sleep(SLEEP_INTERVAL_AFTER_RUN)
             except CityNotFound as e:
                 print('\n%s: City %s not found. Make sure you selected a city from the available countries.' % (
