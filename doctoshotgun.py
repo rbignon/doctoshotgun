@@ -547,33 +547,6 @@ class Doctolib(LoginBrowser):
 
         return self.page.doc['confirmed']
 
-class Vaccine:
-    def __init__(self, key, motive, name):
-        self.name = name
-        self.key = key
-        self.motive = motive
-
-class VaccineBatch:
-    def __init__(self, vaccines = []):
-        self.list = {}
-        if len(vaccines) > 0:
-            for v in vaccines:
-                self.add(v)
-    def add(self, vaccine):
-        if isinstance(vaccine, Vaccine):
-            # Using name since there are 2 None keys in DoctolibDE
-            self.list[vaccine.name] = vaccine
-    def get_motive(self, key):
-        for name in self.list:
-            if self.list[name].key == key:
-                return self.list[name].motive
-    def get_key(self, name):
-        return self.list[name].key
-    def keys(self):
-        keys = []
-        for name in self.list:
-            keys.append(self.list[name].key)
-        return keys
 
 class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
@@ -614,6 +587,33 @@ class DoctolibFR(Doctolib):
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
 
+class Vaccine:
+    def __init__(self, key, motive, name):
+        self.name = name
+        self.key = key
+        self.motive = motive
+
+class VaccineBatch:
+    def __init__(self, vaccines = []):
+        self.list = {}
+        if len(vaccines) > 0:
+            for v in vaccines:
+                self.add(v)
+    def add(self, vaccine):
+        if isinstance(vaccine, Vaccine):
+            # Using name since there are 2 None keys in DoctolibDE
+            self.list[vaccine.name] = vaccine
+    def get_motive(self, key):
+        for name in self.list:
+            if self.list[name].key == key:
+                return self.list[name].motive
+    def get_key(self, name):
+        return self.list[name].key
+    def keys(self):
+        keys = []
+        for name in self.list:
+            keys.append(self.list[name].key)
+        return keys
 
 class Application:
     @classmethod
