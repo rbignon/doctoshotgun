@@ -366,10 +366,10 @@ class Doctolib(LoginBrowser):
                 for center in self.find_centers(where, motives, next_page):
                     yield center
 
-    def get_patients(self):
+    def new_patients(self):
         self.master_patient.go()
 
-        return self.page.get_patients()
+        return self.page.new_patients()
 
     @classmethod
     def normalize(cls, string):
