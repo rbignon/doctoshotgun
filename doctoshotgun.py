@@ -386,6 +386,7 @@ class Doctolib(LoginBrowser):
 
         return False
 
+
 class Booking():
 
     def try_to_book_place(Doctolib, profile_id, motive_id, practice_id, agenda_ids, vac_name, start_date, end_date,
