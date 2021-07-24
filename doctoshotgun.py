@@ -107,7 +107,7 @@ class CentersPage(HTMLPage):
             # JavaScript:
             # var t = (e = r()(e)).data("u")
             #     , n = atob(t.replace(/\s/g, '').split('').reverse().join(''));
-            
+
             import base64
             href = base64.urlsafe_b64decode(''.join(span.attrib['data-u'].split())[::-1]).decode()
             query = dict(parse.parse_qsl(parse.urlsplit(href).query))
@@ -121,7 +121,7 @@ class CentersPage(HTMLPage):
 
             if 'page' in query:
                 return int(query['page'])
-        
+
         return None
 
 class CenterResultPage(JsonPage):
@@ -213,6 +213,32 @@ class MasterPatientPage(JsonPage):
 class CityNotFound(Exception):
     pass
 
+
+class CountPaitent:
+    def __init__(self, ncnt):
+        #initilize start count
+        self.count = ncnt
+    def get_total(self):
+        #get total paitent count for the run
+        return self.count
+    def addPaitent(self):
+        #function adds one paitent to curent count
+        self.count = self.count + 1
+#calculate success percent class
+class CalcSuccessPercent:
+    def __init__(self,total, nsucess):
+        # total is the total patient count
+        # nsuccess is init count of successful vaccination bookings for all patients
+        self.Total = total
+        self.Success = nsucess
+    def addSuccess(self):
+        #add one successful booking to succes count
+        self.Success = self.Success + 1
+    def getPercent(self):
+        #calculate success percent : 100 *  success/ total
+        #return a percentage representing successful vaccination bookings for all patients
+        return "Percent: " + str(int(100 * self.Success/self.Total.get_total())) + "%%"
+#end of first aggregate pattern implement (classes)
 
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
@@ -787,11 +813,18 @@ class Application:
         log('Country: %s ', args.country)
         log('This may take a few minutes/hours, be patient!')
         cities = [docto.normalize(city) for city in args.city.split(',')]
-
+        #first aggregate implement
+        #create CountPaitent object
+        obj_cntPaitent = CountPaitent(0)
+        #create CalcSuccessPercent object
+        obj_Percent = CalcSuccessPercent(obj_cntPaitent, 0)
         while True:
             log_ts()
             try:
                 for center in docto.find_centers(cities, motives):
+                    #first aggregate implement
+                    #add one paitent
+                    obj_cntPaitent.addPaitent()
                     if args.center:
                         if center['name_with_title'] not in args.center:
                             logging.debug("Skipping center '%s'" %
@@ -834,6 +867,14 @@ class Application:
                         log('')
                         log('💉 %s Congratulations.' %
                             colored('Booked!', 'green', attrs=('bold',)))
+
+                        #first aggregate implement
+                        #add one successful booking
+                        obj_Percent.addSuccess()
+                        #print current success percent
+                        log(obj_Percent.getPercent())
+                        #second aggregate implement
+                        #print the failure amount for the current patient
                         return 0
 
                     sleep(SLEEP_INTERVAL_AFTER_CENTER)
