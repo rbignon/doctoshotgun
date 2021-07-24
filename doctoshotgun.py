@@ -547,75 +547,42 @@ class Doctolib(LoginBrowser):
 
         return self.page.doc['confirmed']
 
-class Vaccine:
-    def __init__(self, key, motive):
-        self.key = key
-        self.motive = motive
-class Pfizer(Vaccine):
-    def __init__(self, key, motive):
-        super().__init__(key, motive)
-class Moderna(Vaccine):
-    def __init__(self, key, motive):
-        super().__init__(key, motive)
-class Janssen(Vaccine):
-    def __init__(self, key, motive):
-        super().__init__(key, motive)
-class AstraZeneca(Vaccine):
-    def __init__(self, key, motive):
-        super().__init__(key, motive)
 
 class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
-    VACCINES = {
-        'PFIZER' : Pfizer('6768', 'Pfizer'),
-        'PFIZER_SECOND' : Pfizer('6769', 'Zweit.*Pfizer|Pfizer.*Zweit'), 
-        'PFIZER_THIRD' : Pfizer(None, 'Dritt.*Pfizer|Pfizer.*Dritt'),
-        'MODERNA' : Moderna('6936', 'Moderna'),
-        'MODERNA_SECOND' : Moderna('6937', 'Zweit.*Moderna|Moderna.*Zweit'),
-        'MODERNA_THIRD' : Moderna(None, 'Dritt.*Moderna|Moderna.*Dritt'),
-        'JANSSEN' : Janssen('7978','Janssen'),
-        'ASTRAZENECA' : AstraZeneca('7109','AstraZeneca'),
-        'ASTRAZENECA_SECOND' : AstraZeneca('7110', 'Zweit.*AstraZeneca|AstraZeneca.*Zweit')
-    }
-    vaccine_motives = {
-        VACCINES['PFIZER'].key : VACCINES['PFIZER'].motive,
-        VACCINES['PFIZER_SECOND'].key :  VACCINES['PFIZER_SECOND'].motive,
-        VACCINES['PFIZER_THIRD'].key : VACCINES['PFIZER_THIRD'].motive,
-        VACCINES['MODERNA'].key : VACCINES['MODERNA'].motive,
-        VACCINES['MODERNA_SECOND'].key : VACCINES['MODERNA_SECOND'].motive,
-        VACCINES['MODERNA_THIRD'].key : VACCINES['MODERNA_THIRD'].motive,
-        VACCINES['JANSSEN'].key : VACCINES['JANSSEN'].motive,
-        VACCINES['ASTRAZENECA'].key: VACCINES['ASTRAZENECA'].motive,
-        VACCINES['ASTRAZENECA_SECOND'].key: VACCINES['ASTRAZENECA_SECOND'].motive
-    }
+    vaccines = [
+        Vaccine('6768', 'Pfizer', 'PFIZER'),
+        Vaccine('6769', 'Zweit.*Pfizer|Pfizer.*Zweit', 'PFIZER_SECOND'), 
+        Vaccine(None, 'Dritt.*Pfizer|Pfizer.*Dritt', 'PFIZER_THIRD'),
+        Vaccine('6936', 'Moderna', 'MODERNA'),
+        Vaccine('6937', 'Zweit.*Moderna|Moderna.*Zweit', 'MODERNA_SECOND'),
+        Vaccine(None, 'Dritt.*Moderna|Moderna.*Dritt', 'MODERNA_THIRD'),
+        Vaccine('7978','Janssen', 'JANSSEN'),
+        Vaccine('7109','AstraZeneca', 'ASTRAZENECA'),
+        Vaccine('7110', 'Zweit.*AstraZeneca|AstraZeneca.*Zweit', 'ASTRAZENECA_SECOND')
+    ]
+    VACCINES = VaccineBatch(vaccines)
+    vaccine_motives = VACCINES.get_motive
+    
     centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
     center = URL(r'/praxis/.*', CenterPage)
 
 
 class DoctolibFR(Doctolib):
     BASEURL = 'https://www.doctolib.fr'
-    VACCINES = {
-        'PFIZER' : Pfizer('6970', 'Pfizer'),
-        'PFIZER_SECOND' : Pfizer('6971', '2de.*Pfizer'), 
-        'PFIZER_THIRD' : Pfizer('8192', '3e.*Pfizer'),
-        'MODERNA' : Moderna('7005', 'Moderna'),
-        'MODERNA_SECOND' : Moderna('7004', '2de.*Moderna'),
-        'MODERNA_THIRD' : Moderna('8193', '3e.*Moderna'),
-        'JANSSEN' : Janssen('7945','Janssen'),
-        'ASTRAZENECA' : AstraZeneca('7107','AstraZeneca'),
-        'ASTRAZENECA_SECOND' : AstraZeneca('7108', '2de.*AstraZeneca')
-    }
-    vaccine_motives = {
-        VACCINES['PFIZER'].key : VACCINES['PFIZER'].motive,
-        VACCINES['PFIZER_SECOND'].key :  VACCINES['PFIZER_SECOND'].motive,
-        VACCINES['PFIZER_THIRD'].key : VACCINES['PFIZER_THIRD'].motive,
-        VACCINES['MODERNA'].key : VACCINES['MODERNA'].motive,
-        VACCINES['MODERNA_SECOND'].key : VACCINES['MODERNA_SECOND'].motive,
-        VACCINES['MODERNA_THIRD'].key : VACCINES['MODERNA_THIRD'].motive,
-        VACCINES['JANSSEN'].key : VACCINES['JANSSEN'].motive,
-        VACCINES['ASTRAZENECA'].key: VACCINES['ASTRAZENECA'].motive,
-        VACCINES['ASTRAZENECA_SECOND'].key: VACCINES['ASTRAZENECA_SECOND'].motive
-    }
+    vaccines = [
+        Vaccine('6970', 'Pfizer', 'PFIZER'),
+        Vaccine('6971', '2de.*Pfizer', 'PFIZER_SECOND'), 
+        Vaccine('8192', '3e.*Pfizer', 'PFIZER_THIRD'),
+        Vaccine('7005', 'Moderna', 'MODERNA'),
+        Vaccine('7004', '2de.*Moderna', 'MODERNA_SECOND'),
+        Vaccine('8193', '3e.*Moderna', 'MODERNA_THIRD'),
+        Vaccine('7945','Janssen', 'JANSSEN'),
+        Vaccine('7107','AstraZeneca', 'ASTRAZENECA'),
+        Vaccine('7108', '2de.*AstraZeneca', 'ASTRAZENECA_SECOND')
+    ]
+    VACCINES = VaccineBatch(vaccines)
+    vaccine_motives = VACCINES.get_motive
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
