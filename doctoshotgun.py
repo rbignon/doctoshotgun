@@ -177,15 +177,15 @@ class Centers(HTMLPage):
         return None
 
 class CenterBooking(JsonPage):
-    def __init__(self,center_id, name, city):
+    def __init__(self, center_id, name, city):
         self.center_id = center_id
         self.name = name
         self.city = city
 
-    def get_center(HTMLPage):
+    def get_center(self):
         pass
 
-    def center_result(JsonPage):
+    def center_result(self):
         pass
 
     def available_slots(self):
@@ -600,7 +600,7 @@ class DoctolibDE(Doctolib):
         KEY_ASTRAZENECA_SECOND: 'Zweit.*AstraZeneca|AstraZeneca.*Zweit',
     }
     centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', Centers)
-    center = URL(r'/praxis/.*', CenterBooking.get_center(HTMLPage))
+    center = URL(r'/praxis/.*', CenterBooking.get_center)
 
 
 class DoctolibFR(Doctolib):
@@ -627,7 +627,7 @@ class DoctolibFR(Doctolib):
     }
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', Centers)
-    center = URL(r'/centre-de-sante/.*', CenterBooking.get_center(HTMLPage))
+    center = URL(r'/centre-de-sante/.*', CenterBooking.get_center)
 
 
 class Application:
