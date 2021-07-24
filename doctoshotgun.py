@@ -295,7 +295,7 @@ class Doctolib(LoginBrowser):
 
     def find_centers(self, where, motives=None, page=1):
         if motives is None:
-            motives = self.vaccine_motives.keys()
+            motives = self.VACCINES.keys()
         for city in where:
             try:
                 self.centers.go(where=city, params={
@@ -359,7 +359,7 @@ class Doctolib(LoginBrowser):
         motives_id = dict()
         for vaccine in vaccine_list:
             motives_id[vaccine] = self.page.find_motive(
-                r'.*({})'.format(vaccine), singleShot=(vaccine == self.vaccine_motives[self.VACCINES['JANSSEN'].key] or only_second or only_third))
+                r'.*({})'.format(vaccine), singleShot=(vaccine == self.vaccine_motives(self.VACCINES.get_key('JANSSEN')) or only_second or only_third))
 
         motives_id = dict((k, v)
                           for k, v in motives_id.items() if v is not None)
@@ -547,6 +547,33 @@ class Doctolib(LoginBrowser):
 
         return self.page.doc['confirmed']
 
+class Vaccine:
+    def __init__(self, key, motive, name):
+        self.name = name
+        self.key = key
+        self.motive = motive
+
+class VaccineBatch:
+    def __init__(self, vaccines = []):
+        self.list = {}
+        if len(vaccines) > 0:
+            for v in vaccines:
+                self.add(v)
+    def add(self, vaccine):
+        if isinstance(vaccine, Vaccine):
+            # Using name since there are 2 None keys in DoctolibDE
+            self.list[vaccine.name] = vaccine
+    def get_motive(self, key):
+        for name in self.list:
+            if self.list[name].key == key:
+                return self.list[name].motive
+    def get_key(self, name):
+        return self.list[name].key
+    def keys(self):
+        keys = []
+        for name in self.list:
+            keys.append(self.list[name].key)
+        return keys
 
 class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
@@ -587,33 +614,6 @@ class DoctolibFR(Doctolib):
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
 
-class Vaccine:
-    def __init__(self, key, motive, name):
-        self.name = name
-        self.key = key
-        self.motive = motive
-
-class VaccineBatch:
-    def __init__(self, vaccines = []):
-        self.list = {}
-        if len(vaccines) > 0:
-            for v in vaccines:
-                self.add(v)
-    def add(self, vaccine):
-        if isinstance(vaccine, Vaccine):
-            # Using name since there are 2 None keys in DoctolibDE
-            self.list[vaccine.name] = vaccine
-    def get_motive(self, key):
-        for name in self.list:
-            if self.list[name].key == key:
-                return self.list[name].motive
-    def get_key(self, name):
-        return self.list[name].key
-    def keys(self):
-        keys = []
-        for name in self.list:
-            keys.append(self.list[name].key)
-        return keys
 
 class Application:
     @classmethod
@@ -726,56 +726,56 @@ class Application:
         motives = []
         if not args.pfizer and not args.moderna and not args.janssen and not args.astrazeneca:
             if args.only_second:
-                motives.append(docto.VACCINES['PFIZER_SECOND'].key)
-                motives.append(docto.VACCINES['MODERNA_SECOND'].key)
+                motives.append(docto.VACCINES.get_key('PFIZER_SECOND'))
+                motives.append(docto.VACCINES.get_key('MODERNA_SECOND'))
                 # motives.append(docto.VACCINES['ASTRAZENECA_SECOND'].key) #do not add AstraZeneca by default
             elif args.only_third:
-                if not docto.VACCINES['PFIZER_THIRD'].key and not docto.VACCINES['MODERNA_THIRD'].key:
+                if not docto.VACCINES.get_key('PFIZER_THIRD') and not docto.VACCINES.get_key('MODERNA_THIRD'):
                     print('Invalid args: No third shot vaccinations in this country')
                     return 1
-                motives.append(docto.VACCINES['PFIZER_THIRD'].key)
-                motives.append(docto.VACCINES['MODERNA_THIRD'].key)
+                motives.append(docto.VACCINES.get_key('PFIZER_THIRD'))
+                motives.append(docto.VACCINES.get_key('MODERNA_THIRD'))
             else:
-                motives.append(docto.VACCINES['PFIZER'].key)
-                motives.append(docto.VACCINES['MODERNA'].key)
-                motives.append(docto.VACCINES['JANSSEN'].key)
+                motives.append(docto.VACCINES.get_key('PFIZER'))
+                motives.append(docto.VACCINES.get_key('MODERNA'))
+                motives.append(docto.VACCINES.get_key('JANSSEN'))
                 # motives.append(docto.VACCINES['ASTRAZENECA'].key) #do not add AstraZeneca by default
         if args.pfizer:
             if args.only_second:
-                motives.append(docto.VACCINES['PFIZER_SECOND'].key)
+                motives.append(docto.VACCINES.get_key('PFIZER_SECOND'))
             elif args.only_third:
-                if not docto.VACCINES['PFIZER_THIRD'].key:  # not available in all countries
+                if not docto.VACCINES.get_key('PFIZER_THIRD'):  # not available in all countries
                     print('Invalid args: Pfizer has no third shot in this country')
                     return 1
-                motives.append(docto.VACCINES['PFIZER_THIRD'].key)
+                motives.append(docto.VACCINES.get_key('PFIZER_THIRD'))
             else:
-                motives.append(docto.VACCINES['PFIZER'].key)
+                motives.append(docto.VACCINES.get_key('PFIZER'))
         if args.moderna:
             if args.only_second:
-                motives.append(docto.VACCINES['MODERNA_SECOND'].key)
+                motives.append(docto.VACCINES.get_key('MODERNA_SECOND'))
             elif args.only_third:
-                if not docto.VACCINES['MODERNA_THIRD'].key:  # not available in all countries
+                if not docto.VACCINES.get_key('MODERNA_THIRD'):  # not available in all countries
                     print('Invalid args: Moderna has no third shot in this country')
                     return 1
-                motives.append(docto.VACCINES['MODERNA_THIRD'].key)
+                motives.append(docto.VACCINES.get_key('MODERNA_THIRD'))
             else:
-                motives.append(docto.VACCINES['MODERNA'].key)
+                motives.append(docto.VACCINES.get_key('MODERNA'))
         if args.janssen:
             if args.only_second or args.only_third:
                 print('Invalid args: Janssen has no second or third shot')
                 return 1
             else:
-                motives.append(docto.VACCINES['JANSSEN'].key)
+                motives.append(docto.VACCINES.get_key('JANSSEN'))
         if args.astrazeneca:
             if args.only_second:
-                motives.append(docto.VACCINES['ASTRAZENECA_SECOND'].key)
+                motives.append(docto.VACCINES.get_key('ASTRAZENECA_SECOND'))
             elif args.only_third:
                 print('Invalid args: AstraZeneca has no third shot')
                 return 1
             else:
-                motives.append(docto.VACCINES['ASTRAZENECA'].key)
+                motives.append(docto.VACCINES.get_key('ASTRAZENECA'))
 
-        vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
+        vaccine_list = [docto.vaccine_motives(motive) for motive in motives]
 
         if args.start_date:
             try:
