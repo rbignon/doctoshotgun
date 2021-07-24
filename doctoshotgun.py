@@ -90,11 +90,57 @@ class ChallengePage(JsonPage):
         return ""  # Do not choke on empty response from server
 
 
-class CentersPage(HTMLPage):
+class Centers:
+
     def iter_centers_ids(self):
         for div in self.doc.xpath('//div[@class="js-dl-search-results-calendar"]'):
             data = json.loads(div.attrib['data-props'])
             yield data['searchResultId']
+
+    def find_centers(self, where, motives=None, page=1):
+        if motives is None:
+            motives = self.vaccine_motives.keys()
+        for city in where:
+            try:
+                self.centers.go(where=city, params={
+                    'ref_visit_motive_ids[]': motives, 'page': page})
+            except ServerError as e:
+                if e.response.status_code in [503]:
+                    if 'text/html' in e.response.headers['Content-Type'] \
+                            and ('cloudflare' in e.response.text or
+                                 'Checking your browser before accessing' in e.response.text):
+                        log('Request blocked by CloudFlare', color='red')
+                    return
+                if e.response.status_code in [520]:
+                    log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
+                    return
+                raise
+            except HTTPNotFound as e:
+                raise CityNotFound(city) from e
+
+            next_page = self.page.get_next_page()
+
+            for i in self.page.iter_centers_ids():
+                page = self.center_result.open(
+                    id=i,
+                    params={
+                        'limit': '4',
+                        'ref_visit_motive_ids[]': motives,
+                        'speciality_id': '5494',
+                        'search_result_format': 'json'
+                    }
+                )
+                try:
+                    yield page.doc['search_result']
+                except KeyError:
+                    pass
+
+            if next_page:
+                for center in self.find_centers(where, motives, next_page):
+                    yield center
+
+    def find_available_slots(self):
+        pass
 
     def get_next_page(self):
         # French doctolib uses data-u attribute of span-element to create the link when user hovers span
@@ -125,16 +171,21 @@ class CentersPage(HTMLPage):
 
         return None
 
+class CenterBooking(JsonPage):
+    def __init__(self,center_id, name, city):
+        self.center_id = center_id
+        self.name = name
+        self.city = city
 
-class CenterResultPage(JsonPage):
-    pass
+    def get_center(HTMLPage):
+        pass
 
+    def center_result(JsonPage):
+        pass
 
-class CenterPage(HTMLPage):
-    pass
+    def available_slots(self):
+        pass
 
-
-class CenterBookingPage(JsonPage):
     def find_motive(self, regex, singleShot=False):
         for s in self.doc['data']['visit_motives']:
             # ignore case as some doctors use their own spelling
@@ -174,7 +225,7 @@ class CenterBookingPage(JsonPage):
         return self.doc['data']['profile']['id']
 
 
-class AvailabilitiesPage(JsonPage):
+class Availabilities(JsonPage):
     def find_best_slot(self, start_date=None, end_date=None):
         for a in self.doc['availabilities']:
             date = parse_date(a['date']).date()
@@ -226,11 +277,11 @@ class Doctolib(LoginBrowser):
     login = URL('/login.json', LoginPage)
     send_auth_code = URL('/api/accounts/send_auth_code', SendAuthCodePage)
     challenge = URL('/login/challenge', ChallengePage)
-    center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
-    center_booking = URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage)
-    availabilities = URL(r'/availabilities.json', AvailabilitiesPage)
+    center_result = URL(r'/search_results/(?P<id>\d+).json', CenterBooking.center_result)
+    center_booking = URL(r'/booking/(?P<center_id>.+).json', CenterBooking)
+    availabilities = URL(r'/availabilities.json', Availabilities)
     second_shot_availabilities = URL(
-        r'/second_shot_availabilities.json', AvailabilitiesPage)
+        r'/second_shot_availabilities.json', Availabilities)
     appointment = URL(r'/appointments.json', AppointmentPage)
     appointment_edit = URL(
         r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
@@ -298,47 +349,7 @@ class Doctolib(LoginBrowser):
 
         return True
 
-    def find_centers(self, where, motives=None, page=1):
-        if motives is None:
-            motives = self.vaccine_motives.keys()
-        for city in where:
-            try:
-                self.centers.go(where=city, params={
-                    'ref_visit_motive_ids[]': motives, 'page': page})
-            except ServerError as e:
-                if e.response.status_code in [503]:
-                    if 'text/html' in e.response.headers['Content-Type'] \
-                            and ('cloudflare' in e.response.text or
-                                 'Checking your browser before accessing' in e.response.text):
-                        log('Request blocked by CloudFlare', color='red')
-                    return
-                if e.response.status_code in [520]:
-                    log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
-                    return
-                raise
-            except HTTPNotFound as e:
-                raise CityNotFound(city) from e
 
-            next_page = self.page.get_next_page()
-
-            for i in self.page.iter_centers_ids():
-                page = self.center_result.open(
-                    id=i,
-                    params={
-                        'limit': '4',
-                        'ref_visit_motive_ids[]': motives,
-                        'speciality_id': '5494',
-                        'search_result_format': 'json'
-                    }
-                )
-                try:
-                    yield page.doc['search_result']
-                except KeyError:
-                    pass
-
-            if next_page:
-                for center in self.find_centers(where, motives, next_page):
-                    yield center
 
     def get_patients(self):
         self.master_patient.go()
@@ -556,66 +567,57 @@ class Doctolib(LoginBrowser):
         return self.page.doc['confirmed']
 
 
-class IndividualURL:
-    def __init__(self, baseURL, centersURL, centerURL):
-        self.baseURL = baseURL
-        self.centersURL = centersURL
-        self.centerURL = centerURL
-
-
 class DoctolibDE(Doctolib):
-    def __init__(self, url_info):
-        BASEURL = url_info.baseURL
-        centers = url_info.centersURL
-        centers = url_info.centerURL
-        super().__init__()
-        KEY_PFIZER = '6768'
-        KEY_PFIZER_SECOND = '6769'
-        KEY_PFIZER_THIRD = None
-        KEY_MODERNA = '6936'
-        KEY_MODERNA_SECOND = '6937'
-        KEY_MODERNA_THIRD = None
-        KEY_JANSSEN = '7978'
-        KEY_ASTRAZENECA = '7109'
-        KEY_ASTRAZENECA_SECOND = '7110'
-        vaccine_motives = {
-            KEY_PFIZER: 'Pfizer',
-            KEY_PFIZER_SECOND: 'Zweit.*Pfizer|Pfizer.*Zweit',
-            KEY_PFIZER_THIRD: 'Dritt.*Pfizer|Pfizer.*Dritt',
-            KEY_MODERNA: 'Moderna',
-            KEY_MODERNA_SECOND: 'Zweit.*Moderna|Moderna.*Zweit',
-            KEY_MODERNA_THIRD: 'Dritt.*Moderna|Moderna.*Dritt',
-            KEY_JANSSEN: 'Janssen',
-            KEY_ASTRAZENECA: 'AstraZeneca',
-            KEY_ASTRAZENECA_SECOND: 'Zweit.*AstraZeneca|AstraZeneca.*Zweit',
-        }
+    BASEURL = 'https://www.doctolib.de'
+    KEY_PFIZER = '6768'
+    KEY_PFIZER_SECOND = '6769'
+    KEY_PFIZER_THIRD = None
+    KEY_MODERNA = '6936'
+    KEY_MODERNA_SECOND = '6937'
+    KEY_MODERNA_THIRD = None
+    KEY_JANSSEN = '7978'
+    KEY_ASTRAZENECA = '7109'
+    KEY_ASTRAZENECA_SECOND = '7110'
+    vaccine_motives = {
+        KEY_PFIZER: 'Pfizer',
+        KEY_PFIZER_SECOND: 'Zweit.*Pfizer|Pfizer.*Zweit',
+        KEY_PFIZER_THIRD: 'Dritt.*Pfizer|Pfizer.*Dritt',
+        KEY_MODERNA: 'Moderna',
+        KEY_MODERNA_SECOND: 'Zweit.*Moderna|Moderna.*Zweit',
+        KEY_MODERNA_THIRD: 'Dritt.*Moderna|Moderna.*Dritt',
+        KEY_JANSSEN: 'Janssen',
+        KEY_ASTRAZENECA: 'AstraZeneca',
+        KEY_ASTRAZENECA_SECOND: 'Zweit.*AstraZeneca|AstraZeneca.*Zweit',
+    }
+    centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
+    center = URL(r'/praxis/.*', CenterBooking.get_center(HTMLPage))
 
 
 class DoctolibFR(Doctolib):
-    def __init__(self, url_info):
-        BASEURL = url_info.baseURL
-        centers = url_info.centersURL
-        centers = url_info.centerURL
-        KEY_PFIZER = '6970'
-        KEY_PFIZER_SECOND = '6971'
-        KEY_PFIZER_THIRD = '8192'
-        KEY_MODERNA = '7005'
-        KEY_MODERNA_SECOND = '7004'
-        KEY_MODERNA_THIRD = '8193'
-        KEY_JANSSEN = '7945'
-        KEY_ASTRAZENECA = '7107'
-        KEY_ASTRAZENECA_SECOND = '7108'
-        vaccine_motives = {
-            KEY_PFIZER: 'Pfizer',
-            KEY_PFIZER_SECOND: '2de.*Pfizer',
-            KEY_PFIZER_THIRD: '3e.*Pfizer',
-            KEY_MODERNA: 'Moderna',
-            KEY_MODERNA_SECOND: '2de.*Moderna',
-            KEY_MODERNA_THIRD: '3e.*Moderna',
-            KEY_JANSSEN: 'Janssen',
-            KEY_ASTRAZENECA: 'AstraZeneca',
-            KEY_ASTRAZENECA_SECOND: '2de.*AstraZeneca',
-        }
+    BASEURL = 'https://www.doctolib.fr'
+    KEY_PFIZER = '6970'
+    KEY_PFIZER_SECOND = '6971'
+    KEY_PFIZER_THIRD = '8192'
+    KEY_MODERNA = '7005'
+    KEY_MODERNA_SECOND = '7004'
+    KEY_MODERNA_THIRD = '8193'
+    KEY_JANSSEN = '7945'
+    KEY_ASTRAZENECA = '7107'
+    KEY_ASTRAZENECA_SECOND = '7108'
+    vaccine_motives = {
+        KEY_PFIZER: 'Pfizer',
+        KEY_PFIZER_SECOND: '2de.*Pfizer',
+        KEY_PFIZER_THIRD: '3e.*Pfizer',
+        KEY_MODERNA: 'Moderna',
+        KEY_MODERNA_SECOND: '2de.*Moderna',
+        KEY_MODERNA_THIRD: '3e.*Moderna',
+        KEY_JANSSEN: 'Janssen',
+        KEY_ASTRAZENECA: 'AstraZeneca',
+        KEY_ASTRAZENECA_SECOND: '2de.*AstraZeneca',
+    }
+
+    centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
+    center = URL(r'/centre-de-sante/.*', CenterBooking.get_center(HTMLPage))
 
 
 class Application:
@@ -637,23 +639,9 @@ class Application:
     def main(self, cli_args=None):
         colorama.init()  # needed for windows
 
-        # creating BaseURL, centers,and centre for DoctolibFR
-        doctolibfr_url = IndividualURL('https://www.doctolib.fr',
-                                       URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage),
-                                       URL(r'/centre-de-sante/.*', CenterPage))
-
-        doctolibFR = DoctolibFR(doctolibfr_url)
-
-        # creating BaseURL, centers,and centre for DoctolibDE
-        doctolibde_url = IndividualURL('https://www.doctolib.de',
-                                       URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage),
-                                       URL(r'/praxis/.*', CenterPage))
-
-        doctolibDE = DoctolibDE(doctolibde_url)
-
         doctolib_map = {
-            "fr": doctolibFR,
-            "de": doctolibDE
+            "fr": DoctolibFR,
+            "de": DoctolibDE
         }
 
         parser = argparse.ArgumentParser(
