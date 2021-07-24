@@ -223,7 +223,6 @@ class VaccineID:
     def getValue(self, key):
         return self.values[key]
     def addValue(self, key, value):
-        #if not key in self.keys:
         self.keys.append(key)
         self.values[key] = value
 
