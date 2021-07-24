@@ -182,6 +182,28 @@ class AvailabilitiesPage(JsonPage):
                 continue
             return a['slots'][-1]
 
+class Appointment(JsonPage):
+
+    def AppointmentEditPage(self):
+        for field in self.doc['appointment']['custom_fields']:
+            if field['required']:
+                yield field
+    
+    def AppointmentPostPage(self):
+        pass
+
+    def __init__(self):
+        self.appointment_edit = URL(r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
+        self.appointment_post = URL(r'/appointments/(?P<id>.+).json', AppointmentPostPage)
+
+        appointment = {'profile_id': profile_id,
+                       'source_action': 'profile',
+                       'start_date': first_date,
+                       'visit_motive_ids': str(motive_id),
+                       }
+
+ApAccess = Appointment()
+
 
 class AppointmentPage(JsonPage):
     def get_error(self):
@@ -191,15 +213,7 @@ class AppointmentPage(JsonPage):
         return 'error' in self.doc
 
 
-class AppointmentEditPage(JsonPage):
-    def get_custom_fields(self):
-        for field in self.doc['appointment']['custom_fields']:
-            if field['required']:
-                yield field
 
-
-class AppointmentPostPage(JsonPage):
-    pass
 
 
 class MasterPatientPage(JsonPage):
@@ -261,10 +275,10 @@ class Doctolib(LoginBrowser):
     second_shot_availabilities = URL(
         r'/second_shot_availabilities.json', AvailabilitiesPage)
     appointment = URL(r'/appointments.json', AppointmentPage)
-    appointment_edit = URL(
-        r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
-    appointment_post = URL(
-        r'/appointments/(?P<id>.+).json', AppointmentPostPage)
+    #appointment_edit = URL(
+    #    r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
+    #appointment_post = URL(
+    #    r'/appointments/(?P<id>.+).json', AppointmentPostPage)
     master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
 
     def _setup_session(self, profile):
@@ -466,11 +480,13 @@ class Doctolib(LoginBrowser):
         log('  ├╴ Best slot found: %s', parse_date(
             slot_date_first).strftime('%c'))
 
-        appointment = {'profile_id':    profile_id,
-                       'source_action': 'profile',
-                       'start_date':    slot_date_first,
-                       'visit_motive_ids': str(motive_id),
-                       }
+        #appointment = {'profile_id':    profile_id,
+        #               'source_action': 'profile',
+        #               'start_date':    slot_date_first,
+        #               'visit_motive_ids': str(motive_id),
+        #               }
+        
+        
 
         data = {'agenda_ids': '-'.join(agenda_ids),
                 'appointment': appointment,
@@ -480,6 +496,8 @@ class Doctolib(LoginBrowser):
             'content-type': 'application/json',
         }
         self.appointment.go(data=json.dumps(data), headers=headers)
+
+        
 
         if self.page.is_error():
             log('  └╴ Appointment not available anymore :( %s', self.page.get_error())
