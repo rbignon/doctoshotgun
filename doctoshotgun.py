@@ -600,6 +600,24 @@ class DoctolibFR(Doctolib):
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
 
+class Userinformation(Doctolib):
+    # Aggregate root
+    def __init__(self,name,password,country,city):
+        self.name = name
+        self.password = password
+        self.country = country
+        self.city = city
+    def change_password(self,new_password):
+        self.password = new_password
+    def change_city(self,new_city):
+        self.city = new_city
+    def delete_new_user(self):
+        pass
+    def schedule_new_task(self):
+        pass
+    def cancle_new_task(self):
+        pass
+        
 class Book_place_information(Doctolib):
     # Aggregate root
     def __init__(self, profile_id, motive_id, agenda_ids, vac_name, start_date, end_date, only_second, only_third):
