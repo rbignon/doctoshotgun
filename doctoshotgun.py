@@ -107,7 +107,7 @@ class CentersPage(HTMLPage):
             # JavaScript:
             # var t = (e = r()(e)).data("u")
             #     , n = atob(t.replace(/\s/g, '').split('').reverse().join(''));
-            
+
             import base64
             href = base64.urlsafe_b64decode(''.join(span.attrib['data-u'].split())[::-1]).decode()
             query = dict(parse.parse_qsl(parse.urlsplit(href).query))
@@ -121,7 +121,7 @@ class CentersPage(HTMLPage):
 
             if 'page' in query:
                 return int(query['page'])
-        
+
         return None
 
 class CenterResultPage(JsonPage):
@@ -600,31 +600,10 @@ class DoctolibFR(Doctolib):
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
 
+class ParseArguments:
 
-class Application:
     @classmethod
-    def create_default_logger(cls):
-        # stderr logger
-        format = '%(asctime)s:%(levelname)s:%(name)s:' \
-                 ':%(filename)s:%(lineno)d:%(funcName)s %(message)s'
-        handler = logging.StreamHandler(sys.stderr)
-        handler.setFormatter(createColoredFormatter(sys.stderr, format))
-        return handler
-
-    def setup_loggers(self, level):
-        logging.root.handlers = []
-
-        logging.root.setLevel(level)
-        logging.root.addHandler(self.create_default_logger())
-
-    def main(self, cli_args=None):
-        colorama.init()  # needed for windows
-
-        doctolib_map = {
-            "fr": DoctolibFR,
-            "de": DoctolibDE
-        }
-
+    def setup_parser(cls, doctolib_map):
         parser = argparse.ArgumentParser(
             description="Book a vaccine slot on Doctolib")
         parser.add_argument('--debug', '-d', action='store_true',
@@ -667,6 +646,35 @@ class Application:
         parser.add_argument('username', help='Doctolib username')
         parser.add_argument('password', nargs='?', help='Doctolib password')
         parser.add_argument('--code', type=str, default=None, help='2FA code')
+
+        return parser
+
+
+class Application:
+    @classmethod
+    def create_default_logger(cls):
+        # stderr logger
+        format = '%(asctime)s:%(levelname)s:%(name)s:' \
+                 ':%(filename)s:%(lineno)d:%(funcName)s %(message)s'
+        handler = logging.StreamHandler(sys.stderr)
+        handler.setFormatter(createColoredFormatter(sys.stderr, format))
+        return handler
+
+    def setup_loggers(self, level):
+        logging.root.handlers = []
+
+        logging.root.setLevel(level)
+        logging.root.addHandler(self.create_default_logger())
+
+    def main(self, cli_args=None):
+        colorama.init()  # needed for windows
+
+        doctolib_map = {
+            "fr": DoctolibFR,
+            "de": DoctolibDE
+        }
+
+        parser = ParseArguments.setup_parser(doctolib_map)
         args = parser.parse_args(cli_args if cli_args else sys.argv[1:])
 
         from types import SimpleNamespace
