@@ -89,6 +89,7 @@ class StartupPage(JsonPage):
      elif self.PageType is not LoginPage:
         return self.PageType.build_doc(content)
      return ""
+     
 class LoginPage(JsonPage):
     def redirect(self):
         return self.doc['redirection']
