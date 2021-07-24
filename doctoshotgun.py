@@ -27,6 +27,7 @@ from woob.browser.url import URL
 from woob.browser.pages import JsonPage, HTMLPage
 from woob.tools.log import createColoredFormatter
 
+
 SLEEP_INTERVAL_AFTER_CONNECTION_ERROR = 5
 SLEEP_INTERVAL_AFTER_LOGIN_ERROR = 10
 SLEEP_INTERVAL_AFTER_CENTER = 1
@@ -214,36 +215,24 @@ class CityNotFound(Exception):
     pass
 
 
-class CountPaitent:
-    def __init__(self, ncnt):
-        #initilize start count
-        self.count = ncnt
-    def get_total(self):
-        #get total paitent count for the run
-        return self.count
-    def addPaitent(self):
-        #function adds one paitent to curent count
-        self.count = self.count + 1
-#calculate success percent class
-class CalcSuccessPercent:
-    def __init__(self,total, nsucess):
-        # total is the total patient count
-        # nsuccess is init count of successful vaccination bookings for all patients
-        self.Total = total
-        self.Success = nsucess
-    def addSuccess(self):
-        #add one successful booking to succes count
-        self.Success = self.Success + 1
-    def getPercent(self):
-        #calculate success percent : 100 *  success/ total
-        #return a percentage representing successful vaccination bookings for all patients
-        return "Percent: " + str(int(100 * self.Success/self.Total.get_total())) + "%%"
-#end of first aggregate pattern implement (classes)
+class VaccineIDs:
+    def __init__(self):
+        self.keys = []
+        self.values = {}
+    def getKeys(self):
+        return self.values.keys()
+    def getValue(self, key):
+        return self.values[key]
+    def addValue(self, key, value):
+        #if not key in self.keys:
+        self.keys.append(key)
+        self.values[key] = value
 
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
     BASEURL = ""
-    vaccine_motives = {}
+    #vaccine_motives = {}
+    vaccine_motives = VaccineIDs()
     centers = URL('')
     center = URL('')
     # common properties
@@ -279,6 +268,7 @@ class Doctolib(LoginBrowser):
         self.session.headers['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'
 
         self.patient = None
+
 
     def do_login(self, code):
         try:
@@ -319,9 +309,14 @@ class Doctolib(LoginBrowser):
 
         return True
 
+    def return_username(self):
+        return self.username
+
+
     def find_centers(self, where, motives=None, page=1):
         if motives is None:
-            motives = self.vaccine_motives.keys()
+            #motives = self.vaccine_motives.keys()
+            motives = self.vaccine_motives.getKeys()
         for city in where:
             try:
                 self.centers.go(where=city, params={
@@ -374,18 +369,23 @@ class Doctolib(LoginBrowser):
         normalized = re.sub(r'\W', '-', normalized)
         return normalized.lower()
 
+
     def try_to_book(self, center, vaccine_list, start_date, end_date, only_second, only_third, dry_run=False):
         self.open(center['url'])
         p = urlparse(center['url'])
         center_id = p.path.split('/')[-1]
+        #define CurrentPatient object
 
+        #define SearchCenterFailRate object
+        #second aggregate implement end
         center_page = self.center_booking.go(center_id=center_id)
         profile_id = self.page.get_profile_id()
         # extract motive ids based on the vaccine names
         motives_id = dict()
         for vaccine in vaccine_list:
             motives_id[vaccine] = self.page.find_motive(
-                r'.*({})'.format(vaccine), singleShot=(vaccine == self.vaccine_motives[self.KEY_JANSSEN] or only_second or only_third))
+                #r'.*({})'.format(vaccine), singleShot=(vaccine == self.vaccine_motives[self.KEY_JANSSEN] or only_second or only_third))
+                r'.*({})'.format(vaccine), singleShot=(vaccine == self.vaccine_motives.getValue(self.KEY_JANSSEN) or only_second or only_third))
 
         motives_id = dict((k, v)
                           for k, v in motives_id.items() if v is not None)
@@ -406,6 +406,7 @@ class Doctolib(LoginBrowser):
                     agenda_ids = center_page.get_agenda_ids(motive_id)
 
                 if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, vac_name.lower(), start_date, end_date, only_second, only_third, dry_run):
+
                     return True
 
         return False
@@ -585,17 +586,18 @@ class DoctolibDE(Doctolib):
     KEY_JANSSEN = '7978'
     KEY_ASTRAZENECA = '7109'
     KEY_ASTRAZENECA_SECOND = '7110'
-    vaccine_motives = {
-        KEY_PFIZER: 'Pfizer',
-        KEY_PFIZER_SECOND: 'Zweit.*Pfizer|Pfizer.*Zweit',
-        KEY_PFIZER_THIRD: 'Dritt.*Pfizer|Pfizer.*Dritt',
-        KEY_MODERNA: 'Moderna',
-        KEY_MODERNA_SECOND: 'Zweit.*Moderna|Moderna.*Zweit',
-        KEY_MODERNA_THIRD: 'Dritt.*Moderna|Moderna.*Dritt',
-        KEY_JANSSEN: 'Janssen',
-        KEY_ASTRAZENECA: 'AstraZeneca',
-        KEY_ASTRAZENECA_SECOND: 'Zweit.*AstraZeneca|AstraZeneca.*Zweit',
-    }
+
+    vaccine_motives = VaccineIDs()
+    vaccine_motives.addValue(KEY_PFIZER, 'Pfizer')
+    vaccine_motives.addValue(KEY_PFIZER_SECOND, 'Zweit.*Pfizer|Pfizer.*Zweit')
+    vaccine_motives.addValue(KEY_PFIZER_THIRD, 'Dritt.*Pfizer|Pfizer.*Dritt')
+    vaccine_motives.addValue(KEY_MODERNA, 'Moderna')
+    vaccine_motives.addValue(KEY_MODERNA_SECOND, 'Zweit.*Moderna|Moderna.*Zweit')
+    vaccine_motives.addValue(KEY_MODERNA_THIRD, 'Dritt.*Moderna|Moderna.*Dritt')
+    vaccine_motives.addValue(KEY_JANSSEN, 'Janssen')
+    vaccine_motives.addValue(KEY_ASTRAZENECA, 'AstraZeneca')
+    vaccine_motives.addValue(KEY_ASTRAZENECA_SECOND, 'Zweit.*AstraZeneca|AstraZeneca.*Zweit')
+
     centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
     center = URL(r'/praxis/.*', CenterPage)
 
@@ -611,17 +613,17 @@ class DoctolibFR(Doctolib):
     KEY_JANSSEN = '7945'
     KEY_ASTRAZENECA = '7107'
     KEY_ASTRAZENECA_SECOND = '7108'
-    vaccine_motives = {
-        KEY_PFIZER: 'Pfizer',
-        KEY_PFIZER_SECOND: '2de.*Pfizer',
-        KEY_PFIZER_THIRD: '3e.*Pfizer',
-        KEY_MODERNA: 'Moderna',
-        KEY_MODERNA_SECOND: '2de.*Moderna',
-        KEY_MODERNA_THIRD: '3e.*Moderna',
-        KEY_JANSSEN: 'Janssen',
-        KEY_ASTRAZENECA: 'AstraZeneca',
-        KEY_ASTRAZENECA_SECOND: '2de.*AstraZeneca',
-    }
+
+    vaccine_motives = VaccineIDs()
+    vaccine_motives.addValue(KEY_PFIZER, 'Pfizer')
+    vaccine_motives.addValue(KEY_PFIZER_SECOND,'2de.*Pfizer')
+    vaccine_motives.addValue(KEY_PFIZER_THIRD, '3e.*Pfizer')
+    vaccine_motives.addValue(KEY_MODERNA, 'Moderna')
+    vaccine_motives.addValue(KEY_MODERNA_SECOND, '2de.*Moderna')
+    vaccine_motives.addValue(KEY_MODERNA_THIRD, '3e.*Moderna')
+    vaccine_motives.addValue(KEY_JANSSEN, 'Janssen')
+    vaccine_motives.addValue(KEY_ASTRAZENECA, 'AstraZeneca')
+    vaccine_motives.addValue(KEY_ASTRAZENECA_SECOND, '2de.*AstraZeneca')
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
@@ -787,8 +789,8 @@ class Application:
             else:
                 motives.append(docto.KEY_ASTRAZENECA)
 
-        vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
-
+        #vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
+        vaccine_list = [docto.vaccine_motives.getValue(motive) for motive in motives]
         if args.start_date:
             try:
                 start_date = datetime.datetime.strptime(
@@ -813,18 +815,12 @@ class Application:
         log('Country: %s ', args.country)
         log('This may take a few minutes/hours, be patient!')
         cities = [docto.normalize(city) for city in args.city.split(',')]
-        #first aggregate implement
-        #create CountPaitent object
-        obj_cntPaitent = CountPaitent(0)
-        #create CalcSuccessPercent object
-        obj_Percent = CalcSuccessPercent(obj_cntPaitent, 0)
+
+
         while True:
             log_ts()
             try:
                 for center in docto.find_centers(cities, motives):
-                    #first aggregate implement
-                    #add one paitent
-                    obj_cntPaitent.addPaitent()
                     if args.center:
                         if center['name_with_title'] not in args.center:
                             logging.debug("Skipping center '%s'" %
@@ -868,13 +864,7 @@ class Application:
                         log('💉 %s Congratulations.' %
                             colored('Booked!', 'green', attrs=('bold',)))
 
-                        #first aggregate implement
-                        #add one successful booking
-                        obj_Percent.addSuccess()
-                        #print current success percent
-                        log(obj_Percent.getPercent())
-                        #second aggregate implement
-                        #print the failure amount for the current patient
+
                         return 0
 
                     sleep(SLEEP_INTERVAL_AFTER_CENTER)
