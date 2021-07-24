@@ -207,7 +207,7 @@ class MasterPatientPage(JsonPage):
         return self.doc
 
     def get_patients_len(self):
-        return(len*self.doc)
+        return len(self.doc)
 
     def get_name(self):
         return '%s %s' % (self.doc[0]['first_name'], self.doc[0]['last_name'])
