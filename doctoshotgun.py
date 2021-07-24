@@ -486,7 +486,7 @@ class Doctolib(LoginBrowser):
         #               'visit_motive_ids': str(motive_id),
         #               }
         
-        
+        appointment = ApAccess.appointment
 
         data = {'agenda_ids': '-'.join(agenda_ids),
                 'appointment': appointment,
