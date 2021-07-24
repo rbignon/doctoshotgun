@@ -107,7 +107,7 @@ class CentersPage(HTMLPage):
             # JavaScript:
             # var t = (e = r()(e)).data("u")
             #     , n = atob(t.replace(/\s/g, '').split('').reverse().join(''));
-            
+
             import base64
             href = base64.urlsafe_b64decode(''.join(span.attrib['data-u'].split())[::-1]).decode()
             query = dict(parse.parse_qsl(parse.urlsplit(href).query))
@@ -121,7 +121,7 @@ class CentersPage(HTMLPage):
 
             if 'page' in query:
                 return int(query['page'])
-        
+
         return None
 
 class CenterResultPage(JsonPage):
@@ -131,10 +131,10 @@ class CenterResultPage(JsonPage):
 class CenterPage(HTMLPage):
     pass
 
-
-class CenterBookingPage(JsonPage):
-    def find_motive(self, regex, singleShot=False):
-        for s in self.doc['data']['visit_motives']:
+class FindMotives():
+    @classmethod
+    def find_motive(cls, doc, regex, singleShot):
+        for s in doc['data']['visit_motives']:
             # ignore case as some doctors use their own spelling
             if re.search(regex, s['name'], re.IGNORECASE):
                 if s['allow_new_patients'] == False:
@@ -148,6 +148,10 @@ class CenterBookingPage(JsonPage):
                 return s['id']
 
         return None
+
+class CenterBookingPage(JsonPage):
+    def find_motive(self, regex, singleShot=False):
+        return FindMotives.find_motive(self.doc, regex, singleShot)
 
     def get_motives(self):
         return [s['name'] for s in self.doc['data']['visit_motives']]
@@ -600,6 +604,23 @@ class DoctolibFR(Doctolib):
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
 
+class DateWindow:
+
+    def parse_date(self, date, format):
+        try:
+            formatted_date = datetime.datetime.strptime(
+                date, '%d/%m/%Y').date()
+        except ValueError as e:
+            print('Invalid value for --start-date or --end-date: %s' % e)
+            return 1
+
+        return formatted_date
+
+    def get_current_date(self):
+        return datetime.date.today()
+
+    def calculate_relative_endate(self, start_date, time_window):
+        return start_date + relativedelta(days=time_window)
 
 class Application:
     @classmethod
@@ -763,24 +784,16 @@ class Application:
 
         vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
 
+        datewindow = DateWindow()
         if args.start_date:
-            try:
-                start_date = datetime.datetime.strptime(
-                    args.start_date, '%d/%m/%Y').date()
-            except ValueError as e:
-                print('Invalid value for --start-date: %s' % e)
-                return 1
+            start_date = datewindow.parse_date(args.start_date, '%d/%m/%Y')
         else:
-            start_date = datetime.date.today()
+            start_date = datewindow.get_current_date()
         if args.end_date:
-            try:
-                end_date = datetime.datetime.strptime(
-                    args.end_date, '%d/%m/%Y').date()
-            except ValueError as e:
-                print('Invalid value for --end-date: %s' % e)
-                return 1
+            end_date = parse_date(args.end_date, '%d/%m/%Y')
         else:
-            end_date = start_date + relativedelta(days=args.time_window)
+            end_date = datewindow.calculate_relative_endate(start_date, args.time_window)
+
         log('Starting to look for vaccine slots for %s %s between %s and %s...',
             docto.patient['first_name'], docto.patient['last_name'], start_date, end_date)
         log('Vaccines: %s', ', '.join(vaccine_list))
