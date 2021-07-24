@@ -601,6 +601,23 @@ class DoctolibFR(Doctolib):
     center = URL(r'/centre-de-sante/.*', CenterPage)
 
 
+#Aggregate #2
+class vaccineAvailability:
+    def __init__(self, vaccine_Key: str, vaccines):
+        self.vaccine_Key = vaccine_Key
+        self.DoctolibFR = DoctolibFR
+        self.DoctolibDE = DoctolibDE
+
+    def vaccineAvailCenters(self, center: str, vaccines) -> str:
+        try:
+            vaccine = next(a for a in sorted(self.vaccine)
+                if a.batchCheck(vaccines))
+            vaccine.vaccineAvailCenters(vaccines)
+            return vaccine.vaccine_Key
+        except StopIterator:
+            print(f"Vaccine Not Available")
+        
+
 class Application:
     @classmethod
     def create_default_logger(cls):
