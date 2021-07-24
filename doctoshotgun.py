@@ -201,8 +201,44 @@ class AppointmentEditPage(JsonPage):
 class AppointmentPostPage(JsonPage):
     pass
 
+#class to store patient related information. Patient Account
+class PatientID(JsonPage):
+    def __init__(self, docto = None, patient = None):
+        self.doctovalue = docto
+        self.patientvalue = patient
+        self.fetchpatientdata = getPatient(JsonPage)
 
-class MasterPatientPage(JsonPage):
+    def access_patient(self):
+        patients = self.doctovalue.get_patients()
+        if len(patients) == 0:
+            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
+            return 1
+        if self.patientvalue >= 0 and self.patientvalue < len(patients):
+            self.doctovalue = patients[self.patientvalue]
+        elif len(patients) > 1:
+            print('Available patients are:')
+            for i, patient in enumerate(patients):
+                print('* [%s] %s %s' %
+                      (i, patient['first_name'], patient['last_name']))
+            while True:
+                print('For which patient do you want to book a slot?',
+                      end=' ', flush=True)
+                try:
+                    self.doctovalue.patient = patients[int(sys.stdin.readline().strip())]
+                except (ValueError, IndexError):
+                    continue
+                else:
+                    break
+        else:
+            self.doctovalue.patient = patients[0]
+
+    def get_patients_data(self):
+        return self.fetchpatientdata.get_patients()
+
+    def get_patient_name(self):
+        return self.fetchpatientdata.get_name()
+
+class getPatient(JsonPage):
     def get_patients(self):
         return self.doc
 
@@ -248,7 +284,7 @@ class Doctolib(LoginBrowser):
         r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
     appointment_post = URL(
         r'/appointments/(?P<id>.+).json', AppointmentPostPage)
-    master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
+    master_patient = URL(r'/account/master_patients.json', PatientID)
 
     def _setup_session(self, profile):
         session = Session()
@@ -353,8 +389,9 @@ class Doctolib(LoginBrowser):
 
     def get_patients(self):
         self.master_patient.go()
+        return self.page.get_patients_data()
 
-        return self.page.get_patients()
+
 
     @classmethod
     def normalize(cls, string):
@@ -616,41 +653,7 @@ class DoctolibFR(Doctolib):
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
 
-class Patient:
-    def get_patients(self):
-        self.master_patient.go()
 
-        return self.page.get_patients()
-
-    def getpatient(self, docto, args):
-
-        patients = docto.get_patients()
-        if len(patients) == 0:
-            print(
-                "It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
-            return 1
-        if args.patient >= 0 and args.patient < len(patients):
-            docto.patient = patients[args.patient]
-        elif len(patients) > 1:
-            print('Available patients are:')
-            for i, patient in enumerate(patients):
-                print('* [%s] %s %s' %
-                      (i, patient['first_name'], patient['last_name']))
-            while True:
-                print('For which patient do you want to book a slot?',
-                      end=' ', flush=True)
-                try:
-                    docto.patient = patients[int(sys.stdin.readline().strip())]
-                except (ValueError, IndexError):
-                    continue
-                else:
-                    break
-        else:
-            docto.patient = patients[0]
-        return docto.patient
-
-        Patient_Access = Patient()
-        Docto.getpatient = Patient_Access.getpatient(args, patients)
 
 class Application:
     @classmethod
@@ -737,28 +740,9 @@ class Application:
         if not docto.do_login(args.code):
             return 1
 
-        # patients = docto.get_patients()
-        # if len(patients) == 0:
-        #     print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
-        #     return 1
-        # if args.patient >= 0 and args.patient < len(patients):
-        #     docto.patient = patients[args.patient]
-        # elif len(patients) > 1:
-        #     print('Available patients are:')
-        #     for i, patient in enumerate(patients):
-        #         print('* [%s] %s %s' %
-        #               (i, patient['first_name'], patient['last_name']))
-        #     while True:
-        #         print('For which patient do you want to book a slot?',
-        #               end=' ', flush=True)
-        #         try:
-        #             docto.patient = patients[int(sys.stdin.readline().strip())]
-        #         except (ValueError, IndexError):
-        #             continue
-        #         else:
-        #             break
-        # else:
-        #     docto.patient = patients[0]
+        # create an object for Patient
+        patient_access = PatientID()
+        patient_access.access_patient()
 
         motives = []
         if not args.pfizer and not args.moderna and not args.janssen and not args.astrazeneca:
