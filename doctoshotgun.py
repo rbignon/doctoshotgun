@@ -60,6 +60,18 @@ def log_ts(text=None, *args, **kwargs):
     if text:
         log(text, *args, **kwargs)
 
+class appointmentCenters:
+    def __init__(self, center: str, batches: List[Batch]):
+        self.center = center #we want to get the product from center which has the vaccine centers
+        self.batches = batches
+
+    def allocate(self, center: VaccineCenter) -> str: #method on the VaccineCenter aggregate
+        try:
+            batch = next(b for b in sorted(self.batches) if b.can_allocate(VaccineCenter))
+            batch.allocate(VaccineCenter)
+            return batch.reference
+        except StopIteration:
+            raise OutofStock(f"Out of centers")
 
 class Session(cloudscraper.CloudScraper):
     def send(self, *args, **kwargs):
