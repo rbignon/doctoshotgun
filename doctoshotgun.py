@@ -90,7 +90,12 @@ class ChallengePage(JsonPage):
         return ""  # Do not choke on empty response from server
 
 
-class Centers:
+class Centers(HTMLPage):
+    #root aggregate
+    def __init__(self,city, country):
+        self.center_id = center_id
+        self.name = city
+        self.city = country
 
     def iter_centers_ids(self):
         for div in self.doc.xpath('//div[@class="js-dl-search-results-calendar"]'):
@@ -226,6 +231,11 @@ class CenterBooking(JsonPage):
 
 
 class Availabilities(JsonPage):
+    def __init__(self,center, start_date, end_date):
+        self.center = center
+        self.start_date = start_date
+        self.end_date = end_date
+
     def find_best_slot(self, start_date=None, end_date=None):
         for a in self.doc['availabilities']:
             date = parse_date(a['date']).date()
@@ -589,7 +599,7 @@ class DoctolibDE(Doctolib):
         KEY_ASTRAZENECA: 'AstraZeneca',
         KEY_ASTRAZENECA_SECOND: 'Zweit.*AstraZeneca|AstraZeneca.*Zweit',
     }
-    centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
+    centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', Centers)
     center = URL(r'/praxis/.*', CenterBooking.get_center(HTMLPage))
 
 
@@ -616,7 +626,7 @@ class DoctolibFR(Doctolib):
         KEY_ASTRAZENECA_SECOND: '2de.*AstraZeneca',
     }
 
-    centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
+    centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', Centers)
     center = URL(r'/centre-de-sante/.*', CenterBooking.get_center(HTMLPage))
 
 
