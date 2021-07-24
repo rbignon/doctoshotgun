@@ -548,7 +548,7 @@ class Doctolib(LoginBrowser):
         return self.page.doc['confirmed']
 
 
-class vaccine():
+class Vaccine():
 
 
     def get_motives(is_pfizer, is_moderna, is_janssen, is_astrazeneca,only_second,only_third, motives, docto):
