@@ -88,119 +88,118 @@ class ChallengePage(JsonPage):
     def build_doc(self, content):
         return ""  # Do not choke on empty response from server
 
+class Center:
+    class CentersPage(HTMLPage):
+        def iter_centers_ids(self):
+            for div in self.doc.xpath('//div[@class="js-dl-search-results-calendar"]'):
+                data = json.loads(div.attrib['data-props'])
+                yield data['searchResultId']
 
-class CentersPage(HTMLPage):
-    def iter_centers_ids(self):
-        for div in self.doc.xpath('//div[@class="js-dl-search-results-calendar"]'):
-            data = json.loads(div.attrib['data-props'])
-            yield data['searchResultId']
+        def get_next_page(self):
+            # French doctolib uses data-u attribute of span-element to create the link when user hovers span
+            for span in self.doc.xpath('//div[contains(@class, "next")]/span'):
+                if not span.attrib.has_key('data-u'):
+                    continue
 
-    def get_next_page(self):
-        # French doctolib uses data-u attribute of span-element to create the link when user hovers span
-        for span in self.doc.xpath('//div[contains(@class, "next")]/span'):
-            if not span.attrib.has_key('data-u'):
-                continue
+                # How to find the corresponding javascript-code:
+                # Press F12 to open dev-tools, select elements-tab, find div.next, right click on element and enable break on substructure change
+                # Hover "Next" element and follow callstack upwards
+                # JavaScript:
+                # var t = (e = r()(e)).data("u")
+                #     , n = atob(t.replace(/\s/g, '').split('').reverse().join(''));
+                
+                import base64
+                href = base64.urlsafe_b64decode(''.join(span.attrib['data-u'].split())[::-1]).decode()
+                query = dict(parse.parse_qsl(parse.urlsplit(href).query))
 
-            # How to find the corresponding javascript-code:
-            # Press F12 to open dev-tools, select elements-tab, find div.next, right click on element and enable break on substructure change
-            # Hover "Next" element and follow callstack upwards
-            # JavaScript:
-            # var t = (e = r()(e)).data("u")
-            #     , n = atob(t.replace(/\s/g, '').split('').reverse().join(''));
+                if 'page' in query:
+                    return int(query['page'])
+
+            for a in self.doc.xpath('//div[contains(@class, "next")]/a'):
+                href = a.attrib['href']
+                query = dict(parse.parse_qsl(parse.urlsplit(href).query))
+
+                if 'page' in query:
+                    return int(query['page'])
             
-            import base64
-            href = base64.urlsafe_b64decode(''.join(span.attrib['data-u'].split())[::-1]).decode()
-            query = dict(parse.parse_qsl(parse.urlsplit(href).query))
+            return None
 
-            if 'page' in query:
-                return int(query['page'])
+    class CenterResultPage(JsonPage):
+        pass
 
-        for a in self.doc.xpath('//div[contains(@class, "next")]/a'):
-            href = a.attrib['href']
-            query = dict(parse.parse_qsl(parse.urlsplit(href).query))
 
-            if 'page' in query:
-                return int(query['page'])
+    class CenterPage(HTMLPage):
+        pass
+
+
+    class CenterBookingPage(JsonPage):
+        def find_motive(self, regex, singleShot=False):
+            for s in self.doc['data']['visit_motives']:
+                # ignore case as some doctors use their own spelling
+                if re.search(regex, s['name'], re.IGNORECASE):
+                    if s['allow_new_patients'] == False:
+                        log('Motive %s not allowed for new patients at this center. Skipping vaccine...',
+                            s['name'], flush=True)
+                        continue
+                    if not singleShot and not s['first_shot_motive']: 
+                        log('Skipping second shot motive %s...',
+                            s['name'], flush=True)
+                        continue
+                    return s['id']
+
+            return None
+
+        def get_motives(self):
+            return [s['name'] for s in self.doc['data']['visit_motives']]
+
+        def get_places(self):
+            return self.doc['data']['places']
+
+        def get_practice(self):
+            return self.doc['data']['places'][0]['practice_ids'][0]
+
+        def get_agenda_ids(self, motive_id, practice_id=None):
+            agenda_ids = []
+            for a in self.doc['data']['agendas']:
+                if motive_id in a['visit_motive_ids'] and \
+                not a['booking_disabled'] and \
+                (not practice_id or a['practice_id'] == practice_id):
+                    agenda_ids.append(str(a['id']))
+
+            return agenda_ids
+
+        def get_profile_id(self):
+            return self.doc['data']['profile']['id']
+
+
+        class AvailabilitiesPage(JsonPage):
+            def find_best_slot(self, start_date=None, end_date=None):
+                for a in self.doc['availabilities']:
+                    date = parse_date(a['date']).date()
+                    if start_date and date < start_date or end_date and date > end_date:
+                        continue
+                    if len(a['slots']) == 0:
+                        continue
+                    return a['slots'][-1]
         
-        return None
+        class AppointmentPage(JsonPage):
+            def get_error(self):
+                return self.doc['error']
 
-class CenterResultPage(JsonPage):
-    pass
-
-
-class CenterPage(HTMLPage):
-    pass
+            def is_error(self):
+                return 'error' in self.doc
 
 
-class CenterBookingPage(JsonPage):
-    def find_motive(self, regex, singleShot=False):
-        for s in self.doc['data']['visit_motives']:
-            # ignore case as some doctors use their own spelling
-            if re.search(regex, s['name'], re.IGNORECASE):
-                if s['allow_new_patients'] == False:
-                    log('Motive %s not allowed for new patients at this center. Skipping vaccine...',
-                        s['name'], flush=True)
-                    continue
-                if not singleShot and not s['first_shot_motive']:
-                    log('Skipping second shot motive %s...',
-                        s['name'], flush=True)
-                    continue
-                return s['id']
-
-        return None
-
-    def get_motives(self):
-        return [s['name'] for s in self.doc['data']['visit_motives']]
-
-    def get_places(self):
-        return self.doc['data']['places']
-
-    def get_practice(self):
-        return self.doc['data']['places'][0]['practice_ids'][0]
-
-    def get_agenda_ids(self, motive_id, practice_id=None):
-        agenda_ids = []
-        for a in self.doc['data']['agendas']:
-            if motive_id in a['visit_motive_ids'] and \
-               not a['booking_disabled'] and \
-               (not practice_id or a['practice_id'] == practice_id):
-                agenda_ids.append(str(a['id']))
-
-        return agenda_ids
-
-    def get_profile_id(self):
-        return self.doc['data']['profile']['id']
+        class AppointmentEditPage(JsonPage):
+            def get_custom_fields(self):
+                for field in self.doc['appointment']['custom_fields']:
+                    if field['required']:
+                        yield field
 
 
-class AvailabilitiesPage(JsonPage):
-    def find_best_slot(self, start_date=None, end_date=None):
-        for a in self.doc['availabilities']:
-            date = parse_date(a['date']).date()
-            if start_date and date < start_date or end_date and date > end_date:
-                continue
-            if len(a['slots']) == 0:
-                continue
-            return a['slots'][-1]
-
-
-class AppointmentPage(JsonPage):
-    def get_error(self):
-        return self.doc['error']
-
-    def is_error(self):
-        return 'error' in self.doc
-
-
-class AppointmentEditPage(JsonPage):
-    def get_custom_fields(self):
-        for field in self.doc['appointment']['custom_fields']:
-            if field['required']:
-                yield field
-
-
-class AppointmentPostPage(JsonPage):
-    pass
-
+        class AppointmentPostPage(JsonPage):
+            pass
+    
 
 class MasterPatientPage(JsonPage):
     def get_patients(self):
@@ -224,16 +223,16 @@ class Doctolib(LoginBrowser):
     login = URL('/login.json', LoginPage)
     send_auth_code = URL('/api/accounts/send_auth_code', SendAuthCodePage)
     challenge = URL('/login/challenge', ChallengePage)
-    center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
-    center_booking = URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage)
-    availabilities = URL(r'/availabilities.json', AvailabilitiesPage)
+    center_result = URL(r'/search_results/(?P<id>\d+).json', Center)
+    center_booking = URL(r'/booking/(?P<center_id>.+).json', Center)
+    availabilities = URL(r'/availabilities.json', Center)
     second_shot_availabilities = URL(
-        r'/second_shot_availabilities.json', AvailabilitiesPage)
-    appointment = URL(r'/appointments.json', AppointmentPage)
+        r'/second_shot_availabilities.json', Center)
+    appointment = URL(r'/appointments.json', Center)
     appointment_edit = URL(
-        r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
+        r'/appointments/(?P<id>.+)/edit.json', Center)
     appointment_post = URL(
-        r'/appointments/(?P<id>.+).json', AppointmentPostPage)
+        r'/appointments/(?P<id>.+).json', Center)
     master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
 
     def _setup_session(self, profile):
@@ -546,8 +545,7 @@ class Doctolib(LoginBrowser):
         log('  └╴ Booking status: %s', self.page.doc['confirmed'])
 
         return self.page.doc['confirmed']
-
-
+    
 class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
     KEY_PFIZER = '6768'
@@ -570,9 +568,8 @@ class DoctolibDE(Doctolib):
         KEY_ASTRAZENECA: 'AstraZeneca',
         KEY_ASTRAZENECA_SECOND: 'Zweit.*AstraZeneca|AstraZeneca.*Zweit',
     }
-    centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
-    center = URL(r'/praxis/.*', CenterPage)
-
+    centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', Center)
+    center = URL(r'/praxis/.*', Center)
 
 class DoctolibFR(Doctolib):
     BASEURL = 'https://www.doctolib.fr'
@@ -597,8 +594,8 @@ class DoctolibFR(Doctolib):
         KEY_ASTRAZENECA_SECOND: '2de.*AstraZeneca',
     }
 
-    centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
-    center = URL(r'/centre-de-sante/.*', CenterPage)
+    centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', Center)
+    center = URL(r'/centre-de-sante/.*', Center)
 
 
 class Application:
