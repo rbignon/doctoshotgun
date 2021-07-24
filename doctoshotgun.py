@@ -32,11 +32,9 @@ SLEEP_INTERVAL_AFTER_LOGIN_ERROR = 10
 SLEEP_INTERVAL_AFTER_CENTER = 1
 SLEEP_INTERVAL_AFTER_RUN = 5
 
-
 try:
     from playsound import playsound as _playsound, PlaysoundException
 
-class Sound():
     def playsound(*args):
         try:
             return _playsound(*args)
@@ -46,7 +44,7 @@ except ImportError:
     def playsound(*args):
         pass
 
-class Availablity():
+
 def log(text, *args, **kwargs):
     args = (colored(arg, 'yellow') for arg in args)
     if 'color' in kwargs:
@@ -62,9 +60,9 @@ def log_ts(text=None, *args, **kwargs):
     if text:
         log(text, *args, **kwargs)
 
-
+#aggregate 1
 class Session(cloudscraper.CloudScraper):
-def get_practice(self):
+    def get_practice(self):
     return self.doc['data']['places'][0]['practice_ids'][0]
     
     def send(self, *args, **kwargs):
@@ -106,6 +104,45 @@ def get_practice(self):
 
             self.patient = None
 
+             def do_login(self, code):
+        try:
+            self.open(self.BASEURL + '/sessions/new')
+        except ServerError as e:
+            if e.response.status_code in [503] \
+                and 'text/html' in e.response.headers['Content-Type'] \
+                    and ('cloudflare' in e.response.text or 'Checking your browser before accessing' in e .response.text):
+                log('Request blocked by CloudFlare', color='red')
+            if e.response.status_code in [520]:
+                log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
+            raise
+        try:
+            self.login.go(json={'kind': 'patient',
+                                'username': self.username,
+                                'password': self.password,
+                                'remember': True,
+                                'remember_username': True})
+        except ClientError:
+            print('Wrong login/password')
+            return False
+
+        if self.page.redirect() == "/sessions/two-factor":
+            print("Requesting 2fa code...")
+            if not code:
+                if not sys.__stdin__.isatty():
+                    log("Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.", color='red')
+                    return False
+                self.send_auth_code.go(
+                    json={'two_factor_auth_method': 'email'}, method="POST")
+                code = input("Enter auth code: ")
+            try:
+                self.challenge.go(
+                    json={'auth_code': code, 'two_factor_auth_method': 'email'}, method="POST")
+            except HTTPNotFound:
+                print("Invalid auth code")
+                return False
+
+        return True
+
 
 class LoginPage(JsonPage):
     def redirect(self):
@@ -121,7 +158,6 @@ class ChallengePage(JsonPage):
     def build_doc(self, content):
         return ""  # Do not choke on empty response from server
 
-class Center():
 
 class CentersPage(HTMLPage):
     def iter_centers_ids(self):
@@ -186,18 +222,11 @@ class CenterBookingPage(JsonPage):
     def get_motives(self):
         return [s['name'] for s in self.doc['data']['visit_motives']]
 
-        
-class Country():
     def get_places(self):
         return self.doc['data']['places']
 
-  
-class Patient():
     def get_profile_id(self):
         return self.doc['data']['profile']['id']
-        
-            def get_name(self):
-                return '%s %s' % (self.doc[0]['first_name'], self.doc[0]['last_name'])
 
 
 class AvailabilitiesPage(JsonPage):
@@ -233,8 +262,9 @@ class AppointmentPostPage(JsonPage):
 class MasterPatientPage(JsonPage):
     def get_patients(self):
         return self.doc
-        
 
+    def get_name(self):
+        return '%s %s' % (self.doc[0]['first_name'], self.doc[0]['last_name'])
 
 
 class CityNotFound(Exception):
@@ -263,9 +293,10 @@ class Doctolib(LoginBrowser):
         r'/appointments/(?P<id>.+).json', AppointmentPostPage)
     master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
 
+    
+    
 
-
-
+   
 
     def find_centers(self, where, motives=None, page=1):
         if motives is None:
@@ -591,47 +622,6 @@ class Application:
         logging.root.setLevel(level)
         logging.root.addHandler(self.create_default_logger())
 
-    def do_login(self, code):
-            try:
-                self.open(self.BASEURL + '/sessions/new')
-            except ServerError as e:
-                if e.response.status_code in [503] \
-                    and 'text/html' in e.response.headers['Content-Type'] \
-                        and ('cloudflare' in e.response.text or 'Checking your browser before accessing' in e .response.text):
-                    log('Request blocked by CloudFlare', color='red')
-                if e.response.status_code in [520]:
-                    log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
-                raise
-            try:
-                self.login.go(json={'kind': 'patient',
-                                    'username': self.username,
-                                    'password': self.password,
-                                    'remember': True,
-                                    'remember_username': True})
-            except ClientError:
-                print('Wrong login/password')
-                return False
-
-            if self.page.redirect() == "/sessions/two-factor":
-                print("Requesting 2fa code...")
-                if not code:
-                    if not sys.__stdin__.isatty():
-                        log("Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.", color='red')
-                        return False
-                    self.send_auth_code.go(
-                        json={'two_factor_auth_method': 'email'}, method="POST")
-                    code = input("Enter auth code: ")
-                try:
-                    self.challenge.go(
-                        json={'auth_code': code, 'two_factor_auth_method': 'email'}, method="POST")
-                except HTTPNotFound:
-                    print("Invalid auth code")
-                    return False
-
-            return True
-
-  
-class Country():
     def main(self, cli_args=None):
         colorama.init()  # needed for windows
 
