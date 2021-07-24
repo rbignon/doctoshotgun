@@ -92,10 +92,10 @@ class ChallengePage(JsonPage):
 
 class Centers(HTMLPage):
     #root aggregate
-    def __init__(self,city, country):
-        self.center_id = center_id
-        self.name = city
-        self.city = country
+    def __init__(self, city, country):
+
+        self.city = city
+        self.country = country
 
     def iter_centers_ids(self):
         for div in self.doc.xpath('//div[@class="js-dl-search-results-calendar"]'):
