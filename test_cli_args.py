@@ -1,7 +1,7 @@
 import responses
 from unittest.mock import patch, MagicMock
 
-from doctoshotgun import Application, DoctolibDE, DoctolibFR, MasterPatientPage, Pfizer, Moderna, Janssen
+from doctoshotgun import Application, DoctolibDE, DoctolibFR, MasterPatientPage
 
 CENTERS = [
     {
@@ -68,11 +68,7 @@ def get_mocked_doctolib(MockDoctolibDE):
     MockDoctolibDE.return_value = mock_doctolib_de
 
     mock_doctolib_de.vaccine_motives = DoctolibDE.vaccine_motives
-    mock_doctolib_de.VACCINES = {
-        'PFIZER' : Pfizer('6768', 'Pfizer'),
-        'MODERNA' : Moderna('6936', 'Moderna'),
-        'JANSSEN' : Janssen('7978','Janssen')
-    }
+    mock_doctolib_de.VACCINES = DoctolibDE.VACCINES
 
     mock_doctolib_de.get_patients.return_value = [
         {"first_name": 'First', "last_name": 'Name'}
