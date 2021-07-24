@@ -61,6 +61,16 @@ def log_ts(text=None, *args, **kwargs):
         log(text, *args, **kwargs)
 
 
+class Patient
+#aggregate root
+    def get_profile_id(self):
+        return self.doc['data']['profile']['id']
+        
+    def get_name(self):
+        return '%s %s' % (self.doc[0]['first_name'], self.doc[0]['last_name'])
+
+
+
 class Session(cloudscraper.CloudScraper):
     def send(self, *args, **kwargs):
         callback = kwargs.pop('callback', lambda future, response: response)
@@ -168,8 +178,7 @@ class CenterBookingPage(JsonPage):
 
         return agenda_ids
 
-    def get_profile_id(self):
-        return self.doc['data']['profile']['id']
+    
 
 
 class AvailabilitiesPage(JsonPage):
@@ -206,8 +215,7 @@ class MasterPatientPage(JsonPage):
     def get_patients(self):
         return self.doc
 
-    def get_name(self):
-        return '%s %s' % (self.doc[0]['first_name'], self.doc[0]['last_name'])
+    
 
 
 class CityNotFound(Exception):
