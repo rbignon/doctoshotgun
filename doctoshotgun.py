@@ -172,6 +172,48 @@ class AppointmentEditPage(JsonPage):
 class AppointmentPostPage(JsonPage):
     pass
 
+class Paitient: 
+
+    def_init_(self, patient_name, patient_email, patient_phone_number, paitient_address)
+    self.paitient_name = name
+    self.patient_email = patient_email
+    self.patient_phone_number = patient_phone_number
+    self.patient_address = patient
+
+    def get_patients(self):
+            self.master_patient.go()
+
+            return self.page.get_patients()
+
+        def getpatient(self, docto, args):
+
+            patients = docto.get_patients()
+            if len(patients) == 0:
+                print(
+                    "It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
+                return 1
+            if args.patient >= 0 and args.patient < len(patients):
+                docto.patient = patients[args.patient]
+            elif len(patients) > 1:
+                print('Available patients are:')
+                for i, patient in enumerate(patients):
+                    print('* [%s] %s %s' %
+                        (i, patient['first_name'], patient['last_name']))
+                while True:
+                    print('For which patient do you want to book a slot?',
+                        end=' ', flush=True)
+                    try:
+                        docto.patient = patients[int(sys.stdin.readline().strip())]
+                    except (ValueError, IndexError):
+                        continue
+                    else:
+                        break
+            else:
+                docto.patient = patients[0]
+            return docto.patient
+
+            Patient_Access = Patient()
+            Docto.getpatient = Patient_Access.getpatient(args, patients)
 
 class MasterPatientPage(JsonPage):
     def get_patients(self):
@@ -185,12 +227,49 @@ class CityNotFound(Exception):
     pass
 
 
+    
+
+
+
+class VaccineCenter_agregate:
+
+    def _init_(self, centre_results: URL, vaccinecenter_Booking : URL):
+        self.BASEURL = ""
+        self.center_results = centre_results
+        self.vaccinecenter_Booking = vaccinecenter_Booking
+        self.vaccine_motives = {}
+        self.center = URL('')
+ 
+    def change_BASEURL(self, BASEURL: URL):
+            self.BASEURL = BASEURL
+
+        def change_VaccineMotives(self, vaccine_motives: dict()):
+            self.vaccine_motives = vaccine_motives
+
+        def changeCenter(self,center: URL):
+            self.center = center
+
+        def changeCenterResults(self,Results: URL):
+            self.Results = Results
+
+        def changeCenterBooking(self,center_Booking: URL):
+            self.center_Booking = center_Booking
+        
+
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
     BASEURL = ""
     vaccine_motives = {}
     centers = URL('')
     center = URL('')
+
+    vaccine_center_lookup = VaccineCenter_agregate(URL(r'/search_results/(?P<id>\d+).json', CenterResultPage), URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage))
+    center_booking = vaccine_center_lookup.center_Booking
+    center_result = vaccine_center_lookup.Results
+
+
+
+
     # common properties
     login = URL('/login.json', LoginPage)
     send_auth_code = URL('/api/accounts/send_auth_code', SendAuthCodePage)
@@ -198,13 +277,13 @@ class Doctolib(LoginBrowser):
     center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
     center_booking = URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage)
     availabilities = URL(r'/availabilities.json', AvailabilitiesPage)
+   
+
     second_shot_availabilities = URL(
         r'/second_shot_availabilities.json', AvailabilitiesPage)
     appointment = URL(r'/appointments.json', AppointmentPage)
-    appointment_edit = URL(
-        r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
-    appointment_post = URL(
-        r'/appointments/(?P<id>.+).json', AppointmentPostPage)
+    appointment_edit = URL(r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
+    appointment_post = URL(r'/appointments/(?P<id>.+).json', AppointmentPostPage)
     master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
 
     def _setup_session(self, profile):
@@ -499,6 +578,7 @@ class Doctolib(LoginBrowser):
                 'phone_number': None,
                 }
 
+
         self.appointment_post.go(id=a_id, data=json.dumps(
             data), headers=headers, method='PUT')
 
@@ -537,7 +617,7 @@ class DoctolibDE(Doctolib):
     }
     centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
     center = URL(r'/praxis/.*', CenterPage)
-
+    VaccineCenter_agregate(URL(''), URL(''))
 
 class DoctolibFR(Doctolib):
     BASEURL = 'https://www.doctolib.fr'
@@ -564,6 +644,7 @@ class DoctolibFR(Doctolib):
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
+    VaccineCenter_agregate(URL(''), URL(''))
 
 
 class Application:
