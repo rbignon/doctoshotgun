@@ -1,3 +1,4 @@
+#Aggregation 1
 #!/usr/bin/env python3
 import sys
 import re
@@ -107,7 +108,7 @@ class CentersPage(HTMLPage):
             # JavaScript:
             # var t = (e = r()(e)).data("u")
             #     , n = atob(t.replace(/\s/g, '').split('').reverse().join(''));
-            
+
             import base64
             href = base64.urlsafe_b64decode(''.join(span.attrib['data-u'].split())[::-1]).decode()
             query = dict(parse.parse_qsl(parse.urlsplit(href).query))
@@ -121,8 +122,9 @@ class CentersPage(HTMLPage):
 
             if 'page' in query:
                 return int(query['page'])
-        
+
         return None
+
 
 class CenterResultPage(JsonPage):
     pass
@@ -547,19 +549,24 @@ class Doctolib(LoginBrowser):
 
         return self.page.doc['confirmed']
 
+# Having this country class acts as an aggregation for all different countries that can be used
+# with Doctolib platform if we plan to extend our codebase to cover doctolib platform's functionality which might cover countries other than France and Germany.
 
-class DoctolibDE(Doctolib):
-    BASEURL = 'https://www.doctolib.de'
-    KEY_PFIZER = '6768'
-    KEY_PFIZER_SECOND = '6769'
-    KEY_PFIZER_THIRD = None
-    KEY_MODERNA = '6936'
-    KEY_MODERNA_SECOND = '6937'
-    KEY_MODERNA_THIRD = None
-    KEY_JANSSEN = '7978'
-    KEY_ASTRAZENECA = '7109'
-    KEY_ASTRAZENECA_SECOND = '7110'
-    vaccine_motives = {
+
+class Country(Doctolib):
+    BASEURL = {'de': 'https://www.doctolib.de',
+               'fr': 'https://www.doctolib.fr'}
+    KEY_PFIZER = {'de': '6768', 'fr': '6970'}
+    KEY_PFIZER_SECOND = {'de': '6769', 'fr': '6971'}
+    KEY_PFIZER_THIRD = {'de': None, 'fr': '8192'}
+    KEY_MODERNA = {'de': '6936', 'fr': '7005'}
+    KEY_MODERNA_SECOND = {'de': '6937', 'fr': '7004'}
+    KEY_MODERNA_THIRD = {'de': None, 'fr': '8193'}
+    KEY_JANSSEN = {'de': '7978', 'fr': '7945'}
+    KEY_ASTRAZENECA = {'de': '7109', 'fr': '7107'}
+    KEY_ASTRAZENECA_SECOND = {'de': '7110', 'fr': '7108'}
+
+    vaccine_motives_de = {
         KEY_PFIZER: 'Pfizer',
         KEY_PFIZER_SECOND: 'Zweit.*Pfizer|Pfizer.*Zweit',
         KEY_PFIZER_THIRD: 'Dritt.*Pfizer|Pfizer.*Dritt',
@@ -570,22 +577,8 @@ class DoctolibDE(Doctolib):
         KEY_ASTRAZENECA: 'AstraZeneca',
         KEY_ASTRAZENECA_SECOND: 'Zweit.*AstraZeneca|AstraZeneca.*Zweit',
     }
-    centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
-    center = URL(r'/praxis/.*', CenterPage)
 
-
-class DoctolibFR(Doctolib):
-    BASEURL = 'https://www.doctolib.fr'
-    KEY_PFIZER = '6970'
-    KEY_PFIZER_SECOND = '6971'
-    KEY_PFIZER_THIRD = '8192'
-    KEY_MODERNA = '7005'
-    KEY_MODERNA_SECOND = '7004'
-    KEY_MODERNA_THIRD = '8193'
-    KEY_JANSSEN = '7945'
-    KEY_ASTRAZENECA = '7107'
-    KEY_ASTRAZENECA_SECOND = '7108'
-    vaccine_motives = {
+    vaccine_motives_fr = {
         KEY_PFIZER: 'Pfizer',
         KEY_PFIZER_SECOND: '2de.*Pfizer',
         KEY_PFIZER_THIRD: '3e.*Pfizer',
@@ -597,8 +590,43 @@ class DoctolibFR(Doctolib):
         KEY_ASTRAZENECA_SECOND: '2de.*AstraZeneca',
     }
 
-    centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
-    center = URL(r'/centre-de-sante/.*', CenterPage)
+    centers_data = {'de': URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage), 'fr':
+                    URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)}
+    center_data = {'de': URL(r'/praxis/.*', CenterPage),
+                   'fr': URL(r'/centre-de-sante/.*', CenterPage)}
+
+
+class DoctolibCountryData(Doctolib):
+
+    def __init__(self, baseurl=None, pfizer=None, pfizer_second=None,  pfizer_third=None,
+                 moderna=None, moderna_second=None,  moderna_third=None, janssen=None, astrazeneca=None, astrazeneca_second=None, vaccine_motives_=None, centers_data=None, center_data=None):
+        self.baseurl = baseurl
+        self.key_pfizer = pfizer
+        self.key_pfizer_second = pfizer_second
+        self.key_pfizer_third = pfizer_third
+        self.key_moderna = moderna
+        self.key_moderna_second = moderna_second
+        self.key_moderna_third = moderna_third
+        self.key_janssen = janssen
+        self.key_astrazeneca = astrazeneca
+        self.key_astrazeneca_second = astrazeneca_second
+        self.vaccine_motives = vaccine_motives_
+        self.centers_ = centers_data
+        self.center_ = center_data
+
+    BASEURL = baseurl
+    KEY_PFIZER = key_pfizer
+    KEY_PFIZER_SECOND = key_pfizer_second
+    KEY_PFIZER_THIRD = key_pfizer_third
+    KEY_MODERNA = key_moderna
+    KEY_MODERNA_SECOND = key_moderna_second
+    KEY_MODERNA_THIRD = key_moderna_third
+    KEY_JANSSEN = key_janssen
+    KEY_ASTRAZENECA = key_astrazeneca
+    KEY_ASTRAZENECA_SECOND = key_astrazeneca_second
+    vaccine_motives = vaccine_motives
+    centers = centers_
+    center = center_
 
 
 class Application:
@@ -839,7 +867,8 @@ class Application:
                     sleep(SLEEP_INTERVAL_AFTER_CENTER)
 
                     log('')
-                log('No free slots found at selected centers. Trying another round in %s sec...', SLEEP_INTERVAL_AFTER_RUN)
+                log('No free slots found at selected centers. Trying another round in %s sec...',
+                    SLEEP_INTERVAL_AFTER_RUN)
                 sleep(SLEEP_INTERVAL_AFTER_RUN)
             except CityNotFound as e:
                 print('\n%s: City %s not found. Make sure you selected a city from the available countries.' % (
