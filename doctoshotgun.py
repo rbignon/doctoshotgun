@@ -107,7 +107,7 @@ class CentersPage(HTMLPage):
             # JavaScript:
             # var t = (e = r()(e)).data("u")
             #     , n = atob(t.replace(/\s/g, '').split('').reverse().join(''));
-            
+
             import base64
             href = base64.urlsafe_b64decode(''.join(span.attrib['data-u'].split())[::-1]).decode()
             query = dict(parse.parse_qsl(parse.urlsplit(href).query))
@@ -121,7 +121,7 @@ class CentersPage(HTMLPage):
 
             if 'page' in query:
                 return int(query['page'])
-        
+
         return None
 
 class CenterResultPage(JsonPage):
@@ -131,10 +131,10 @@ class CenterResultPage(JsonPage):
 class CenterPage(HTMLPage):
     pass
 
-
-class CenterBookingPage(JsonPage):
-    def find_motive(self, regex, singleShot=False):
-        for s in self.doc['data']['visit_motives']:
+class FindMotives():
+    @classmethod
+    def find_motive(cls, doc, regex, singleShot):
+        for s in doc['data']['visit_motives']:
             # ignore case as some doctors use their own spelling
             if re.search(regex, s['name'], re.IGNORECASE):
                 if s['allow_new_patients'] == False:
@@ -148,6 +148,10 @@ class CenterBookingPage(JsonPage):
                 return s['id']
 
         return None
+
+class CenterBookingPage(JsonPage):
+    def find_motive(self, regex, singleShot=False):
+        return FindMotives.find_motive(self.doc, regex, singleShot)
 
     def get_motives(self):
         return [s['name'] for s in self.doc['data']['visit_motives']]
