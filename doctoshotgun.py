@@ -213,10 +213,46 @@ class MasterPatientPage(JsonPage):
 class CityNotFound(Exception):
     pass
 
-# User login separted from Doctolib class. Accessible from root class Doctolib
-class Login:
 
+class Doctolib(LoginBrowser):
+    # individual properties for each country. To be defined in subclasses
+    BASEURL = ""
+    vaccine_motives = {}
+    centers = URL('')
+    center = URL('')
+    # common properties
     login = URL('/login.json', LoginPage)
+    send_auth_code = URL('/api/accounts/send_auth_code', SendAuthCodePage)
+    challenge = URL('/login/challenge', ChallengePage)
+    center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
+    center_booking = URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage)
+    availabilities = URL(r'/availabilities.json', AvailabilitiesPage)
+    second_shot_availabilities = URL(
+        r'/second_shot_availabilities.json', AvailabilitiesPage)
+    appointment = URL(r'/appointments.json', AppointmentPage)
+    appointment_edit = URL(
+        r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
+    appointment_post = URL(
+        r'/appointments/(?P<id>.+).json', AppointmentPostPage)
+    master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
+
+    def _setup_session(self, profile):
+        session = Session()
+
+        session.hooks['response'].append(self.set_normalized_url)
+        if self.responses_dirname is not None:
+            session.hooks['response'].append(self.save_response)
+
+        self.session = session
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.session.headers['sec-fetch-dest'] = 'document'
+        self.session.headers['sec-fetch-mode'] = 'navigate'
+        self.session.headers['sec-fetch-site'] = 'same-origin'
+        self.session.headers['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'
+
+        self.patient = None
 
     def do_login(self, code):
         try:
@@ -258,50 +294,6 @@ class Login:
                 return False
 
         return True
-
-class Doctolib(LoginBrowser):
-    # individual properties for each country. To be defined in subclasses
-    BASEURL = ""
-    vaccine_motives = {}
-    centers = URL('')
-    center = URL('')
-    # common properties
-    login = Login.login
-    send_auth_code = URL('/api/accounts/send_auth_code', SendAuthCodePage)
-    challenge = URL('/login/challenge', ChallengePage)
-    center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
-    center_booking = URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage)
-    availabilities = URL(r'/availabilities.json', AvailabilitiesPage)
-    second_shot_availabilities = URL(
-        r'/second_shot_availabilities.json', AvailabilitiesPage)
-    appointment = URL(r'/appointments.json', AppointmentPage)
-    appointment_edit = URL(
-        r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
-    appointment_post = URL(
-        r'/appointments/(?P<id>.+).json', AppointmentPostPage)
-    master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
-
-    def _setup_session(self, profile):
-        session = Session()
-
-        session.hooks['response'].append(self.set_normalized_url)
-        if self.responses_dirname is not None:
-            session.hooks['response'].append(self.save_response)
-
-        self.session = session
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.session.headers['sec-fetch-dest'] = 'document'
-        self.session.headers['sec-fetch-mode'] = 'navigate'
-        self.session.headers['sec-fetch-site'] = 'same-origin'
-        self.session.headers['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'
-
-        self.patient = None
-
-    def user_login(self, code):
-        if (Login.do_login(self, code)):
-            return 1
 
     def find_centers(self, where, motives=None, page=1):
         if motives is None:
@@ -389,15 +381,18 @@ class Doctolib(LoginBrowser):
                     # do not filter to give a chance
                     agenda_ids = center_page.get_agenda_ids(motive_id)
 
-                if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, vac_name.lower(), start_date, end_date, only_second, only_third, dry_run):
+                if Booking.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, vac_name.lower(), start_date, end_date, only_second, only_third, dry_run):
                     return True
 
         return False
 
-    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, vac_name, start_date, end_date, only_second, only_third, dry_run=False):
+class Booking():
+
+    def try_to_book_place(Doctolib, profile_id, motive_id, practice_id, agenda_ids, vac_name, start_date, end_date,
+                          only_second, only_third, dry_run=False):
         date = start_date.strftime('%Y-%m-%d')
         while date is not None:
-            self.availabilities.go(
+            Doctolib.availabilities.go(
                 params={'start_date': date,
                         'visit_motive_ids': motive_id,
                         'agenda_ids': '-'.join(agenda_ids),
@@ -405,16 +400,16 @@ class Doctolib(LoginBrowser):
                         'practice_ids': practice_id,
                         'destroy_temporary': 'true',
                         'limit': 3})
-            if 'next_slot' in self.page.doc:
-                date = self.page.doc['next_slot']
+            if 'next_slot' in Doctolib.page.doc:
+                date = Doctolib.page.doc['next_slot']
             else:
                 date = None
 
-        if len(self.page.doc['availabilities']) == 0:
+        if len(Doctolib.page.doc['availabilities']) == 0:
             log('no availabilities', color='red')
             return False
 
-        slot = self.page.find_best_slot(start_date, end_date)
+        slot = Doctolib.page.find_best_slot(start_date, end_date)
         if not slot:
             if only_second == False and only_third == False:
                 log('First slot not found :(', color='red')
@@ -445,9 +440,9 @@ class Doctolib(LoginBrowser):
         log('  ├╴ Best slot found: %s', parse_date(
             slot_date_first).strftime('%c'))
 
-        appointment = {'profile_id':    profile_id,
+        appointment = {'profile_id': profile_id,
                        'source_action': 'profile',
-                       'start_date':    slot_date_first,
+                       'start_date': slot_date_first,
                        'visit_motive_ids': str(motive_id),
                        }
 
@@ -458,16 +453,16 @@ class Doctolib(LoginBrowser):
         headers = {
             'content-type': 'application/json',
         }
-        self.appointment.go(data=json.dumps(data), headers=headers)
+        Doctolib.appointment.go(data=json.dumps(data), headers=headers)
 
-        if self.page.is_error():
-            log('  └╴ Appointment not available anymore :( %s', self.page.get_error())
+        if Doctolib.page.is_error():
+            log('  └╴ Appointment not available anymore :( %s', Doctolib.page.get_error())
             return False
 
         playsound('ding.mp3')
 
         if vac_name != "janssen" and not only_second and not only_third:  # janssen has only one shot
-            self.second_shot_availabilities.go(
+            Doctolib.second_shot_availabilities.go(
                 params={'start_date': slot_date_second.split('T')[0],
                         'visit_motive_ids': motive_id,
                         'agenda_ids': '-'.join(agenda_ids),
@@ -476,7 +471,7 @@ class Doctolib(LoginBrowser):
                         'practice_ids': practice_id,
                         'limit': 3})
 
-            second_slot = self.page.find_best_slot()
+            second_slot = Doctolib.page.find_best_slot()
             if not second_slot:
                 log('  └╴ No second shot found')
                 return False
@@ -498,24 +493,24 @@ class Doctolib(LoginBrowser):
                 slot_date_second).strftime('%c'))
 
             data['second_slot'] = slot_date_second
-            self.appointment.go(data=json.dumps(data), headers=headers)
+            Doctolib.appointment.go(data=json.dumps(data), headers=headers)
 
-            if self.page.is_error():
+            if Doctolib.page.is_error():
                 log('  └╴ Appointment not available anymore :( %s',
-                    self.page.get_error())
+                    Doctolib.page.get_error())
                 return False
 
-        a_id = self.page.doc['id']
+        a_id = Doctolib.page.doc['id']
 
-        self.appointment_edit.go(id=a_id)
+        Doctolib.appointment_edit.go(id=a_id)
 
-        log('  ├╴ Booking for %(first_name)s %(last_name)s...' % self.patient)
+        log('  ├╴ Booking for %(first_name)s %(last_name)s...' % Doctolib.patient)
 
-        self.appointment_edit.go(
-            id=a_id, params={'master_patient_id': self.patient['id']})
+        Doctolib.appointment_edit.go(
+            id=a_id, params={'master_patient_id': Doctolib.patient['id']})
 
         custom_fields = {}
-        for field in self.page.get_custom_fields():
+        for field in Doctolib.page.get_custom_fields():
             if field['id'] == 'cov19':
                 value = 'Non'
             elif field['placeholder']:
@@ -538,24 +533,24 @@ class Doctolib(LoginBrowser):
                                 },
                 'bypass_mandatory_relative_contact_info': False,
                 'email': None,
-                'master_patient': self.patient,
+                'master_patient': Doctolib.patient,
                 'new_patient': True,
                 'patient': None,
                 'phone_number': None,
                 }
 
-        self.appointment_post.go(id=a_id, data=json.dumps(
+        Doctolib.appointment_post.go(id=a_id, data=json.dumps(
             data), headers=headers, method='PUT')
 
-        if 'redirection' in self.page.doc and not 'confirmed-appointment' in self.page.doc['redirection']:
-            log('  ├╴ Open %s to complete', self.BASEURL +
-                self.page.doc['redirection'])
+        if 'redirection' in Doctolib.page.doc and not 'confirmed-appointment' in Doctolib.page.doc['redirection']:
+            log('  ├╴ Open %s to complete', Doctolib.BASEURL +
+                Doctolib.page.doc['redirection'])
 
-        self.appointment_post.go(id=a_id)
+        Doctolib.appointment_post.go(id=a_id)
 
-        log('  └╴ Booking status: %s', self.page.doc['confirmed'])
+        log('  └╴ Booking status: %s', Doctolib.page.doc['confirmed'])
 
-        return self.page.doc['confirmed']
+        return Doctolib.page.doc['confirmed']
 
 
 class DoctolibDE(Doctolib):
@@ -693,7 +688,7 @@ class Application:
 
         docto = doctolib_map[args.country](
             args.username, args.password, responses_dirname=responses_dirname)
-        if not docto.user_login(args.code):
+        if not docto.do_login(args.code):
             return 1
 
         patients = docto.get_patients()
