@@ -18,7 +18,6 @@ import cloudscraper
 import colorama
 from requests.adapters import ReadTimeout, ConnectionError
 from termcolor import colored
-from urllib import parse
 from urllib3.exceptions import NewConnectionError
 
 from woob.browser.exceptions import ClientError, ServerError, HTTPNotFound
@@ -53,12 +52,6 @@ def log(text, *args, **kwargs):
     print(text, **kwargs)
 
 
-def log_ts(text=None, *args, **kwargs):
-    ''' Log with timestamp'''
-    now = datetime.datetime.now()
-    print("[%s]" % now.isoformat(" ", "seconds"))
-    if text:
-        log(text, *args, **kwargs)
 
 
 class Session(cloudscraper.CloudScraper):
@@ -72,7 +65,31 @@ class Session(cloudscraper.CloudScraper):
         resp = super().send(*args, **kwargs)
 
         return callback(self, resp)
+        
+    def log_ts(text=None, *args, **kwargs):
+    ''' Log with timestamp'''
+    now = datetime.datetime.now()
+    print("[%s]" % now.isoformat(" ", "seconds"))
+    if text:
+        log(text, *args, **kwargs)
 
+    def _setup_session(self, profile):
+        session = Session()
+
+        session.hooks['response'].append(self.set_normalized_url)
+        if self.responses_dirname is not None:
+            session.hooks['response'].append(self.save_response)
+
+        self.session = session
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.session.headers['sec-fetch-dest'] = 'document'
+        self.session.headers['sec-fetch-mode'] = 'navigate'
+        self.session.headers['sec-fetch-site'] = 'same-origin'
+        self.session.headers['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'
+
+        self.patient = None
 
 class LoginPage(JsonPage):
     def redirect(self):
@@ -95,34 +112,6 @@ class CentersPage(HTMLPage):
             data = json.loads(div.attrib['data-props'])
             yield data['searchResultId']
 
-    def get_next_page(self):
-        # French doctolib uses data-u attribute of span-element to create the link when user hovers span
-        for span in self.doc.xpath('//div[contains(@class, "next")]/span'):
-            if not span.attrib.has_key('data-u'):
-                continue
-
-            # How to find the corresponding javascript-code:
-            # Press F12 to open dev-tools, select elements-tab, find div.next, right click on element and enable break on substructure change
-            # Hover "Next" element and follow callstack upwards
-            # JavaScript:
-            # var t = (e = r()(e)).data("u")
-            #     , n = atob(t.replace(/\s/g, '').split('').reverse().join(''));
-            
-            import base64
-            href = base64.urlsafe_b64decode(''.join(span.attrib['data-u'].split())[::-1]).decode()
-            query = dict(parse.parse_qsl(parse.urlsplit(href).query))
-
-            if 'page' in query:
-                return int(query['page'])
-
-        for a in self.doc.xpath('//div[contains(@class, "next")]/a'):
-            href = a.attrib['href']
-            query = dict(parse.parse_qsl(parse.urlsplit(href).query))
-
-            if 'page' in query:
-                return int(query['page'])
-        
-        return None
 
 class CenterResultPage(JsonPage):
     pass
@@ -236,23 +225,6 @@ class Doctolib(LoginBrowser):
         r'/appointments/(?P<id>.+).json', AppointmentPostPage)
     master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
 
-    def _setup_session(self, profile):
-        session = Session()
-
-        session.hooks['response'].append(self.set_normalized_url)
-        if self.responses_dirname is not None:
-            session.hooks['response'].append(self.save_response)
-
-        self.session = session
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.session.headers['sec-fetch-dest'] = 'document'
-        self.session.headers['sec-fetch-mode'] = 'navigate'
-        self.session.headers['sec-fetch-site'] = 'same-origin'
-        self.session.headers['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'
-
-        self.patient = None
 
     def do_login(self, code):
         try:
@@ -293,13 +265,13 @@ class Doctolib(LoginBrowser):
 
         return True
 
-    def find_centers(self, where, motives=None, page=1):
+    def find_centers(self, where, motives=None):
         if motives is None:
             motives = self.vaccine_motives.keys()
         for city in where:
             try:
                 self.centers.go(where=city, params={
-                                'ref_visit_motive_ids[]': motives, 'page': page})
+                                'ref_visit_motive_ids[]': motives})
             except ServerError as e:
                 if e.response.status_code in [503]:
                     if 'text/html' in e.response.headers['Content-Type'] \
@@ -313,8 +285,6 @@ class Doctolib(LoginBrowser):
                 raise
             except HTTPNotFound as e:
                 raise CityNotFound(city) from e
-
-            next_page = self.page.get_next_page()
 
             for i in self.page.iter_centers_ids():
                 page = self.center_result.open(
@@ -330,10 +300,6 @@ class Doctolib(LoginBrowser):
                     yield page.doc['search_result']
                 except KeyError:
                     pass
-
-            if next_page:
-                for center in self.find_centers(where, motives, next_page):
-                    yield center
 
     def get_patients(self):
         self.master_patient.go()
