@@ -622,16 +622,16 @@ class DoctolibDE(Doctolib):
     KEY_ASTRAZENECA = '7109'
     KEY_ASTRAZENECA_SECOND = '7110'
     vaccine_motives = {
-                                KEY_PFIZER: 'Pfizer',
-                                KEY_PFIZER_SECOND: 'Zweit.*Pfizer|Pfizer.*Zweit',
-                                KEY_PFIZER_THIRD: 'Dritt.*Pfizer|Pfizer.*Dritt',
-                                KEY_MODERNA: 'Moderna',
-                                KEY_MODERNA_SECOND: 'Zweit.*Moderna|Moderna.*Zweit',
-                                KEY_MODERNA_THIRD: 'Dritt.*Moderna|Moderna.*Dritt',
-                                KEY_JANSSEN: 'Janssen',
-                                KEY_ASTRAZENECA: 'AstraZeneca',
-                                KEY_ASTRAZENECA_SECOND: 'Zweit.*AstraZeneca|AstraZeneca.*Zweit',
-                            }
+        KEY_PFIZER: 'Pfizer',
+        KEY_PFIZER_SECOND: 'Zweit.*Pfizer|Pfizer.*Zweit',
+        KEY_PFIZER_THIRD: 'Dritt.*Pfizer|Pfizer.*Dritt',
+        KEY_MODERNA: 'Moderna',
+        KEY_MODERNA_SECOND: 'Zweit.*Moderna|Moderna.*Zweit',
+        KEY_MODERNA_THIRD: 'Dritt.*Moderna|Moderna.*Dritt',
+        KEY_JANSSEN: 'Janssen',
+        KEY_ASTRAZENECA: 'AstraZeneca',
+        KEY_ASTRAZENECA_SECOND: 'Zweit.*AstraZeneca|AstraZeneca.*Zweit',
+    }
 
     centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
     center = URL(r'/praxis/.*', CenterPage)
@@ -649,16 +649,16 @@ class DoctolibFR(Doctolib):
     KEY_ASTRAZENECA = '7107'
     KEY_ASTRAZENECA_SECOND = '7108'
     vaccine_motives = {
-                                KEY_PFIZER: 'Pfizer',
-                                KEY_PFIZER_SECOND: '2de.*Pfizer',
-                                KEY_PFIZER_THIRD: '3e.*Pfizer',
-                                KEY_MODERNA: 'Moderna',
-                                KEY_MODERNA_SECOND: '2de.*Moderna',
-                                KEY_MODERNA_THIRD: '3e.*Moderna',
-                                KEY_JANSSEN: 'Janssen',
-                                KEY_ASTRAZENECA: 'AstraZeneca',
-                                KEY_ASTRAZENECA_SECOND: '2de.*AstraZeneca',
-                            }
+        KEY_PFIZER: 'Pfizer',
+        KEY_PFIZER_SECOND: '2de.*Pfizer',
+        KEY_PFIZER_THIRD: '3e.*Pfizer',
+        KEY_MODERNA: 'Moderna',
+        KEY_MODERNA_SECOND: '2de.*Moderna',
+        KEY_MODERNA_THIRD: '3e.*Moderna',
+        KEY_JANSSEN: 'Janssen',
+        KEY_ASTRAZENECA: 'AstraZeneca',
+        KEY_ASTRAZENECA_SECOND: '2de.*AstraZeneca',
+    }
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
@@ -775,8 +775,8 @@ class Application:
             docto.patient = patients[0]
 
         motives = []
-        motives = vaccine.get_motives(args.pfizer, args.moderna, args.janssen, args.astrazeneca,args.only_second,args.only_third, motives, docto)
-        vaccine_list =  vaccine.get_vaccine_list(docto.vaccine_motives, motives, docto)
+        motives = Vaccine.get_motives(args.pfizer, args.moderna, args.janssen, args.astrazeneca,args.only_second,args.only_third, motives, docto)
+        vaccine_list =  Vaccine.get_vaccine_list(docto.vaccine_motives, motives, docto)
 
         if args.start_date:
             try:
