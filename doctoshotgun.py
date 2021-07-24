@@ -237,6 +237,10 @@ class Doctolib(LoginBrowser):
     master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
 
     def _setup_session(self, profile):
+        # Brings aggregate root for Vaccine Center
+        vc = VaccineCenter(URL(r'/search_results/(?P<id>\d+).json', CenterResultPage), URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage))
+        center_result = vc.centerResult
+        center_booking = vc.centerBooking
         session = Session()
 
         session.hooks['response'].append(self.set_normalized_url)
@@ -596,7 +600,7 @@ class DoctolibFR(Doctolib):
         KEY_ASTRAZENECA: 'AstraZeneca',
         KEY_ASTRAZENECA_SECOND: '2de.*AstraZeneca',
     }
-
+    VaccineCenter(URL(''),URL(''))
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
 
@@ -624,6 +628,8 @@ class Application:
             "fr": DoctolibFR,
             "de": DoctolibDE
         }
+        
+        VaccineCenter(URL(''),URL(''))
 
         parser = argparse.ArgumentParser(
             description="Book a vaccine slot on Doctolib")
