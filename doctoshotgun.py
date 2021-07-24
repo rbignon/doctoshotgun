@@ -44,27 +44,23 @@ except ImportError:
     def playsound(*args):
         pass
 
-class MyLogger:
-
-    @staticmethod
-    def log(text, *args, **kwargs):
-        args = (colored(arg, 'yellow') for arg in args)
-        if 'color' in kwargs:
-            text = colored(text, kwargs.pop('color'))
-        
-        text = text % tuple(args)
-        print(text, **kwargs)
+def my_logger(text, *args, **kwargs):
+    args = (colored(arg, 'yellow') for arg in args)
+    if 'color' in kwargs:
+        text = colored(text, kwargs.pop('color'))
+    
+    text = text % tuple(args)
+    print(text, **kwargs)
 
 
-    def log_ts(self, text=None, *args, **kwargs):
-        ''' my_logger with timestamp'''
-        now = datetime.datetime.now()
-        print("[%s]" % now.isoformat(" ", "seconds"))
-        if text:
-            print(text)
-            self.log(text, *args, **kwargs)
+def my_logger_log_ts(text=None, *args, **kwargs):
+    ''' my_logger with timestamp'''
+    now = datetime.datetime.now()
+    print("[%s]" % now.isoformat(" ", "seconds"))
+    if text:
+        print(text)
+        my_logger(text, *args, **kwargs)
 
-my_logger = MyLogger()
 
 class Session(cloudscraper.CloudScraper):
     def send(self, *args, **kwargs):
@@ -143,11 +139,11 @@ class CenterBookingPage(JsonPage):
             # ignore case as some doctors use their own spelling
             if re.search(regex, s['name'], re.IGNORECASE):
                 if s['allow_new_patients'] == False:
-                    my_logger.log('Motive %s not allowed for new patients at this center. Skipping vaccine...',
+                    my_logger('Motive %s not allowed for new patients at this center. Skipping vaccine...',
                         s['name'], flush=True)
                     continue
                 if not singleShot and not s['first_shot_motive']:
-                    my_logger.log('Skipping second shot motive %s...',
+                    my_logger('Skipping second shot motive %s...',
                         s['name'], flush=True)
                     continue
                 return s['id']
@@ -241,6 +237,9 @@ class Doctolib(LoginBrowser):
         r'/appointments/(?P<id>.+).json', AppointmentPostPage)
     master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
 
+    centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
+    center = URL(r'/centre-de-sante/.*', CenterPage)
+
     def _setup_session(self, profile):
         session = Session()
 
@@ -256,8 +255,9 @@ class Doctolib(LoginBrowser):
         self.session.headers['sec-fetch-mode'] = 'navigate'
         self.session.headers['sec-fetch-site'] = 'same-origin'
         self.session.headers['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'
-
+        
         self.patient = None
+
 
     def do_login(self, code):
         try:
@@ -266,9 +266,9 @@ class Doctolib(LoginBrowser):
             if e.response.status_code in [503] \
                 and 'text/html' in e.response.headers['Content-Type'] \
                     and ('cloudflare' in e.response.text or 'Checking your browser before accessing' in e .response.text):
-                my_logger.log('Request blocked by CloudFlare', color='red')
+                my_logger('Request blocked by CloudFlare', color='red')
             if e.response.status_code in [520]:
-                my_logger.log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
+                my_logger('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
             raise
         try:
             self.login.go(json={'kind': 'patient',
@@ -284,7 +284,7 @@ class Doctolib(LoginBrowser):
             print("Requesting 2fa code...")
             if not code:
                 if not sys.__stdin__.isatty():
-                    my_logger.log("Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.", color='red')
+                    my_logger("Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.", color='red')
                     return False
                 self.send_auth_code.go(
                     json={'two_factor_auth_method': 'email'}, method="POST")
@@ -310,10 +310,10 @@ class Doctolib(LoginBrowser):
                     if 'text/html' in e.response.headers['Content-Type'] \
                         and ('cloudflare' in e.response.text or
                              'Checking your browser before accessing' in e .response.text):
-                        my_logger.log('Request blocked by CloudFlare', color='red')
+                        my_logger('Request blocked by CloudFlare', color='red')
                     return
                 if e.response.status_code in [520]:
-                    my_logger.log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
+                    my_logger('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
                     return
                 raise
             except HTTPNotFound as e:
@@ -354,6 +354,7 @@ class Doctolib(LoginBrowser):
         return normalized.lower()
 
     def try_to_book(self, center, vaccine_list, start_date, end_date, only_second, only_third, dry_run=False):
+
         self.open(center['url'])
         p = urlparse(center['url'])
         center_id = p.path.split('/')[-1]
@@ -364,21 +365,21 @@ class Doctolib(LoginBrowser):
         motives_id = dict()
         for vaccine in vaccine_list:
             motives_id[vaccine] = self.page.find_motive(
-                r'.*({})'.format(vaccine), singleShot=(vaccine == self.vaccine_motives[self.KEY_JANSSEN] or only_second or only_third))
+                r'.*({})'.format(vaccine), singleShot=(vaccine == 'KEY_JANSSON' or only_second or only_third))
 
         motives_id = dict((k, v)
                           for k, v in motives_id.items() if v is not None)
         if len(motives_id.values()) == 0:
-            my_logger.log('Unable to find requested vaccines in motives')
-            my_logger.log('Motives: %s', ', '.join(self.page.get_motives()))
+            my_logger('Unable to find requested vaccines in motives')
+            my_logger('Motives: %s', ', '.join(self.page.get_motives()))
             return False
 
         for place in self.page.get_places():
             if place['name']:
-                my_logger.log('– %s...', place['name'])
+                my_logger("– %s...", place['name'])
             practice_id = place['practice_ids'][0]
             for vac_name, motive_id in motives_id.items():
-                my_logger.log('  Vaccine %s...', vac_name, end=' ', flush=True)
+                my_logger('  Vaccine %s...', vac_name, end=' ', flush=True)
                 agenda_ids = center_page.get_agenda_ids(motive_id, practice_id)
                 if len(agenda_ids) == 0:
                     # do not filter to give a chance
@@ -386,7 +387,7 @@ class Doctolib(LoginBrowser):
 
                 if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, vac_name.lower(), start_date, end_date, only_second, only_third, dry_run):
                     return True
-
+        
         return False
 
     def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, vac_name, start_date, end_date, only_second, only_third, dry_run=False):
@@ -406,15 +407,15 @@ class Doctolib(LoginBrowser):
                 date = None
 
         if len(self.page.doc['availabilities']) == 0:
-            my_logger.log('no availabilities', color='red')
+            my_logger('no availabilities', color='red')
             return False
 
         slot = self.page.find_best_slot(start_date, end_date)
         if not slot:
             if only_second == False and only_third == False:
-                my_logger.log('First slot not found :(', color='red')
+                my_logger('First slot not found :(', color='red')
             else:
-                my_logger.log('Slot not found :(', color='red')
+                my_logger('Slot not found :(', color='red')
             return False
 
         # depending on the country, the slot is returned in a different format. Go figure...
@@ -424,7 +425,7 @@ class Doctolib(LoginBrowser):
                 slot_date_second = slot['steps'][1]['start_date']
         elif isinstance(slot, str):
             if vac_name != "janssen" and not only_second and not only_third:
-                my_logger.log('Only one slot for multi-shot vaccination found')
+                my_logger('Only one slot for multi-shot vaccination found')
             # should be for Janssen, second or third shots only, otherwise it is a list
             slot_date_first = slot
         elif isinstance(slot, list):
@@ -432,12 +433,12 @@ class Doctolib(LoginBrowser):
             if vac_name != "janssen":  # maybe redundant?
                 slot_date_second = slot[1]
         else:
-            my_logger.log('Error while fetching first slot.', color='red')
+            my_logger('Error while fetching first slot.', color='red')
             return False
         if vac_name != "janssen" and not only_second and not only_third:
             assert slot_date_second
-        my_logger.log('found!', color='green')
-        my_logger.log('  ├╴ Best slot found: %s', parse_date(
+        my_logger('found!', color='green')
+        my_logger('  ├╴ Best slot found: %s', parse_date(
             slot_date_first).strftime('%c'))
 
         appointment = {'profile_id':    profile_id,
@@ -456,7 +457,7 @@ class Doctolib(LoginBrowser):
         self.appointment.go(data=json.dumps(data), headers=headers)
 
         if self.page.is_error():
-            my_logger.log('  └╴ Appointment not available anymore :( %s', self.page.get_error())
+            my_logger('  └╴ Appointment not available anymore :( %s', self.page.get_error())
             return False
 
         playsound('ding.mp3')
@@ -473,7 +474,7 @@ class Doctolib(LoginBrowser):
 
             second_slot = self.page.find_best_slot()
             if not second_slot:
-                my_logger.log('  └╴ No second shot found')
+                my_logger('  └╴ No second shot found')
                 return False
 
             # in theory we could use the stored slot_date_second result from above,
@@ -486,17 +487,17 @@ class Doctolib(LoginBrowser):
             # elif isinstance(slot, list):
             #    slot_date_second = second_slot[1]
             else:
-                my_logger.log('Error while fetching second slot.', color='red')
+                my_logger('Error while fetching second slot.', color='red')
                 return False
 
-            my_logger.log('  ├╴ Second shot: %s', parse_date(
+            my_logger('  ├╴ Second shot: %s', parse_date(
                 slot_date_second).strftime('%c'))
 
             data['second_slot'] = slot_date_second
             self.appointment.go(data=json.dumps(data), headers=headers)
 
             if self.page.is_error():
-                my_logger.log('  └╴ Appointment not available anymore :( %s',
+                my_logger('  └╴ Appointment not available anymore :( %s',
                     self.page.get_error())
                 return False
 
@@ -504,10 +505,16 @@ class Doctolib(LoginBrowser):
 
         self.appointment_edit.go(id=a_id)
 
-        my_logger.log('  ├╴ Booking for %(first_name)s %(last_name)s...' % self.patient)
+        # print(self.get_patients() )
+        # print(self.get_patients()[0]['first_name'])
+        
+        my_logger('  ├╴ Booking for %s...' % self.get_patients()[0]['first_name'] )
+
+        print("blah")
 
         self.appointment_edit.go(
-            id=a_id, params={'master_patient_id': self.patient['id']})
+            id=a_id, params={'master_patient_id': self.get_patients()[0]['id']})
+        
 
         custom_fields = {}
         for field in self.page.get_custom_fields():
@@ -523,7 +530,7 @@ class Doctolib(LoginBrowser):
             custom_fields[field['id']] = value
 
         if dry_run:
-            my_logger.log('  └╴ Booking status: %s', 'fake')
+            my_logger('  └╴ Booking status: %s', 'fake')
             return True
 
         data = {'appointment': {'custom_fields_values': custom_fields,
@@ -543,17 +550,206 @@ class Doctolib(LoginBrowser):
             data), headers=headers, method='PUT')
 
         if 'redirection' in self.page.doc and not 'confirmed-appointment' in self.page.doc['redirection']:
-            my_logger.log('  ├╴ Open %s to complete', self.BASEURL +
+            my_logger('  ├╴ Open %s to complete', self.BASEURL +
                 self.page.doc['redirection'])
 
         self.appointment_post.go(id=a_id)
 
-        my_logger.log('  └╴ Booking status: %s', self.page.doc['confirmed'])
+        my_logger('  └╴ Booking status: %s', self.page.doc['confirmed'])
 
         return self.page.doc['confirmed']
 
 
-class DoctolibDE(Doctolib):
+    def main(self):
+
+        if a_args.country == 'fr':
+            self.BASEURL = 'https://www.doctolib.fr'
+            docto = DoctolibFR()
+
+        elif a_args.country == 'de':
+            docto = DoctolibDE()
+            self.BASEURL = 'https://www.doctolib.de'
+
+        if not self.do_login(a_args.code):
+            return 1
+
+        patients = self.get_patients()
+        if len(patients) == 0:
+            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
+            return 1
+        if a_args.patient >= 0 and a_args.patient < len(patients):
+            a_args.patient = patients[a_args.patient]
+        
+        elif len(patients) > 1:
+            print('Available patients are:')
+        
+        for i, patient in enumerate(patients):
+            print('* [%s] %s %s' %
+                    (i, patient['first_name'], patient['last_name']))
+        while True:
+            print('For which patient do you want to book a slot?',
+                    end=' ', flush=True)
+            try:
+                a_args.patient = patients[int(sys.stdin.readline().strip())]
+            except (ValueError, IndexError):
+                continue
+            else:
+                break
+        else:
+            a_args.patient = patients[0]
+
+        motives = []
+        if not a_args.pfizer and not a_args.moderna and not a_args.janssen and not a_args.astrazeneca:
+            if a_args.only_second:
+                motives.append(docto.KEY_PFIZER_SECOND)
+                motives.append(docto.KEY_MODERNA_SECOND)
+                # motives.append(self.docto.KEY_ASTRAZENECA_SECOND) #do not add AstraZeneca by default
+            elif a_args.only_third:
+                if not docto.KEY_PFIZER_THIRD and not docto.KEY_MODERNA_THIRD:
+                    print('Invalid args: No third shot vaccinations in this country')
+                    return 1
+                motives.append(docto.KEY_PFIZER_THIRD)
+                motives.append(docto.KEY_MODERNA_THIRD)
+            else:
+                motives.append(docto.KEY_PFIZER)
+                motives.append(docto.KEY_MODERNA)
+                motives.append(docto.KEY_JANSSEN)
+                # motives.append(self.docto.KEY_ASTRAZENECA) #do not add AstraZeneca by default
+        if a_args.pfizer:
+            if a_args.only_second:
+                    motives.append(docto.KEY_PFIZER_SECOND)
+            elif a_args.only_third:
+                if not docto.KEY_PFIZER_THIRD:  # not available in all countries
+                    print('Invalid args: Pfizer has no third shot in this country')
+                    return 1
+                motives.append(docto.KEY_PFIZER_THIRD)
+            else:
+                motives.append(docto.KEY_PFIZER)
+        if a_args.moderna:
+            if a_args.only_second:
+                motives.append(docto.KEY_MODERNA_SECOND)
+            elif a_args.only_third:
+                if not docto.KEY_MODERNA_THIRD:  # not available in all countries
+                    print('Invalid args: Moderna has no third shot in this country')
+                    return 1
+                motives.append(docto.KEY_MODERNA_THIRD)
+            else:
+                motives.append(docto.KEY_MODERNA)
+        if a_args.janssen:
+            if a_args.only_second or a_args.only_third:
+                print('Invalid args: Janssen has no second or third shot')
+                return 1
+            else:
+                motives.append(docto.KEY_JANSSEN)
+        if a_args.astrazeneca:
+            if a_args.only_second:
+                motives.append(docto.KEY_ASTRAZENECA_SECOND)
+            elif a_args.only_third:
+                print('Invalid args: AstraZeneca has no third shot')
+                return 1
+            else:
+                motives.append(docto.KEY_ASTRAZENECA)
+        
+        # WTF
+        vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
+
+        if a_args.start_date:
+            try:
+                start_date = datetime.datetime.strptime(
+                    a_args.start_date, '%d/%m/%Y').date()
+            except ValueError as e:
+                print('Invalid value for --start-date: %s' % e)
+                return 1
+        else:
+            start_date = datetime.date.today()
+        if a_args.end_date:
+            try:
+                end_date = datetime.datetime.strptime(
+                    a_args.end_date, '%d/%m/%Y').date()
+            except ValueError as e:
+                print('Invalid value for --end-date: %s' % e)
+                return 1
+        else:
+            end_date = start_date + relativedelta(days=a_args.time_window)
+        my_logger('Starting to look for vaccine slots for %s %s between %s and %s...',
+            patient['first_name'], patient['last_name'], start_date, end_date)
+        my_logger('Vaccines: %s', ', '.join(vaccine_list))
+        my_logger('Country: %s ', a_args.country)
+        my_logger('This may take a few minutes/hours, be patient!')
+        cities = [self.normalize(city) for city in a_args.city.split(',')]
+
+        while True:
+            my_logger_log_ts()
+            try:
+                for center in self.find_centers(cities, motives):
+                    if a_args.center:
+                        if center['name_with_title'] not in a_args.center:
+                            logging.debug("Skipping center '%s'" %
+                                          center['name_with_title'])
+                            continue
+                    if a_args.center_regex:
+                        center_matched = False
+                        for center_regex in a_args.center_regex:
+                            if re.match(center_regex, center['name_with_title']):
+                                center_matched = True
+                            else:
+                                logging.debug(
+                                    "Skipping center '%(name_with_title)s'" % center)
+                        if not center_matched:
+                            continue
+                    if a_args.center_exclude:
+                        if center['name_with_title'] in a_args.center_exclude:
+                            logging.debug(
+                                "Skipping center '%(name_with_title)s' because it's excluded" % center)
+                            continue
+                    if a_args.center_exclude_regex:
+                        center_excluded = False
+                        for center_exclude_regex in a_args.center_exclude_regex:
+                            if re.match(center_exclude_regex, center['name_with_title']):
+                                logging.debug(
+                                    "Skipping center '%(name_with_title)s' because it's excluded" % center)
+                                center_excluded = True
+                        if center_excluded:
+                            continue
+                    if not a_args.include_neighbor_city and not self.normalize(center['city']).startswith(tuple(cities)):
+                        logging.debug(
+                            "Skipping city '%(city)s' %(name_with_title)s" % center)
+                        continue
+
+                    my_logger('')
+
+                    my_logger('Center %(name_with_title)s (%(city)s):' % center)
+
+                    if self.try_to_book(center, vaccine_list, start_date, end_date, a_args.only_second, a_args.only_third, a_args.dry_run):
+                        my_logger('')
+                        my_logger('💉 %s Congratulations.' %
+                            colored('Booked!', 'green', attrs=('bold',)))
+                        return 0
+
+                    sleep(SLEEP_INTERVAL_AFTER_CENTER)
+
+                    my_logger('')
+
+                my_logger('No free slots found at selected centers. Trying another round in %s sec...', SLEEP_INTERVAL_AFTER_RUN)
+                sleep(SLEEP_INTERVAL_AFTER_RUN)
+            except CityNotFound as e:
+                print('\n%s: City %s not found. Make sure you selected a city from the available countries.' % (
+                    colored('Error', 'red'), colored(e, 'yellow')))
+                return 1
+            except (ReadTimeout, ConnectionError, NewConnectionError) as e:
+                print('\n%s' % (colored(
+                    'Connection error. Check your internet connection. Retrying ...', 'red')))
+                print(str(e))
+                sleep(SLEEP_INTERVAL_AFTER_CONNECTION_ERROR)
+            except Exception as e:
+                template = "An unexpected exception of type {0} occurred. Arguments:\n{1!r}"
+                message = template.format(type(e).__name__, e.args)
+                print(message)
+                return 1
+        return 0
+
+
+class DoctolibDE():
     BASEURL = 'https://www.doctolib.de'
     KEY_PFIZER = '6768'
     KEY_PFIZER_SECOND = '6769'
@@ -579,7 +775,7 @@ class DoctolibDE(Doctolib):
     center = URL(r'/praxis/.*', CenterPage)
 
 
-class DoctolibFR(Doctolib):
+class DoctolibFR():
     BASEURL = 'https://www.doctolib.fr'
     KEY_PFIZER = '6970'
     KEY_PFIZER_SECOND = '6971'
@@ -605,7 +801,6 @@ class DoctolibFR(Doctolib):
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
 
-
 class Application:
     @classmethod
     def create_default_logger(cls):
@@ -622,7 +817,7 @@ class Application:
         logging.root.setLevel(level)
         logging.root.addHandler(self.create_default_logger())
 
-    def main(self, cli_args=None):
+    def get_arguments(self, cli_args=None):
         colorama.init()  # needed for windows
 
         doctolib_map = {
@@ -686,186 +881,13 @@ class Application:
         if not args.password:
             args.password = getpass.getpass()
 
-        docto = doctolib_map[args.country](
-            args.username, args.password, responses_dirname=responses_dirname)
-        if not docto.do_login(args.code):
-            return 1
-
-        patients = docto.get_patients()
-        if len(patients) == 0:
-            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
-            return 1
-        if args.patient >= 0 and args.patient < len(patients):
-            docto.patient = patients[args.patient]
-        elif len(patients) > 1:
-            print('Available patients are:')
-            for i, patient in enumerate(patients):
-                print('* [%s] %s %s' %
-                      (i, patient['first_name'], patient['last_name']))
-            while True:
-                print('For which patient do you want to book a slot?',
-                      end=' ', flush=True)
-                try:
-                    docto.patient = patients[int(sys.stdin.readline().strip())]
-                except (ValueError, IndexError):
-                    continue
-                else:
-                    break
-        else:
-            docto.patient = patients[0]
-
-        motives = []
-        if not args.pfizer and not args.moderna and not args.janssen and not args.astrazeneca:
-            if args.only_second:
-                motives.append(docto.KEY_PFIZER_SECOND)
-                motives.append(docto.KEY_MODERNA_SECOND)
-                # motives.append(docto.KEY_ASTRAZENECA_SECOND) #do not add AstraZeneca by default
-            elif args.only_third:
-                if not docto.KEY_PFIZER_THIRD and not docto.KEY_MODERNA_THIRD:
-                    print('Invalid args: No third shot vaccinations in this country')
-                    return 1
-                motives.append(docto.KEY_PFIZER_THIRD)
-                motives.append(docto.KEY_MODERNA_THIRD)
-            else:
-                motives.append(docto.KEY_PFIZER)
-                motives.append(docto.KEY_MODERNA)
-                motives.append(docto.KEY_JANSSEN)
-                # motives.append(docto.KEY_ASTRAZENECA) #do not add AstraZeneca by default
-        if args.pfizer:
-            if args.only_second:
-                motives.append(docto.KEY_PFIZER_SECOND)
-            elif args.only_third:
-                if not docto.KEY_PFIZER_THIRD:  # not available in all countries
-                    print('Invalid args: Pfizer has no third shot in this country')
-                    return 1
-                motives.append(docto.KEY_PFIZER_THIRD)
-            else:
-                motives.append(docto.KEY_PFIZER)
-        if args.moderna:
-            if args.only_second:
-                motives.append(docto.KEY_MODERNA_SECOND)
-            elif args.only_third:
-                if not docto.KEY_MODERNA_THIRD:  # not available in all countries
-                    print('Invalid args: Moderna has no third shot in this country')
-                    return 1
-                motives.append(docto.KEY_MODERNA_THIRD)
-            else:
-                motives.append(docto.KEY_MODERNA)
-        if args.janssen:
-            if args.only_second or args.only_third:
-                print('Invalid args: Janssen has no second or third shot')
-                return 1
-            else:
-                motives.append(docto.KEY_JANSSEN)
-        if args.astrazeneca:
-            if args.only_second:
-                motives.append(docto.KEY_ASTRAZENECA_SECOND)
-            elif args.only_third:
-                print('Invalid args: AstraZeneca has no third shot')
-                return 1
-            else:
-                motives.append(docto.KEY_ASTRAZENECA)
-
-        vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
-
-        if args.start_date:
-            try:
-                start_date = datetime.datetime.strptime(
-                    args.start_date, '%d/%m/%Y').date()
-            except ValueError as e:
-                print('Invalid value for --start-date: %s' % e)
-                return 1
-        else:
-            start_date = datetime.date.today()
-        if args.end_date:
-            try:
-                end_date = datetime.datetime.strptime(
-                    args.end_date, '%d/%m/%Y').date()
-            except ValueError as e:
-                print('Invalid value for --end-date: %s' % e)
-                return 1
-        else:
-            end_date = start_date + relativedelta(days=args.time_window)
-        my_logger.log('Starting to look for vaccine slots for %s %s between %s and %s...',
-            docto.patient['first_name'], docto.patient['last_name'], start_date, end_date)
-        my_logger.log('Vaccines: %s', ', '.join(vaccine_list))
-        my_logger.log('Country: %s ', args.country)
-        my_logger.log('This may take a few minutes/hours, be patient!')
-        cities = [docto.normalize(city) for city in args.city.split(',')]
-
-        while True:
-            my_logger.log_ts()
-            try:
-                for center in docto.find_centers(cities, motives):
-                    if args.center:
-                        if center['name_with_title'] not in args.center:
-                            logging.debug("Skipping center '%s'" %
-                                          center['name_with_title'])
-                            continue
-                    if args.center_regex:
-                        center_matched = False
-                        for center_regex in args.center_regex:
-                            if re.match(center_regex, center['name_with_title']):
-                                center_matched = True
-                            else:
-                                logging.debug(
-                                    "Skipping center '%(name_with_title)s'" % center)
-                        if not center_matched:
-                            continue
-                    if args.center_exclude:
-                        if center['name_with_title'] in args.center_exclude:
-                            logging.debug(
-                                "Skipping center '%(name_with_title)s' because it's excluded" % center)
-                            continue
-                    if args.center_exclude_regex:
-                        center_excluded = False
-                        for center_exclude_regex in args.center_exclude_regex:
-                            if re.match(center_exclude_regex, center['name_with_title']):
-                                logging.debug(
-                                    "Skipping center '%(name_with_title)s' because it's excluded" % center)
-                                center_excluded = True
-                        if center_excluded:
-                            continue
-                    if not args.include_neighbor_city and not docto.normalize(center['city']).startswith(tuple(cities)):
-                        logging.debug(
-                            "Skipping city '%(city)s' %(name_with_title)s" % center)
-                        continue
-
-                    my_logger.log('')
-
-                    my_logger.log('Center %(name_with_title)s (%(city)s):' % center)
-
-                    if docto.try_to_book(center, vaccine_list, start_date, end_date, args.only_second, args.only_third, args.dry_run):
-                        my_logger.log('')
-                        my_logger.log('💉 %s Congratulations.' %
-                            colored('Booked!', 'green', attrs=('bold',)))
-                        return 0
-
-                    sleep(SLEEP_INTERVAL_AFTER_CENTER)
-
-                    my_logger.log('')
-                my_logger.log('No free slots found at selected centers. Trying another round in %s sec...', SLEEP_INTERVAL_AFTER_RUN)
-                sleep(SLEEP_INTERVAL_AFTER_RUN)
-            except CityNotFound as e:
-                print('\n%s: City %s not found. Make sure you selected a city from the available countries.' % (
-                    colored('Error', 'red'), colored(e, 'yellow')))
-                return 1
-            except (ReadTimeout, ConnectionError, NewConnectionError) as e:
-                print('\n%s' % (colored(
-                    'Connection error. Check your internet connection. Retrying ...', 'red')))
-                print(str(e))
-                sleep(SLEEP_INTERVAL_AFTER_CONNECTION_ERROR)
-            except Exception as e:
-                template = "An unexpected exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(e).__name__, e.args)
-                print(message)
-                return 1
-        return 0
-
+        return args
 
 if __name__ == '__main__':
     try:
-        sys.exit(Application().main())
+        a = Application()
+        a_args = a.get_arguments()
+        sys.exit(Doctolib(a_args.username, a_args.password).main())
     except KeyboardInterrupt:
         print('Abort.')
         sys.exit(1)
