@@ -585,7 +585,7 @@ class Patient:
         return self.page.new_patients()
 
     def newPatients(self, args.patient, patients):
-        patients = Doctolib.new_patients()
+        patients = docto.new_patients()
     
         if len(patients) == 0:
             print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
@@ -610,12 +610,7 @@ class Patient:
                     break
         else:
             docto.patient = patients[0]
-            return docto.patient
-
-  Patient_Access = Patient()
-  Docto.newPatients = Patient_Access.newPatients(args, patients)
         
-
 
 class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
