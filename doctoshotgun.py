@@ -213,6 +213,33 @@ class MasterPatientPage(JsonPage):
 class CityNotFound(Exception):
     pass
 
+class Vaccine_Center:
+    
+    def _init_(self, Results: URL, center_Booking : URL):
+        self.BASEURL = ""
+        self.vaccine_motives = {}
+        self.centers = URL('')
+        self.center = URL('')
+        self.Results = Results
+        self.center_Booking = center_Booking
+    
+    def change_BASEURL(self, BASEURL: URL):
+        self.BASEURL = BASEURL
+    
+    def change_VaccineMotives(self, vaccine_motives: dict()):
+        self.vaccine_motives = vaccine_motives
+    
+    def changeCenters(self,centers: URL):
+        self.centers = centers
+
+    def changeCenter(self,center: URL):
+        self.center = center
+
+    def changeCenterResults(self,Results: URL):
+        self.Results = Results
+
+    def changeCenterBooking(self,center_Booking: URL):
+        self.center_Booking = center_Booking
 
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
@@ -220,6 +247,10 @@ class Doctolib(LoginBrowser):
     vaccine_motives = {}
     centers = URL('')
     center = URL('')
+    # The aggregate root of the newly defined Aggegate Vaccine_Center
+    vac_C = Vaccine_Center(URL(r'/search_results/(?P<id>\d+).json', CenterResultPage), URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage))
+    center_result = vac_C.Results
+    center_booking = vac_C.center_Booking
     # common properties
     login = URL('/login.json', LoginPage)
     send_auth_code = URL('/api/accounts/send_auth_code', SendAuthCodePage)
@@ -572,6 +603,7 @@ class DoctolibDE(Doctolib):
     }
     centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
     center = URL(r'/praxis/.*', CenterPage)
+    Vaccine_Center(URL(''), URL(''))
 
 
 class DoctolibFR(Doctolib):
@@ -599,6 +631,7 @@ class DoctolibFR(Doctolib):
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
+    Vaccine_Center(URL(''), URL(''))
 
 
 class Application:
