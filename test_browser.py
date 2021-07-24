@@ -8,7 +8,7 @@ import json
 import datetime
 from woob.browser.browsers import Browser
 from woob.browser.exceptions import ServerError
-from doctoshotgun import Center, DoctolibDE, DoctolibFR
+from doctoshotgun import Center, Vaccine
 
 # globals
 FIXTURES_FOLDER = "test_fixtures"
@@ -19,7 +19,7 @@ def test_find_centers_fr_returns_503_should_continue(tmp_path):
     """
     Check that find_centers doesn't raise a ServerError in case of 503 HTTP response
     """
-    docto = DoctolibFR("roger.phillibert@gmail.com",
+    docto = Vaccine.DoctolibFR("roger.phillibert@gmail.com",
                        "1234", responses_dirname=tmp_path)
     docto.BASEURL = "https://127.0.0.1"
 
@@ -39,7 +39,7 @@ def test_find_centers_de_returns_503_should_continue(tmp_path):
     """
     Check that find_centers doesn't raise a ServerError in case of 503 HTTP response
     """
-    docto = DoctolibDE("roger.phillibert@gmail.com",
+    docto = Vaccine.DoctolibDE("roger.phillibert@gmail.com",
                        "1234", responses_dirname=tmp_path)
     docto.BASEURL = "https://127.0.0.1"
 
@@ -59,7 +59,7 @@ def test_find_centers_de_returns_520_should_continue(tmp_path):
     """
     Check that find_centers doesn't raise a ServerError in case of 503 HTTP response
     """
-    docto = DoctolibDE("roger.phillibert@gmail.com",
+    docto = Vaccine.DoctolibDE("roger.phillibert@gmail.com",
                        "1234", responses_dirname=tmp_path)
     docto.BASEURL = "https://127.0.0.1"
 
@@ -79,7 +79,7 @@ def test_find_centers_fr_returns_502_should_fail(tmp_path):
     """
     Check that find_centers raises an error in case of non-whitelisted status code
     """
-    docto = DoctolibFR("roger.phillibert@gmail.com",
+    docto = Vaccine.DoctolibFR("roger.phillibert@gmail.com",
                        "1234", responses_dirname=tmp_path)
     docto.BASEURL = "https://127.0.0.1"
 
@@ -100,7 +100,7 @@ def test_find_centers_de_returns_502_should_fail(tmp_path):
     """
     Check that find_centers raises an error in case of non-whitelisted status code
     """
-    docto = DoctolibDE("roger.phillibert@gmail.com",
+    docto = Vaccine.DoctolibDE("roger.phillibert@gmail.com",
                        "1234", responses_dirname=tmp_path)
     docto.BASEURL = "https://127.0.0.1"
 
@@ -412,7 +412,7 @@ def test_book_slots_should_succeed(tmp_path):
     """
     Check that try_to_book calls all services successfully
     """
-    docto = DoctolibDE("roger.phillibert@gmail.com",
+    docto = Vaccine.DoctolibDE("roger.phillibert@gmail.com",
                        "1234", responses_dirname=tmp_path)
     docto.BASEURL = "https://127.0.0.1"
     docto.patient = {
