@@ -132,6 +132,9 @@ class CenterPage(HTMLPage):
     pass
 
 
+# Second Implementation of Aggregate Domain Pattern
+# This class will contain all the necessary information/functions to
+#   start a session/booking of an appointment
 class CenterBookingPage(JsonPage):
     def find_motive(self, regex, singleShot=False):
         for s in self.doc['data']['visit_motives']:
@@ -170,6 +173,43 @@ class CenterBookingPage(JsonPage):
 
     def get_profile_id(self):
         return self.doc['data']['profile']['id']
+
+    # AppointmentEditPage
+    def get_custom_fields(self):
+        for field in self.doc['appointment']['custom_fields']:
+            if field['required']:
+                yield field
+
+    # Get patient for appointment (MasterPatientPage)
+    def get_patients(self):
+        return self.doc
+
+    def get_name(self):
+        return '%s %s' % (self.doc[0]['first_name'], self.doc[0]['last_name'])
+
+    def get_patient(self, args, docto):
+        patients = docto.get_patients()
+        if len(patients) == 0:
+            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
+            return 1
+        if args.patient >= 0 and args.patient < len(patients):
+            docto.patient = patients[args.patient]
+        elif len(patients) > 1:
+            print('Available patients are:')
+            for i, patient in enumerate(patients):
+                print('* [%s] %s %s' %
+                      (i, patient['first_name'], patient['last_name']))
+            while True:
+                print('For which patient do you want to book a slot?',
+                      end=' ', flush=True)
+                try:
+                    docto.patient = patients[int(sys.stdin.readline().strip())]
+                except (ValueError, IndexError):
+                    continue
+                else:
+                    break
+        else:
+            docto.patient = patients[0]
 
 
 class AvailabilitiesPage(JsonPage):
@@ -297,43 +337,8 @@ class AvailableSlot:
         
 
 # Second aggregate class
-class BookAppointment(JsonPage):
-    # AppointmentEditPage
-    def get_custom_fields(self):
-        for field in self.doc['appointment']['custom_fields']:
-            if field['required']:
-                yield field
-
-    # Get patient for appointment (MasterPatientPage)
-    def get_patients(self):
-        return self.doc
-
-    def get_name(self):
-        return '%s %s' % (self.doc[0]['first_name'], self.doc[0]['last_name'])
-
-    def get_patient(self, args, docto):
-        patients = docto.get_patients()
-        if len(patients) == 0:
-            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
-            return 1
-        if args.patient >= 0 and args.patient < len(patients):
-            docto.patient = patients[args.patient]
-        elif len(patients) > 1:
-            print('Available patients are:')
-            for i, patient in enumerate(patients):
-                print('* [%s] %s %s' %
-                      (i, patient['first_name'], patient['last_name']))
-            while True:
-                print('For which patient do you want to book a slot?',
-                      end=' ', flush=True)
-                try:
-                    docto.patient = patients[int(sys.stdin.readline().strip())]
-                except (ValueError, IndexError):
-                    continue
-                else:
-                    break
-        else:
-            docto.patient = patients[0]
+# class BookAppointment(JsonPage): - change every call to BookAppointment to CenterBookingPage
+     
 
 class AppointmentPostPage(JsonPage):
     pass
@@ -360,10 +365,10 @@ class Doctolib(LoginBrowser):
         r'/second_shot_availabilities.json', AvailabilitiesPage)
     appointment = URL(r'/appointments.json', AppointmentPage)
     appointment_edit = URL(
-        r'/appointments/(?P<id>.+)/edit.json', BookAppointment)
+        r'/appointments/(?P<id>.+)/edit.json', CenterBookingPage)
     appointment_post = URL(
         r'/appointments/(?P<id>.+).json', AppointmentPostPage)
-    master_patient = URL(r'/account/master_patients.json', BookAppointment)
+    master_patient = URL(r'/account/master_patients.json', CenterBookingPage)
 
     def _setup_session(self, profile):
         session = Session()
@@ -816,7 +821,7 @@ class Application:
             return 1
 
         # call on aggregate class to get the patient for the appointment
-        docto.patient = BookAppointment().get_patient(args, docto)
+        docto.patient = CenterBookingPage().get_patient(args, docto)
 
         motives = []
         if not args.pfizer and not args.moderna and not args.janssen and not args.astrazeneca:
