@@ -612,10 +612,8 @@ class Patient:
             docto.patient = patients[0]
             return docto.patient
 
-
-
- Patient_Access = Patient()
- Docto.getpatient = Patient_Access.getpatient(args, patients)
+  Patient_Access = Patient()
+  Docto.newPatients = Patient_Access.newPatients(args, patients)
         
 
 
