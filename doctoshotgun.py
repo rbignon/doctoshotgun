@@ -303,45 +303,6 @@ class Doctolib(LoginBrowser):
         if (Login.do_login(self, code)):
             return 1
 
-    def do_login(self, code):
-        try:
-            self.open(self.BASEURL + '/sessions/new')
-        except ServerError as e:
-            if e.response.status_code in [503] \
-                and 'text/html' in e.response.headers['Content-Type'] \
-                    and ('cloudflare' in e.response.text or 'Checking your browser before accessing' in e .response.text):
-                log('Request blocked by CloudFlare', color='red')
-            if e.response.status_code in [520]:
-                log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
-            raise
-        try:
-            self.login.go(json={'kind': 'patient',
-                                'username': self.username,
-                                'password': self.password,
-                                'remember': True,
-                                'remember_username': True})
-        except ClientError:
-            print('Wrong login/password')
-            return False
-
-        if self.page.redirect() == "/sessions/two-factor":
-            print("Requesting 2fa code...")
-            if not code:
-                if not sys.__stdin__.isatty():
-                    log("Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.", color='red')
-                    return False
-                self.send_auth_code.go(
-                    json={'two_factor_auth_method': 'email'}, method="POST")
-                code = input("Enter auth code: ")
-            try:
-                self.challenge.go(
-                    json={'auth_code': code, 'two_factor_auth_method': 'email'}, method="POST")
-            except HTTPNotFound:
-                print("Invalid auth code")
-                return False
-
-        return True
-
     def find_centers(self, where, motives=None, page=1):
         if motives is None:
             motives = self.vaccine_motives.keys()
