@@ -548,7 +548,7 @@ class Doctolib(LoginBrowser):
         return self.page.doc['confirmed']
 
 
-class DoctolibDE(Doctolib):
+class Doctolib(Doctolib):
     BASEURL = 'https://www.doctolib.de'
     KEY_PFIZER = '6768'
     KEY_PFIZER_SECOND = '6769'
@@ -573,9 +573,7 @@ class DoctolibDE(Doctolib):
     centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
     center = URL(r'/praxis/.*', CenterPage)
 
-
-class DoctolibFR(Doctolib):
-    BASEURL = 'https://www.doctolib.fr'
+     BASEURL = 'https://www.doctolib.fr'
     KEY_PFIZER = '6970'
     KEY_PFIZER_SECOND = '6971'
     KEY_PFIZER_THIRD = '8192'
@@ -601,6 +599,7 @@ class DoctolibFR(Doctolib):
     center = URL(r'/centre-de-sante/.*', CenterPage)
 
 
+
 class Application:
     @classmethod
     def create_default_logger(cls):
@@ -621,8 +620,8 @@ class Application:
         colorama.init()  # needed for windows
 
         doctolib_map = {
-            "fr": DoctolibFR,
-            "de": DoctolibDE
+            "fr": Doctolib,
+            "de": Doctolib
         }
 
         parser = argparse.ArgumentParser(
