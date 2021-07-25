@@ -193,7 +193,6 @@ class AppointmentMasterPage(JsonPage):
             if field['required']:
                 yield field
 
-
 class AppointmentPostPage(JsonPage):
     pass
 
