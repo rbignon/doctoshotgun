@@ -171,6 +171,19 @@ class CenterBookingPage(JsonPage):
     def get_profile_id(self):
         return self.doc['data']['profile']['id']
 
+class VaccineClinics:
+    def __init__(self, VaccineIDNumber: str, Clinic: str, VaccinesList[Stock]):
+        self.VaccineIDNumber = VaccineIDNumber
+        self.Clinic = Clinic
+        self.Vaccines = VaccinesList
+
+    def AdministerVaccine(self, Clinic: VaccineClinic):
+        try:
+            VaccineStock = next(Vaccine for Vaccine in sorted(self.Vaccines) if Vaccine.can_AdministerVaccine(VaccineClinic))
+            VaccineStock.AdministerVaccine(VaccineClinic)
+            return VaccineStock.reference
+        except StopIteration:
+            raise NotAvailable()
 
 class AvailabilitiesPage(JsonPage):
     def find_best_slot(self, start_date=None, end_date=None):
