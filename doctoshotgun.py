@@ -236,14 +236,13 @@ class Doctolib(LoginBrowser):
         r'/appointments/(?P<id>.+).json', AppointmentPostPage)
     master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
 
-    def _setup_session(self, profile):
-        session = Session()
-
-        session.hooks['response'].append(self.set_normalized_url)
-        if self.responses_dirname is not None:
-            session.hooks['response'].append(self.save_response)
-
+    def _setup_session(self, profile, session):
         self.session = session
+
+        self.session.hooks['response'].append(self.set_normalized_url)
+        if self.responses_dirname is not None:
+            self.session.hooks['response'].append(self.save_response)
+            
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -619,7 +618,8 @@ class Application:
 
     def main(self, cli_args=None):
         colorama.init()  # needed for windows
-
+        session = Session()
+        
         doctolib_map = {
             "fr": DoctolibFR,
             "de": DoctolibDE
@@ -680,9 +680,9 @@ class Application:
 
         if not args.password:
             args.password = getpass.getpass()
-
-        docto = doctolib_map[args.country](
-            args.username, args.password, responses_dirname=responses_dirname)
+        docto = doctolib_map[args.country](profile, session)
+        
+        docto = docto(args.username, args.password, responses_dirname=responses_dirname)
         if not docto.do_login(args.code):
             return 1
 
