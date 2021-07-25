@@ -50,7 +50,7 @@ def log(text, *args, **kwargs):
     if 'color' in kwargs:
         text = colored(text, kwargs.pop('color'))
     text = text % tuple(args)
-    print(text, **kwargs2)
+    print(text, **kwargs)
 
 
 def log_ts(text=None, *args, **kwargs):
