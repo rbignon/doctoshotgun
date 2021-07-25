@@ -157,19 +157,20 @@ class CenterBookingPage(JsonPage):
 
     def get_practice(self):
         return self.doc['data']['places'][0]['practice_ids'][0]
+    
+class ID():
+        def get_agenda_ids(self, motive_id, practice_id=None):
+            agenda_ids = []
+            for a in self.doc['data']['agendas']:
+                if motive_id in a['visit_motive_ids'] and \
+                not a['booking_disabled'] and \
+                (not practice_id or a['practice_id'] == practice_id):
+                    agenda_ids.append(str(a['id']))
 
-    def get_agenda_ids(self, motive_id, practice_id=None):
-        agenda_ids = []
-        for a in self.doc['data']['agendas']:
-            if motive_id in a['visit_motive_ids'] and \
-               not a['booking_disabled'] and \
-               (not practice_id or a['practice_id'] == practice_id):
-                agenda_ids.append(str(a['id']))
-
-        return agenda_ids
-
-    def get_profile_id(self):
-        return self.doc['data']['profile']['id']
+            return agenda_ids
+        
+        def get_profile_id(self):
+            return self.doc['data']['profile']['id']
 
 
 class AvailabilitiesPage(JsonPage):
