@@ -599,6 +599,63 @@ class DoctolibFR(Doctolib):
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
+# appointment class
+# within the aggregate border
+# just has information an appointment has like patients name etc
+
+
+class Appointment:
+    def __init__(self):
+        self.patient = None
+        self.vaccine_center = None
+        self.date = None
+
+
+# patient class
+# within aggregate border
+# Can only have access border
+class Patient:
+    def __init__(self, n):
+        self.name = n
+        self.country = None
+        self.city = None
+        self.vaccine_preferrence = None
+
+
+# Account class is the aggregate root
+# Cannot modify the patient and appointment class without a reference to the account class
+# keeps track of all patients and appointments in the account
+class Account:
+    def __init__(self):
+        self.patient_list = []
+        self.appointment_list = []
+
+    def add_patient(self, name):
+        p = Patient.__init__(name)
+        self.patient_list.append(p)
+
+    def remove_patient(self, p):
+        self.patient_list.remove(self, p)
+
+    def get_patient(self):
+        return self.patient_list
+
+    def get_appointment_list(self):
+        return self.appointment_list
+
+    def change_country(self, p, c):
+        self.patient_list.__getitem__(p).country = c
+
+    def change_city(self, p, c):
+        self.patient_list.__getitem__(p).city = c
+
+    def change_appointment(self, a,p, vc, d):
+        self.appointment_list.__getitem__(self, a).patient = p
+        self.appointment_list.__getitem__(self, a).vaccine_center = vc
+        self.appointment_list.__getitem__(self, a).date = d
+
+    def add_appointment(self, a):
+        self.appointment_list.append(a)
 
 
 class Application:
