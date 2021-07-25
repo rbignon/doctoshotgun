@@ -348,6 +348,7 @@ class Doctolib(LoginBrowser):
         normalized = re.sub(r'\W', '-', normalized)
         return normalized.lower()
 
+class Bookings:
     def try_to_book(self, center, vaccine_list, start_date, end_date, only_second, only_third, dry_run=False):
         self.open(center['url'])
         p = urlparse(center['url'])
