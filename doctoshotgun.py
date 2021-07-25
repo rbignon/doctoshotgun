@@ -131,10 +131,10 @@ class CenterResultPage(JsonPage):
 class CenterPage(HTMLPage):
     pass
 
-
-class CenterBookingPage(JsonPage):
-    def find_motive(self, regex, singleShot=False):
-        for s in self.doc['data']['visit_motives']:
+class Motive():
+    @classmethod
+    def find_motive(cls, doc, regex, singleShot):
+        for s in doc['data']['visit_motives']:
             # ignore case as some doctors use their own spelling
             if re.search(regex, s['name'], re.IGNORECASE):
                 if s['allow_new_patients'] == False:
@@ -148,6 +148,10 @@ class CenterBookingPage(JsonPage):
                 return s['id']
 
         return None
+
+class CenterBookingPage(JsonPage):
+    def find_motive(self, regex, singleShot=False):
+        return FindMotives.find_motive(self.doc, regex, singleShot)
 
     def get_motives(self):
         return [s['name'] for s in self.doc['data']['visit_motives']]
