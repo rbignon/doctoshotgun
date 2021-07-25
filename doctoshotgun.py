@@ -182,7 +182,6 @@ class AppointmentMasterPage(JsonPage):
                 continue
             return a['slots'][-1]
 
-
     def get_error(self):
         return self.doc['error']
 
