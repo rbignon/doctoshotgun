@@ -107,7 +107,7 @@ class CentersPage(HTMLPage):
             # JavaScript:
             # var t = (e = r()(e)).data("u")
             #     , n = atob(t.replace(/\s/g, '').split('').reverse().join(''));
-            
+
             import base64
             href = base64.urlsafe_b64decode(''.join(span.attrib['data-u'].split())[::-1]).decode()
             query = dict(parse.parse_qsl(parse.urlsplit(href).query))
@@ -121,7 +121,7 @@ class CentersPage(HTMLPage):
 
             if 'page' in query:
                 return int(query['page'])
-        
+
         return None
 
 class CenterResultPage(JsonPage):
@@ -213,6 +213,208 @@ class MasterPatientPage(JsonPage):
 class CityNotFound(Exception):
     pass
 
+class TryToBook():
+
+    @classmethod
+    def try_to_book(cls, doctolib, center, vaccine_list, start_date, end_date, only_second, only_third, dry_run=False):
+        doctolib.open(center['url'])
+        p = urlparse(center['url'])
+        center_id = p.path.split('/')[-1]
+
+        center_page = doctolib.center_booking.go(center_id=center_id)
+        profile_id = doctolib.page.get_profile_id()
+        # extract motive ids based on the vaccine names
+        motives_id = dict()
+        for vaccine in vaccine_list:
+            motives_id[vaccine] = doctolib.page.find_motive(
+                r'.*({})'.format(vaccine), singleShot=(vaccine == doctolib.vaccine_motives[doctolib.KEY_JANSSEN] or only_second or only_third))
+
+        motives_id = dict((k, v)
+                          for k, v in motives_id.items() if v is not None)
+        if len(motives_id.values()) == 0:
+            log('Unable to find requested vaccines in motives')
+            log('Motives: %s', ', '.join(doctolib.page.get_motives()))
+            return False
+
+        for place in doctolib.page.get_places():
+            if place['name']:
+                log('– %s...', place['name'])
+            practice_id = place['practice_ids'][0]
+            for vac_name, motive_id in motives_id.items():
+                log('  Vaccine %s...', vac_name, end=' ', flush=True)
+                agenda_ids = center_page.get_agenda_ids(motive_id, practice_id)
+                if len(agenda_ids) == 0:
+                    # do not filter to give a chance
+                    agenda_ids = center_page.get_agenda_ids(motive_id)
+
+                if cls.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, vac_name.lower(), start_date, end_date, only_second, only_third, dry_run):
+                    return True
+
+        return False
+
+    @classmethod
+    def try_to_book_place(cls, doctolib, profile_id, motive_id, practice_id, agenda_ids, vac_name, start_date, end_date, only_second, only_third, dry_run=False):
+        date = start_date.strftime('%Y-%m-%d')
+        while date is not None:
+            doctolib.availabilities.go(
+                params={'start_date': date,
+                        'visit_motive_ids': motive_id,
+                        'agenda_ids': '-'.join(agenda_ids),
+                        'insurance_sector': 'public',
+                        'practice_ids': practice_id,
+                        'destroy_temporary': 'true',
+                        'limit': 3})
+            if 'next_slot' in doctolib.page.doc:
+                date = doctolib.page.doc['next_slot']
+            else:
+                date = None
+
+        if len(doctolib.page.doc['availabilities']) == 0:
+            log('no availabilities', color='red')
+            return False
+
+        slot = doctolib.page.find_best_slot(start_date, end_date)
+        if not slot:
+            if only_second == False and only_third == False:
+                log('First slot not found :(', color='red')
+            else:
+                log('Slot not found :(', color='red')
+            return False
+
+        # depending on the country, the slot is returned in a different format. Go figure...
+        if isinstance(slot, dict) and 'start_date' in slot:
+            slot_date_first = slot['start_date']
+            if vac_name != "janssen":
+                slot_date_second = slot['steps'][1]['start_date']
+        elif isinstance(slot, str):
+            if vac_name != "janssen" and not only_second and not only_third:
+                log('Only one slot for multi-shot vaccination found')
+            # should be for Janssen, second or third shots only, otherwise it is a list
+            slot_date_first = slot
+        elif isinstance(slot, list):
+            slot_date_first = slot[0]
+            if vac_name != "janssen":  # maybe redundant?
+                slot_date_second = slot[1]
+        else:
+            log('Error while fetching first slot.', color='red')
+            return False
+        if vac_name != "janssen" and not only_second and not only_third:
+            assert slot_date_second
+        log('found!', color='green')
+        log('  ├╴ Best slot found: %s', parse_date(
+            slot_date_first).strftime('%c'))
+
+        appointment = {'profile_id':    profile_id,
+                       'source_action': 'profile',
+                       'start_date':    slot_date_first,
+                       'visit_motive_ids': str(motive_id),
+                       }
+
+        data = {'agenda_ids': '-'.join(agenda_ids),
+                'appointment': appointment,
+                'practice_ids': [practice_id]}
+
+        headers = {
+            'content-type': 'application/json',
+        }
+        doctolib.appointment.go(data=json.dumps(data), headers=headers)
+
+        if doctolib.page.is_error():
+            log('  └╴ Appointment not available anymore :( %s', doctolib.page.get_error())
+            return False
+
+        playsound('ding.mp3')
+
+        if vac_name != "janssen" and not only_second and not only_third:  # janssen has only one shot
+            doctolib.second_shot_availabilities.go(
+                params={'start_date': slot_date_second.split('T')[0],
+                        'visit_motive_ids': motive_id,
+                        'agenda_ids': '-'.join(agenda_ids),
+                        'first_slot': slot_date_first,
+                        'insurance_sector': 'public',
+                        'practice_ids': practice_id,
+                        'limit': 3})
+
+            second_slot = doctolib.page.find_best_slot()
+            if not second_slot:
+                log('  └╴ No second shot found')
+                return False
+
+            # in theory we could use the stored slot_date_second result from above,
+            # but we refresh with the new results to play safe
+            if isinstance(second_slot, dict) and 'start_date' in second_slot:
+                slot_date_second = second_slot['start_date']
+            elif isinstance(slot, str):
+                slot_date_second = second_slot
+            # TODO: is this else needed?
+            # elif isinstance(slot, list):
+            #    slot_date_second = second_slot[1]
+            else:
+                log('Error while fetching second slot.', color='red')
+                return False
+
+            log('  ├╴ Second shot: %s', parse_date(
+                slot_date_second).strftime('%c'))
+
+            data['second_slot'] = slot_date_second
+            doctolib.appointment.go(data=json.dumps(data), headers=headers)
+
+            if doctolib.page.is_error():
+                log('  └╴ Appointment not available anymore :( %s',
+                    doctolib.page.get_error())
+                return False
+
+        a_id = doctolib.page.doc['id']
+
+        doctolib.appointment_edit.go(id=a_id)
+
+        log('  ├╴ Booking for %(first_name)s %(last_name)s...' % doctolib.patient)
+
+        doctolib.appointment_edit.go(
+            id=a_id, params={'master_patient_id': doctolib.patient['id']})
+
+        custom_fields = {}
+        for field in doctolib.page.get_custom_fields():
+            if field['id'] == 'cov19':
+                value = 'Non'
+            elif field['placeholder']:
+                value = field['placeholder']
+            else:
+                print('%s (%s):' %
+                      (field['label'], field['placeholder']), end=' ', flush=True)
+                value = sys.stdin.readline().strip()
+
+            custom_fields[field['id']] = value
+
+        if dry_run:
+            log('  └╴ Booking status: %s', 'fake')
+            return True
+
+        data = {'appointment': {'custom_fields_values': custom_fields,
+                                'new_patient': True,
+                                'qualification_answers': {},
+                                'referrer_id': None,
+                                },
+                'bypass_mandatory_relative_contact_info': False,
+                'email': None,
+                'master_patient': doctolib.patient,
+                'new_patient': True,
+                'patient': None,
+                'phone_number': None,
+                }
+
+        doctolib.appointment_post.go(id=a_id, data=json.dumps(
+            data), headers=headers, method='PUT')
+
+        if 'redirection' in doctolib.page.doc and not 'confirmed-appointment' in doctolib.page.doc['redirection']:
+            log('  ├╴ Open %s to complete', doctolib.BASEURL +
+                doctolib.page.doc['redirection'])
+
+        doctolib.appointment_post.go(id=a_id)
+
+        log('  └╴ Booking status: %s', doctolib.page.doc['confirmed'])
+
+        return doctolib.page.doc['confirmed']
 
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
@@ -349,203 +551,9 @@ class Doctolib(LoginBrowser):
         return normalized.lower()
 
     def try_to_book(self, center, vaccine_list, start_date, end_date, only_second, only_third, dry_run=False):
-        self.open(center['url'])
-        p = urlparse(center['url'])
-        center_id = p.path.split('/')[-1]
+        return TryToBook.try_to_book(self, center, vaccine_list, start_date, end_date, only_second, only_third, dry_run=False)
 
-        center_page = self.center_booking.go(center_id=center_id)
-        profile_id = self.page.get_profile_id()
-        # extract motive ids based on the vaccine names
-        motives_id = dict()
-        for vaccine in vaccine_list:
-            motives_id[vaccine] = self.page.find_motive(
-                r'.*({})'.format(vaccine), singleShot=(vaccine == self.vaccine_motives[self.KEY_JANSSEN] or only_second or only_third))
 
-        motives_id = dict((k, v)
-                          for k, v in motives_id.items() if v is not None)
-        if len(motives_id.values()) == 0:
-            log('Unable to find requested vaccines in motives')
-            log('Motives: %s', ', '.join(self.page.get_motives()))
-            return False
-
-        for place in self.page.get_places():
-            if place['name']:
-                log('– %s...', place['name'])
-            practice_id = place['practice_ids'][0]
-            for vac_name, motive_id in motives_id.items():
-                log('  Vaccine %s...', vac_name, end=' ', flush=True)
-                agenda_ids = center_page.get_agenda_ids(motive_id, practice_id)
-                if len(agenda_ids) == 0:
-                    # do not filter to give a chance
-                    agenda_ids = center_page.get_agenda_ids(motive_id)
-
-                if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, vac_name.lower(), start_date, end_date, only_second, only_third, dry_run):
-                    return True
-
-        return False
-
-    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, vac_name, start_date, end_date, only_second, only_third, dry_run=False):
-        date = start_date.strftime('%Y-%m-%d')
-        while date is not None:
-            self.availabilities.go(
-                params={'start_date': date,
-                        'visit_motive_ids': motive_id,
-                        'agenda_ids': '-'.join(agenda_ids),
-                        'insurance_sector': 'public',
-                        'practice_ids': practice_id,
-                        'destroy_temporary': 'true',
-                        'limit': 3})
-            if 'next_slot' in self.page.doc:
-                date = self.page.doc['next_slot']
-            else:
-                date = None
-
-        if len(self.page.doc['availabilities']) == 0:
-            log('no availabilities', color='red')
-            return False
-
-        slot = self.page.find_best_slot(start_date, end_date)
-        if not slot:
-            if only_second == False and only_third == False:
-                log('First slot not found :(', color='red')
-            else:
-                log('Slot not found :(', color='red')
-            return False
-
-        # depending on the country, the slot is returned in a different format. Go figure...
-        if isinstance(slot, dict) and 'start_date' in slot:
-            slot_date_first = slot['start_date']
-            if vac_name != "janssen":
-                slot_date_second = slot['steps'][1]['start_date']
-        elif isinstance(slot, str):
-            if vac_name != "janssen" and not only_second and not only_third:
-                log('Only one slot for multi-shot vaccination found')
-            # should be for Janssen, second or third shots only, otherwise it is a list
-            slot_date_first = slot
-        elif isinstance(slot, list):
-            slot_date_first = slot[0]
-            if vac_name != "janssen":  # maybe redundant?
-                slot_date_second = slot[1]
-        else:
-            log('Error while fetching first slot.', color='red')
-            return False
-        if vac_name != "janssen" and not only_second and not only_third:
-            assert slot_date_second
-        log('found!', color='green')
-        log('  ├╴ Best slot found: %s', parse_date(
-            slot_date_first).strftime('%c'))
-
-        appointment = {'profile_id':    profile_id,
-                       'source_action': 'profile',
-                       'start_date':    slot_date_first,
-                       'visit_motive_ids': str(motive_id),
-                       }
-
-        data = {'agenda_ids': '-'.join(agenda_ids),
-                'appointment': appointment,
-                'practice_ids': [practice_id]}
-
-        headers = {
-            'content-type': 'application/json',
-        }
-        self.appointment.go(data=json.dumps(data), headers=headers)
-
-        if self.page.is_error():
-            log('  └╴ Appointment not available anymore :( %s', self.page.get_error())
-            return False
-
-        playsound('ding.mp3')
-
-        if vac_name != "janssen" and not only_second and not only_third:  # janssen has only one shot
-            self.second_shot_availabilities.go(
-                params={'start_date': slot_date_second.split('T')[0],
-                        'visit_motive_ids': motive_id,
-                        'agenda_ids': '-'.join(agenda_ids),
-                        'first_slot': slot_date_first,
-                        'insurance_sector': 'public',
-                        'practice_ids': practice_id,
-                        'limit': 3})
-
-            second_slot = self.page.find_best_slot()
-            if not second_slot:
-                log('  └╴ No second shot found')
-                return False
-
-            # in theory we could use the stored slot_date_second result from above,
-            # but we refresh with the new results to play safe
-            if isinstance(second_slot, dict) and 'start_date' in second_slot:
-                slot_date_second = second_slot['start_date']
-            elif isinstance(slot, str):
-                slot_date_second = second_slot
-            # TODO: is this else needed?
-            # elif isinstance(slot, list):
-            #    slot_date_second = second_slot[1]
-            else:
-                log('Error while fetching second slot.', color='red')
-                return False
-
-            log('  ├╴ Second shot: %s', parse_date(
-                slot_date_second).strftime('%c'))
-
-            data['second_slot'] = slot_date_second
-            self.appointment.go(data=json.dumps(data), headers=headers)
-
-            if self.page.is_error():
-                log('  └╴ Appointment not available anymore :( %s',
-                    self.page.get_error())
-                return False
-
-        a_id = self.page.doc['id']
-
-        self.appointment_edit.go(id=a_id)
-
-        log('  ├╴ Booking for %(first_name)s %(last_name)s...' % self.patient)
-
-        self.appointment_edit.go(
-            id=a_id, params={'master_patient_id': self.patient['id']})
-
-        custom_fields = {}
-        for field in self.page.get_custom_fields():
-            if field['id'] == 'cov19':
-                value = 'Non'
-            elif field['placeholder']:
-                value = field['placeholder']
-            else:
-                print('%s (%s):' %
-                      (field['label'], field['placeholder']), end=' ', flush=True)
-                value = sys.stdin.readline().strip()
-
-            custom_fields[field['id']] = value
-
-        if dry_run:
-            log('  └╴ Booking status: %s', 'fake')
-            return True
-
-        data = {'appointment': {'custom_fields_values': custom_fields,
-                                'new_patient': True,
-                                'qualification_answers': {},
-                                'referrer_id': None,
-                                },
-                'bypass_mandatory_relative_contact_info': False,
-                'email': None,
-                'master_patient': self.patient,
-                'new_patient': True,
-                'patient': None,
-                'phone_number': None,
-                }
-
-        self.appointment_post.go(id=a_id, data=json.dumps(
-            data), headers=headers, method='PUT')
-
-        if 'redirection' in self.page.doc and not 'confirmed-appointment' in self.page.doc['redirection']:
-            log('  ├╴ Open %s to complete', self.BASEURL +
-                self.page.doc['redirection'])
-
-        self.appointment_post.go(id=a_id)
-
-        log('  └╴ Booking status: %s', self.page.doc['confirmed'])
-
-        return self.page.doc['confirmed']
 
 
 class DoctolibDE(Doctolib):
