@@ -124,6 +124,7 @@ class CentersPage(HTMLPage):
         
         return None
 
+
 class CenterResultPage(JsonPage):
     pass
 
@@ -132,44 +133,6 @@ class CenterPage(HTMLPage):
     pass
 
 
-class CenterBookingPage(JsonPage):
-    def find_motive(self, regex, singleShot=False):
-        for s in self.doc['data']['visit_motives']:
-            # ignore case as some doctors use their own spelling
-            if re.search(regex, s['name'], re.IGNORECASE):
-                if s['allow_new_patients'] == False:
-                    log('Motive %s not allowed for new patients at this center. Skipping vaccine...',
-                        s['name'], flush=True)
-                    continue
-                if not singleShot and not s['first_shot_motive']:
-                    log('Skipping second shot motive %s...',
-                        s['name'], flush=True)
-                    continue
-                return s['id']
-
-        return None
-
-    def get_motives(self):
-        return [s['name'] for s in self.doc['data']['visit_motives']]
-
-    def get_places(self):
-        return self.doc['data']['places']
-
-    def get_practice(self):
-        return self.doc['data']['places'][0]['practice_ids'][0]
-
-    def get_agenda_ids(self, motive_id, practice_id=None):
-        agenda_ids = []
-        for a in self.doc['data']['agendas']:
-            if motive_id in a['visit_motive_ids'] and \
-               not a['booking_disabled'] and \
-               (not practice_id or a['practice_id'] == practice_id):
-                agenda_ids.append(str(a['id']))
-
-        return agenda_ids
-
-    def get_profile_id(self):
-        return self.doc['data']['profile']['id']
 
 
 class AvailabilitiesPage(JsonPage):
@@ -293,52 +256,6 @@ class Doctolib(LoginBrowser):
 
         return True
 
-    def find_centers(self, where, motives=None, page=1):
-        if motives is None:
-            motives = self.vaccine_motives.keys()
-        for city in where:
-            try:
-                self.centers.go(where=city, params={
-                                'ref_visit_motive_ids[]': motives, 'page': page})
-            except ServerError as e:
-                if e.response.status_code in [503]:
-                    if 'text/html' in e.response.headers['Content-Type'] \
-                        and ('cloudflare' in e.response.text or
-                             'Checking your browser before accessing' in e .response.text):
-                        log('Request blocked by CloudFlare', color='red')
-                    return
-                if e.response.status_code in [520]:
-                    log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
-                    return
-                raise
-            except HTTPNotFound as e:
-                raise CityNotFound(city) from e
-
-            next_page = self.page.get_next_page()
-
-            for i in self.page.iter_centers_ids():
-                page = self.center_result.open(
-                    id=i,
-                    params={
-                        'limit': '4',
-                        'ref_visit_motive_ids[]': motives,
-                        'speciality_id': '5494',
-                        'search_result_format': 'json'
-                    }
-                )
-                try:
-                    yield page.doc['search_result']
-                except KeyError:
-                    pass
-
-            if next_page:
-                for center in self.find_centers(where, motives, next_page):
-                    yield center
-
-    def get_patients(self):
-        self.master_patient.go()
-
-        return self.page.get_patients()
 
     @classmethod
     def normalize(cls, string):
@@ -599,21 +516,13 @@ class DoctolibFR(Doctolib):
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
-# appointment class
-# within the aggregate border
-# just has information an appointment has like patients name etc
 
 
-class Appointment:
-    def __init__(self):
-        self.patient = None
-        self.vaccine_center = None
-        self.date = None
+class Vaccine:
+    def __init__(self, vtype):
+        self.vaccine_type = vtype
 
 
-# patient class
-# within aggregate border
-# Can only have access border
 class Patient:
     def __init__(self, n):
         self.name = n
@@ -621,14 +530,16 @@ class Patient:
         self.city = None
         self.vaccine_preferrence = None
 
+# aggregate root
+# moved all the vaccine center functionality here
+# Only way to access the class patient is through here
 
-# Account class is the aggregate root
-# Cannot modify the patient and appointment class without a reference to the account class
-# keeps track of all patients and appointments in the account
-class Account:
-    def __init__(self):
+
+class VaccineCenter:
+    def __init__(self, name, country):
+        self.name = name
+        self.country = country
         self.patient_list = []
-        self.appointment_list = []
 
     def add_patient(self, name):
         p = Patient.__init__(name)
@@ -637,25 +548,91 @@ class Account:
     def remove_patient(self, p):
         self.patient_list.remove(self, p)
 
-    def get_patient(self):
-        return self.patient_list
+    def find_centers(self, where, motives=None, page=1):
+        if motives is None:
+            motives = self.vaccine_motives.keys()
+        for city in where:
+            try:
+                self.centers.go(where=city, params={
+                                'ref_visit_motive_ids[]': motives, 'page': page})
+            except ServerError as e:
+                if e.response.status_code in [503]:
+                    if 'text/html' in e.response.headers['Content-Type'] \
+                        and ('cloudflare' in e.response.text or
+                             'Checking your browser before accessing' in e .response.text):
+                        log('Request blocked by CloudFlare', color='red')
+                    return
+                if e.response.status_code in [520]:
+                    log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
+                    return
+                raise
+            except HTTPNotFound as e:
+                raise CityNotFound(city) from e
 
-    def get_appointment_list(self):
-        return self.appointment_list
+            next_page = self.page.get_next_page()
 
-    def change_country(self, p, c):
-        self.patient_list.__getitem__(p).country = c
+            for i in self.page.iter_centers_ids():
+                page = self.center_result.open(
+                    id=i,
+                    params={
+                        'limit': '4',
+                        'ref_visit_motive_ids[]': motives,
+                        'speciality_id': '5494',
+                        'search_result_format': 'json'
+                    }
+                )
+                try:
+                    yield page.doc['search_result']
+                except KeyError:
+                    pass
 
-    def change_city(self, p, c):
-        self.patient_list.__getitem__(p).city = c
+            if next_page:
+                for center in self.find_centers(where, motives, next_page):
+                    yield center
 
-    def change_appointment(self, a,p, vc, d):
-        self.appointment_list.__getitem__(self, a).patient = p
-        self.appointment_list.__getitem__(self, a).vaccine_center = vc
-        self.appointment_list.__getitem__(self, a).date = d
+    def get_patients(self):
+        self.master_patient.go()
 
-    def add_appointment(self, a):
-        self.appointment_list.append(a)
+        return self.page.get_patients()
+
+    class CenterBookingPage(JsonPage):
+        def find_motive(self, regex, singleShot=False):
+            for s in self.doc['data']['visit_motives']:
+                # ignore case as some doctors use their own spelling
+                if re.search(regex, s['name'], re.IGNORECASE):
+                    if s['allow_new_patients'] == False:
+                        log('Motive %s not allowed for new patients at this center. Skipping vaccine...',
+                            s['name'], flush=True)
+                        continue
+                    if not singleShot and not s['first_shot_motive']:
+                        log('Skipping second shot motive %s...',
+                            s['name'], flush=True)
+                        continue
+                    return s['id']
+
+            return None
+
+        def get_motives(self):
+            return [s['name'] for s in self.doc['data']['visit_motives']]
+
+        def get_places(self):
+            return self.doc['data']['places']
+
+        def get_practice(self):
+            return self.doc['data']['places'][0]['practice_ids'][0]
+
+        def get_agenda_ids(self, motive_id, practice_id=None):
+            agenda_ids = []
+            for a in self.doc['data']['agendas']:
+                if motive_id in a['visit_motive_ids'] and \
+                        not a['booking_disabled'] and \
+                        (not practice_id or a['practice_id'] == practice_id):
+                    agenda_ids.append(str(a['id']))
+
+            return agenda_ids
+
+        def get_profile_id(self):
+            return self.doc['data']['profile']['id']
 
 
 class Application:
