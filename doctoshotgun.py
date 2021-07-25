@@ -217,7 +217,7 @@ class CityNotFound(Exception):
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
     BASEURL = ""
-    vaccine_motives = {}
+    vaccine_motives = Vaccine()
     centers = URL('')
     center = URL('')
     # common properties
@@ -295,7 +295,7 @@ class Doctolib(LoginBrowser):
 
     def find_centers(self, where, motives=None, page=1):
         if motives is None:
-            motives = self.vaccine_motives.keys()
+            motives = self.vaccine_motives.KeyID()
         for city in where:
             try:
                 self.centers.go(where=city, params={
@@ -359,7 +359,7 @@ class Doctolib(LoginBrowser):
         motives_id = dict()
         for vaccine in vaccine_list:
             motives_id[vaccine] = self.page.find_motive(
-                r'.*({})'.format(vaccine), singleShot=(vaccine == self.vaccine_motives[self.KEY_JANSSEN] or only_second or only_third))
+                r'.*({})'.format(vaccine), singleShot=(vaccine == self.vaccine_motives.Valuesofkey(self.KEY_JANSSEN) or only_second or only_third))
 
         motives_id = dict((k, v)
                           for k, v in motives_id.items() if v is not None)
@@ -561,17 +561,18 @@ class DoctolibCountries(Doctolib):
             KEY_JANSSEN = '7978'
             KEY_ASTRAZENECA = '7109'
             KEY_ASTRAZENECA_SECOND = '7110'
-            vaccine_motives = {
-            KEY_PFIZER: 'Pfizer',
-            KEY_PFIZER_SECOND: 'Zweit.*Pfizer|Pfizer.*Zweit',
-            KEY_PFIZER_THIRD: 'Dritt.*Pfizer|Pfizer.*Dritt',
-            KEY_MODERNA: 'Moderna',
-            KEY_MODERNA_SECOND: 'Zweit.*Moderna|Moderna.*Zweit',
-            KEY_MODERNA_THIRD: 'Dritt.*Moderna|Moderna.*Dritt',
-            KEY_JANSSEN: 'Janssen',
-            KEY_ASTRAZENECA: 'AstraZeneca',
-            KEY_ASTRAZENECA_SECOND: 'Zweit.*AstraZeneca|AstraZeneca.*Zweit',
-    }
+            vaccine_motives = Vaccine()
+        vaccine_motives.input(KEY_PFIZER, 'Pfizer')
+        vaccine_motives.input(KEY_PFIZER_SECOND, 'Zweit.*Pfizer|Pfizer.*Zweit')
+        vaccine_motives.input(KEY_PFIZER_THIRD, 'Dritt.*Pfizer|Pfizer.*Dritt')
+        vaccine_motives.input(KEY_MODERNA, 'Moderna')
+        vaccine_motives.input(KEY_MODERNA_SECOND, 'Zweit.*Moderna|Moderna.*Zweit')
+        vaccine_motives.input(KEY_MODERNA_THIRD, 'Dritt.*Moderna|Moderna.*Dritt')
+        vaccine_motives.input(KEY_JANSSEN, 'Janssen')
+        vaccine_motives.input(KEY_ASTRAZENECA, 'AstraZeneca')
+        vaccine_motives.input(KEY_ASTRAZENECA_SECOND, 'Zweit.*AstraZeneca|AstraZeneca.*Zweit')
+        centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
+        center = URL(r'/praxis/.*', CenterPage)
     centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
     center = URL(r'/praxis/.*', CenterPage)
     elif Countries == 'fr':
@@ -585,21 +586,33 @@ class DoctolibCountries(Doctolib):
         KEY_JANSSEN = '7945'
         KEY_ASTRAZENECA = '7107'
         KEY_ASTRAZENECA_SECOND = '7108'
-        vaccine_motives = {
-        KEY_PFIZER: 'Pfizer',
-        KEY_PFIZER_SECOND: '2de.*Pfizer',
-        KEY_PFIZER_THIRD: '3e.*Pfizer',
-        KEY_MODERNA: 'Moderna',
-        KEY_MODERNA_SECOND: '2de.*Moderna',
-        KEY_MODERNA_THIRD: '3e.*Moderna',
-        KEY_JANSSEN: 'Janssen',
-        KEY_ASTRAZENECA: 'AstraZeneca',
-        KEY_ASTRAZENECA_SECOND: '2de.*AstraZeneca',
-    }
+        vaccine_motives = VaccineID()
+        vaccine_motives.input(KEY_PFIZER, 'Pfizer')
+        vaccine_motives.input(KEY_PFIZER_SECOND, '2de.*Pfizer')
+        vaccine_motives.input(KEY_PFIZER_THIRD, '3e.*Pfizer')
+        vaccine_motives.input(KEY_MODERNA, 'Moderna')
+        vaccine_motives.input(KEY_MODERNA_SECOND, '2de.*Moderna')
+        vaccine_motives.input(KEY_MODERNA_THIRD, '3e.*Moderna')
+        vaccine_motives.input(KEY_JANSSEN, 'Janssen')
+        vaccine_motives.input(KEY_ASTRAZENECA, 'AstraZeneca')
+        vaccine_motives.input(KEY_ASTRAZENECA_SECOND, '2de.*AstraZeneca')
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
+    
+class Vaccine:
+    def __init__(self):
+        self.keys = []
+        self.values = {}
+        def input(self, key, value):
+            self.keys.append(key)
+            self.values[key] = value
 
+        def Valuesofkey(self, key):
+            return self.values[key]
+
+        def KeyID(self):
+            return self.value.keys()
 
 class Application:
     @classmethod
@@ -761,7 +774,7 @@ class Application:
             else:
                 motives.append(docto.KEY_ASTRAZENECA)
 
-        vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
+        vaccine_list = [docto.vaccine_motives.KeyID(motive) for motive in motives]
 
         if args.start_date:
             try:
