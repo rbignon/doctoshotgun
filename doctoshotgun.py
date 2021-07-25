@@ -61,6 +61,67 @@ def log_ts(text=None, *args, **kwargs):
         log(text, *args, **kwargs)
 
 
+class Patient(): #aggregate root function
+
+    def redirect(self):
+        return self.doc['redirection']
+    
+    def build_doc(self, content):
+        return ""  # Do not choke on empty response from server
+
+    def get_patients(self):
+        return self.doc
+
+    def get_name(self):
+        return '%s %s' % (self.doc[0]['first_name'], self.doc[0]['last_name'])
+
+    def do_login(self, code):
+        try:
+            self.open(self.BASEURL + '/sessions/new')
+        except ServerError as e:
+            if e.response.status_code in [503] \
+                and 'text/html' in e.response.headers['Content-Type'] \
+                    and ('cloudflare' in e.response.text or 'Checking your browser before accessing' in e .response.text):
+                log('Request blocked by CloudFlare', color='red')
+            if e.response.status_code in [520]:
+                log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
+            raise
+        try:
+            self.login.go(json={'kind': 'patient',
+                                'username': self.username,
+                                'password': self.password,
+                                'remember': True,
+                                'remember_username': True})
+        except ClientError:
+            print('Wrong login/password')
+            return False
+
+        if self.page.redirect() == "/sessions/two-factor":
+            print("Requesting 2fa code...")
+            if not code:
+                if not sys.__stdin__.isatty():
+                    log("Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.", color='red')
+                    return False
+                self.send_auth_code.go(
+                    json={'two_factor_auth_method': 'email'}, method="POST")
+                code = input("Enter auth code: ")
+            try:
+                self.challenge.go(
+                    json={'auth_code': code, 'two_factor_auth_method': 'email'}, method="POST")
+            except HTTPNotFound:
+                print("Invalid auth code")
+                return False
+
+        return True
+
+    def get_patients(self):
+        self.master_patient.go()
+
+        return self.page.get_patients()
+
+    
+
+PatientObject = Patient() # function object
 class Session(cloudscraper.CloudScraper):
     def send(self, *args, **kwargs):
         callback = kwargs.pop('callback', lambda future, response: response)
@@ -75,13 +136,12 @@ class Session(cloudscraper.CloudScraper):
 
 
 class LoginPage(JsonPage):
-    def redirect(self):
-        return self.doc['redirection']
+     Patient.redirect(PatientObject)
+        
 
 
 class SendAuthCodePage(JsonPage):
-    def build_doc(self, content):
-        return ""  # Do not choke on empty response from server
+    Patient.build_doc(PatientObject, PatientObject.content)
 
 
 class ChallengePage(JsonPage):
@@ -203,11 +263,10 @@ class AppointmentPostPage(JsonPage):
 
 
 class MasterPatientPage(JsonPage):
-    def get_patients(self):
-        return self.doc
+    Patient.get_patients(PatientObject)
 
-    def get_name(self):
-        return '%s %s' % (self.doc[0]['first_name'], self.doc[0]['last_name'])
+    Patient.get_name(PatientObject)
+    
 
 
 class CityNotFound(Exception):
@@ -254,45 +313,8 @@ class Doctolib(LoginBrowser):
 
         self.patient = None
 
-    def do_login(self, code):
-        try:
-            self.open(self.BASEURL + '/sessions/new')
-        except ServerError as e:
-            if e.response.status_code in [503] \
-                and 'text/html' in e.response.headers['Content-Type'] \
-                    and ('cloudflare' in e.response.text or 'Checking your browser before accessing' in e .response.text):
-                log('Request blocked by CloudFlare', color='red')
-            if e.response.status_code in [520]:
-                log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
-            raise
-        try:
-            self.login.go(json={'kind': 'patient',
-                                'username': self.username,
-                                'password': self.password,
-                                'remember': True,
-                                'remember_username': True})
-        except ClientError:
-            print('Wrong login/password')
-            return False
-
-        if self.page.redirect() == "/sessions/two-factor":
-            print("Requesting 2fa code...")
-            if not code:
-                if not sys.__stdin__.isatty():
-                    log("Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.", color='red')
-                    return False
-                self.send_auth_code.go(
-                    json={'two_factor_auth_method': 'email'}, method="POST")
-                code = input("Enter auth code: ")
-            try:
-                self.challenge.go(
-                    json={'auth_code': code, 'two_factor_auth_method': 'email'}, method="POST")
-            except HTTPNotFound:
-                print("Invalid auth code")
-                return False
-
-        return True
-
+    Patient.do_login(PatientObject, PatientObject.code)
+        
     def find_centers(self, where, motives=None, page=1):
         if motives is None:
             motives = self.vaccine_motives.keys()
@@ -335,10 +357,8 @@ class Doctolib(LoginBrowser):
                 for center in self.find_centers(where, motives, next_page):
                     yield center
 
-    def get_patients(self):
-        self.master_patient.go()
-
-        return self.page.get_patients()
+    Patient.get_patients(PatientObject)
+        
 
     @classmethod
     def normalize(cls, string):
