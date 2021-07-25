@@ -62,7 +62,35 @@ def log_ts(text=None, *args, **kwargs):
         log(text, *args, **kwargs)
 
 
-class Center():  # Aggregated root - combined class CenterBookingPage() and class CentersPage() into class Center()
+class Session(cloudscraper.CloudScraper):
+    def send(self, *args, **kwargs):
+        callback = kwargs.pop('callback', lambda future, response: response)
+        is_async = kwargs.pop('is_async', False)
+
+        if is_async:
+            raise ValueError('Async requests are not supported')
+
+        resp = super().send(*args, **kwargs)
+
+        return callback(self, resp)
+
+
+class LoginPage(JsonPage):
+    def redirect(self):
+        return self.doc['redirection']
+
+
+class SendAuthCodePage(JsonPage):
+    def build_doc(self, content):
+        return ""  # Do not choke on empty response from server
+
+
+class ChallengePage(JsonPage):
+    def build_doc(self, content):
+        return ""  # Do not choke on empty response from server
+
+
+class CentersPage(HTMLPage):
     def iter_centers_ids(self):
         for div in self.doc.xpath('//div[@class="js-dl-search-results-calendar"]'):
             data = json.loads(div.attrib['data-props'])
@@ -97,6 +125,16 @@ class Center():  # Aggregated root - combined class CenterBookingPage() and clas
 
         return None
 
+
+class CenterResultPage(JsonPage):
+    pass
+
+
+class CenterPage(HTMLPage):
+    pass
+
+
+class CenterBookingPage(JsonPage):
     def find_motive(self, regex, singleShot=False):
         for s in self.doc['data']['visit_motives']:
             # ignore case as some doctors use their own spelling
@@ -136,59 +174,6 @@ class Center():  # Aggregated root - combined class CenterBookingPage() and clas
         return self.doc['data']['profile']['id']
 
 
-CenterObject = Center()
-
-
-class Session(cloudscraper.CloudScraper):
-    def send(self, *args, **kwargs):
-        callback = kwargs.pop('callback', lambda future, response: response)
-        is_async = kwargs.pop('is_async', False)
-
-        if is_async:
-            raise ValueError('Async requests are not supported')
-
-        resp = super().send(*args, **kwargs)
-
-        return callback(self, resp)
-
-
-class LoginPage(JsonPage):
-    def redirect(self):
-        return self.doc['redirection']
-
-
-class SendAuthCodePage(JsonPage):
-    def build_doc(self, content):
-        return ""  # Do not choke on empty response from server
-
-
-class ChallengePage(JsonPage):
-    def build_doc(self, content):
-        return ""  # Do not choke on empty response from server
-
-
-class CentersPage(HTMLPage):
-    Center.iter_centers_ids(CenterObject)
-    Center.get_next_page(CenterObject)
-
-
-class CenterResultPage(JsonPage):
-    pass
-
-
-class CenterPage(HTMLPage):
-    pass
-
-
-class CenterBookingPage(JsonPage):
-    Center.find_motive(CenterObject, CenterObject.regex, singleShot=False)
-    Center.get_motives(CenterObject)
-    Center.get_places(CenterObject)
-    Center.get_practice(CenterObject)
-    Center.get_agenda_ids(CenterObject, CenterObject.motive_id, practice_id=None)
-    Center.get_profile_id(CenterObject)
-
-
 class AvailabilitiesPage(JsonPage):
     def find_best_slot(self, start_date=None, end_date=None):
         for a in self.doc['availabilities']:
@@ -200,19 +185,30 @@ class AvailabilitiesPage(JsonPage):
             return a['slots'][-1]
 
 
-class AppointmentPage(JsonPage):
+# Root aggregate class, formed by combining class AppointmentPage() and AppointmentEditpage().
+class Appointment(JsonPage):
     def get_error(self):
         return self.doc['error']
 
     def is_error(self):
         return 'error' in self.doc
 
-
-class AppointmentEditPage(JsonPage):
     def get_custom_fields(self):
         for field in self.doc['appointment']['custom_fields']:
             if field['required']:
                 yield field
+
+
+AppointmentObj = Appointment()  # Object for Appointment class for reference.
+
+
+class AppointmentPage(JsonPage):
+    Appointment.get_error(AppointmentObj)
+    Appointment.is_error(AppointmentObj)
+
+
+class AppointmentEditPage(JsonPage):
+    Appointment.get_custom_fields(AppointmentObj)
 
 
 class AppointmentPostPage(JsonPage):
