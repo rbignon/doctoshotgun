@@ -600,6 +600,50 @@ class DoctolibFR(Doctolib):
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
 
+class Appointment:
+    def __init__(self):
+        self.Patient = None
+        self.Vaccine_Clinic = None
+        self.Date = None
+
+class Patient:
+    def __init__(self, x):
+        self.Name = x
+        self.Country = None
+        self.City = None
+        self.Vaccine_Choice = None
+
+class PatientAccounts:
+    def __init__(self):
+        self.List_of_Patients = []
+        self.List_of_Appointments = []
+
+    def Add_A_Patient(self, PatientName):
+        y = Patient.__init__(PatientName)
+        self.Patient_List.Append(y)
+
+    def Remove_A_Patient(self, y):
+        self.Patient_List.Remove(self, y)
+
+    def Access_A_Patient(self):
+        return self.Patient_List
+
+    def Access_Appointment_List(self):
+        return self.Appointment_List
+
+    def Change_Patient_Country(self, y, z):
+        self.Patient_List__GetInfo__(y).Country = z
+
+    def Change_Patient_City(self, y, z):
+        self.Patient_List__GetInfo__(y).City = z
+
+    def Change_Patient_Appointment(self, f,y, xy, p):
+        self.Appointment_List__GetInfo__(self, f).Patient = y
+        self.Appointment_List__GetInfo__(self, f).Vaccine_Clinic = xy
+        self.appointment_list__GetInfo__(self, f).Date = p
+
+    def Add_Patient_Appointment(self, f):
+        self.Appointment_List.Append(f)
 
 class Application:
     @classmethod
