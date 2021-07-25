@@ -237,8 +237,8 @@ class Doctolib(LoginBrowser):
         r'/appointments/(?P<id>.+).json', AppointmentPostPage)
     master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
 
-    centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
-    center = URL(r'/centre-de-sante/.*', CenterPage)
+    # centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
+    # center = URL(r'/centre-de-sante/.*', CenterPage)
 
     def _setup_session(self, profile):
         session = Session()
@@ -560,20 +560,28 @@ class Doctolib(LoginBrowser):
         return self.page.doc['confirmed']
 
 
-    def main(self):
+class Booking():
+    def book_appointment(self):
+
+        # self.docto = doctolib_map[args.country](
+        # args.username, args.password, responses_dirname=responses_dirname)
+
+        
+        # print(a_args.username)
+        # print(a_args.code)
 
         if a_args.country == 'fr':
             self.BASEURL = 'https://www.doctolib.fr'
-            docto = DoctolibFR()
+            docto = DoctolibFR(a_args.username, a_args.password)
 
         elif a_args.country == 'de':
-            docto = DoctolibDE()
+            docto = DoctolibDE(a_args.username, a_args.password)
             self.BASEURL = 'https://www.doctolib.de'
 
-        if not self.do_login(a_args.code):
+        if not docto.do_login(a_args.code):
             return 1
 
-        patients = self.get_patients()
+        patients = docto.get_patients()
         if len(patients) == 0:
             print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
             return 1
@@ -676,12 +684,12 @@ class Doctolib(LoginBrowser):
         my_logger('Vaccines: %s', ', '.join(vaccine_list))
         my_logger('Country: %s ', a_args.country)
         my_logger('This may take a few minutes/hours, be patient!')
-        cities = [self.normalize(city) for city in a_args.city.split(',')]
+        cities = [docto.normalize(city) for city in a_args.city.split(',')]
 
         while True:
             my_logger_log_ts()
             try:
-                for center in self.find_centers(cities, motives):
+                for center in docto.find_centers(cities, motives):
                     if a_args.center:
                         if center['name_with_title'] not in a_args.center:
                             logging.debug("Skipping center '%s'" %
@@ -711,7 +719,7 @@ class Doctolib(LoginBrowser):
                                 center_excluded = True
                         if center_excluded:
                             continue
-                    if not a_args.include_neighbor_city and not self.normalize(center['city']).startswith(tuple(cities)):
+                    if not a_args.include_neighbor_city and not docto.normalize(center['city']).startswith(tuple(cities)):
                         logging.debug(
                             "Skipping city '%(city)s' %(name_with_title)s" % center)
                         continue
@@ -720,7 +728,7 @@ class Doctolib(LoginBrowser):
 
                     my_logger('Center %(name_with_title)s (%(city)s):' % center)
 
-                    if self.try_to_book(center, vaccine_list, start_date, end_date, a_args.only_second, a_args.only_third, a_args.dry_run):
+                    if docto.try_to_book(center, vaccine_list, start_date, end_date, a_args.only_second, a_args.only_third, a_args.dry_run):
                         my_logger('')
                         my_logger('💉 %s Congratulations.' %
                             colored('Booked!', 'green', attrs=('bold',)))
@@ -748,8 +756,7 @@ class Doctolib(LoginBrowser):
                 return 1
         return 0
 
-
-class DoctolibDE():
+class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
     KEY_PFIZER = '6768'
     KEY_PFIZER_SECOND = '6769'
@@ -775,7 +782,7 @@ class DoctolibDE():
     center = URL(r'/praxis/.*', CenterPage)
 
 
-class DoctolibFR():
+class DoctolibFR(Doctolib):
     BASEURL = 'https://www.doctolib.fr'
     KEY_PFIZER = '6970'
     KEY_PFIZER_SECOND = '6971'
@@ -887,7 +894,8 @@ if __name__ == '__main__':
     try:
         a = Application()
         a_args = a.get_arguments()
-        sys.exit(Doctolib(a_args.username, a_args.password).main())
+        m = Booking()
+        sys.exit( m.book_appointment() )
     except KeyboardInterrupt:
         print('Abort.')
         sys.exit(1)
