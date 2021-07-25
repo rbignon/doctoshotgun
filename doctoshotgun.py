@@ -132,16 +132,16 @@ class CenterPage(HTMLPage):
     pass
 
 class VaccineClinics:
-    def __init__(self, VaccineIDNumber: str, Clinic: str, VaccinesList[Batch]):
+    def __init__(self, VaccineIDNumber: str, Clinic: str, VaccinesList[Stock]):
         self.VaccineIDNumber = VaccineIDNumber
         self.Clinic = Clinic
         self.Vaccines = VaccinesList
 
     def AdministerVaccine(self, Clinic: VaccineClinic):
         try:
-            VaccineBatch = next(Vaccine for Vaccine in sorted(self.Vaccines) if Vaccine.can_AdministerVaccine(VaccineClinic))
-            VaccineBatch.AdministerVaccine(VaccineClinic)
-            return VaccineBatch.reference
+            VaccineStock = next(Vaccine for Vaccine in sorted(self.Vaccines) if Vaccine.can_AdministerVaccine(VaccineClinic))
+            VaccineStock.AdministerVaccine(VaccineClinic)
+            return VaccineStock.reference
         except StopIteration:
             raise OutofStock()
 
