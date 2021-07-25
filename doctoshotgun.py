@@ -89,6 +89,21 @@ class ChallengePage(JsonPage):
         return ""  # Do not choke on empty response from server
 
 
+class vaccineVersionAvailability:
+    def __init__(self, vaccineID: str, vaccines):
+        self.vaccineID = vaccineID #vaccin's main identifier is vaccineID
+
+    def vaccineAvailableCenters(self, center: str, vaccines) -> str:
+        try:
+            vaccine = next(
+            b for b in sorted(self.vaccine) if b.batchCheck(vaccines)
+            )
+            vaccine.vaccineAvailableCenters(vaccines)
+            return vaccine.vaccineID
+        except StopIterator:
+            raise OutOfStock()
+
+
 class CentersPage(HTMLPage):
     def iter_centers_ids(self):
         for div in self.doc.xpath('//div[@class="js-dl-search-results-calendar"]'):
