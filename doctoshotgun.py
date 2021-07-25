@@ -619,7 +619,7 @@ class PatientAccounts:
         self.List_of_Appointments = []
 
     def Add_A_Patient(self, PatientName):
-        y = Patient.__init__(PatientName)
+        y = Patient__init__(PatientName)
         self.Patient_List.Append(y)
 
     def Remove_A_Patient(self, y):
@@ -640,7 +640,7 @@ class PatientAccounts:
     def Change_Patient_Appointment(self, f,y, xy, p):
         self.Appointment_List__GetInfo__(self, f).Patient = y
         self.Appointment_List__GetInfo__(self, f).Vaccine_Clinic = xy
-        self.appointment_list__GetInfo__(self, f).Date = p
+        self.Appointment_List__GetInfo__(self, f).Date = p
 
     def Add_Patient_Appointment(self, f):
         self.Appointment_List.Append(f)
