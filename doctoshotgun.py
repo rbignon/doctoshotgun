@@ -569,7 +569,7 @@ class DoctolibCountries(Doctolib):
         KEY_MODERNA_THIRD_DE: 'Dritt.*Moderna|Moderna.*Dritt',
         KEY_JANSSEN_DE: 'Janssen',
         KEY_ASTRAZENECA_FIRST_DE: 'AstraZeneca',
-        KEY_ASTRAZENECA_SECOND: 'Zweit.*AstraZeneca|AstraZeneca.*Zweit',
+        KEY_ASTRAZENECA_SECOND_DE: 'Zweit.*AstraZeneca|AstraZeneca.*Zweit',
     }
     centers_DE = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
     center_DE = URL(r'/praxis/.*', CenterPage)
