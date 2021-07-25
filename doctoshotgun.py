@@ -213,6 +213,67 @@ class MasterPatientPage(JsonPage):
 class CityNotFound(Exception):
     pass
 
+class User(LoginBrowser):
+    login = URL('/login.json', LoginPage)
+
+    def _setup_session(self, profile):
+        session = Session()
+
+        session.hooks['response'].append(self.set_normalized_url)
+        if self.responses_dirname is not None:
+            session.hooks['response'].append(self.save_response)
+
+        self.session = session
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.session.headers['sec-fetch-dest'] = 'document'
+        self.session.headers['sec-fetch-mode'] = 'navigate'
+        self.session.headers['sec-fetch-site'] = 'same-origin'
+        self.session.headers[
+            'User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'
+
+    def do_login(self, code,baseurl):
+        try:
+            self.open(baseurl + '/sessions/new')
+        except ServerError as e:
+            if e.response.status_code in [503] \
+                    and 'text/html' in e.response.headers['Content-Type'] \
+                    and (
+                    'cloudflare' in e.response.text or 'Checking your browser before accessing' in e.response.text):
+                log('Request blocked by CloudFlare', color='red')
+            if e.response.status_code in [520]:
+                log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
+            raise
+        try:
+            self.login.go(json={'kind': 'patient',
+                                'username': self.username,
+                                'password': self.password,
+                                'remember': True,
+                                'remember_username': True})
+        except ClientError:
+            print('Wrong login/password')
+            return False
+
+        if self.page.redirect() == "/sessions/two-factor":
+            print("Requesting 2fa code...")
+            if not code:
+                if not sys.__stdin__.isatty():
+                    log(
+                        "Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.",
+                        color='red')
+                    return False
+                self.send_auth_code.go(
+                    json={'two_factor_auth_method': 'email'}, method="POST")
+                code = input("Enter auth code: ")
+            try:
+                self.challenge.go(
+                    json={'auth_code': code, 'two_factor_auth_method': 'email'}, method="POST")
+            except HTTPNotFound:
+                print("Invalid auth code")
+                return False
+
+        return True
 
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
@@ -235,6 +296,7 @@ class Doctolib(LoginBrowser):
     appointment_post = URL(
         r'/appointments/(?P<id>.+).json', AppointmentPostPage)
     master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
+    user=User("name","password")
 
     def _setup_session(self, profile):
         session = Session()
@@ -253,45 +315,7 @@ class Doctolib(LoginBrowser):
         self.session.headers['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'
 
         self.patient = None
-
-    def do_login(self, code):
-        try:
-            self.open(self.BASEURL + '/sessions/new')
-        except ServerError as e:
-            if e.response.status_code in [503] \
-                and 'text/html' in e.response.headers['Content-Type'] \
-                    and ('cloudflare' in e.response.text or 'Checking your browser before accessing' in e .response.text):
-                log('Request blocked by CloudFlare', color='red')
-            if e.response.status_code in [520]:
-                log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
-            raise
-        try:
-            self.login.go(json={'kind': 'patient',
-                                'username': self.username,
-                                'password': self.password,
-                                'remember': True,
-                                'remember_username': True})
-        except ClientError:
-            print('Wrong login/password')
-            return False
-
-        if self.page.redirect() == "/sessions/two-factor":
-            print("Requesting 2fa code...")
-            if not code:
-                if not sys.__stdin__.isatty():
-                    log("Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.", color='red')
-                    return False
-                self.send_auth_code.go(
-                    json={'two_factor_auth_method': 'email'}, method="POST")
-                code = input("Enter auth code: ")
-            try:
-                self.challenge.go(
-                    json={'auth_code': code, 'two_factor_auth_method': 'email'}, method="POST")
-            except HTTPNotFound:
-                print("Invalid auth code")
-                return False
-
-        return True
+        self.user=User(*args, **kwargs)
 
     def find_centers(self, where, motives=None, page=1):
         if motives is None:
@@ -599,9 +623,8 @@ class DoctolibFR(Doctolib):
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
+class Parser:
 
-
-class Application:
     @classmethod
     def create_default_logger(cls):
         # stderr logger
@@ -617,9 +640,7 @@ class Application:
         logging.root.setLevel(level)
         logging.root.addHandler(self.create_default_logger())
 
-    def main(self, cli_args=None):
-        colorama.init()  # needed for windows
-
+    def argument_parser(self,cli_args):
         doctolib_map = {
             "fr": DoctolibFR,
             "de": DoctolibDE
@@ -683,7 +704,11 @@ class Application:
 
         docto = doctolib_map[args.country](
             args.username, args.password, responses_dirname=responses_dirname)
-        if not docto.do_login(args.code):
+        url_map = {
+            "fr": 'https://www.doctolib.fr',
+            "de": 'https://www.doctolib.de'
+        }
+        if not docto.user.do_login(args.code,url_map[args.country]):
             return 1
 
         patients = docto.get_patients()
@@ -856,6 +881,15 @@ class Application:
                 print(message)
                 return 1
         return 0
+
+
+class Application:
+
+    def main(self, cli_args=None):
+        colorama.init()  # needed for windows
+        parser=Parser()
+        parser.argument_parser(cli_args)
+
 
 
 if __name__ == '__main__':
