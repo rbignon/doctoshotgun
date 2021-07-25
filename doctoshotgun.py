@@ -155,9 +155,6 @@ class CenterBookingPage(JsonPage):
     def get_places(self):
         return self.doc['data']['places']
 
-    def get_practice(self):
-        return self.doc['data']['places'][0]['practice_ids'][0]
-
     def get_agenda_ids(self, motive_id, practice_id=None):
         agenda_ids = []
         for a in self.doc['data']['agendas']:
