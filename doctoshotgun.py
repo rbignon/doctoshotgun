@@ -182,6 +182,13 @@ class AvailabilitiesPage(JsonPage):
                 continue
             return a['slots'][-1]
 
+class Vaccine:
+    #aggregate root
+    def __init__(self, key, motive):
+        self.key = key
+    #Vaccine's main identifier is key
+        self.motive = motive
+    # each vaccine has a motive
 
 class AppointmentPage(JsonPage):
     def get_error(self):
