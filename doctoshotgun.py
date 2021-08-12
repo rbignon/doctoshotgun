@@ -209,6 +209,11 @@ class MasterPatientPage(JsonPage):
     def get_name(self):
         return '%s %s' % (self.doc[0]['first_name'], self.doc[0]['last_name'])
 
+class Vaccine:
+    def __init__(self, key, motive):
+        self.key = key
+        self.motive = motive
+
 
 class CityNotFound(Exception):
     pass
