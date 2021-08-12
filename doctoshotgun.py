@@ -842,81 +842,6 @@ class Application:
         if not docto.do_login(args.code):
             return 1
 
-
-        # if len(patients) == 0:
-        #     print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
-        #     return 1
-        # if args.patient >= 0 and args.patient < len(patients):
-        #     docto.patient = patients[args.patient]
-        # elif len(patients) > 1:
-        #     print('Available patients are:')
-        #     for i, patient in enumerate(patients):
-        #         print('* [%s] %s %s' %
-        #               (i, patient['first_name'], patient['last_name']))
-        #     while True:
-        #         print('For which patient do you want to book a slot?',
-        #               end=' ', flush=True)
-        #         try:
-        #             docto.patient = patients[int(sys.stdin.readline().strip())]
-        #         except (ValueError, IndexError):
-        #             continue
-        #         else:
-        #             break
-        # else:
-        #     docto.patient = patients[0]
-
-        # motives = []
-        # if not args.pfizer and not args.moderna and not args.janssen and not args.astrazeneca:
-        #     if args.only_second:
-        #         motives.append(docto.KEY_PFIZER_SECOND)
-        #         motives.append(docto.KEY_MODERNA_SECOND)
-        #         # motives.append(docto.KEY_ASTRAZENECA_SECOND) #do not add AstraZeneca by default
-        #     elif args.only_third:
-        #         if not docto.KEY_PFIZER_THIRD and not docto.KEY_MODERNA_THIRD:
-        #             print('Invalid args: No third shot vaccinations in this country')
-        #             return 1
-        #         motives.append(docto.KEY_PFIZER_THIRD)
-        #         motives.append(docto.KEY_MODERNA_THIRD)
-        #     else:
-        #         motives.append(docto.KEY_PFIZER)
-        #         motives.append(docto.KEY_MODERNA)
-        #         motives.append(docto.KEY_JANSSEN)
-        #         # motives.append(docto.KEY_ASTRAZENECA) #do not add AstraZeneca by default
-        # if args.pfizer:
-        #     if args.only_second:
-        #         motives.append(docto.KEY_PFIZER_SECOND)
-        #     elif args.only_third:
-        #         if not docto.KEY_PFIZER_THIRD:  # not available in all countries
-        #             print('Invalid args: Pfizer has no third shot in this country')
-        #             return 1
-        #         motives.append(docto.KEY_PFIZER_THIRD)
-        #     else:
-        #         motives.append(docto.KEY_PFIZER)
-        # if args.moderna:
-        #     if args.only_second:
-        #         motives.append(docto.KEY_MODERNA_SECOND)
-        #     elif args.only_third:
-        #         if not docto.KEY_MODERNA_THIRD:  # not available in all countries
-        #             print('Invalid args: Moderna has no third shot in this country')
-        #             return 1
-        #         motives.append(docto.KEY_MODERNA_THIRD)
-        #     else:
-        #         motives.append(docto.KEY_MODERNA)
-        # if args.janssen:
-        #     if args.only_second or args.only_third:
-        #         print('Invalid args: Janssen has no second or third shot')
-        #         return 1
-        #     else:
-        #         motives.append(docto.KEY_JANSSEN)
-        # if args.astrazeneca:
-        #     if args.only_second:
-        #         motives.append(docto.KEY_ASTRAZENECA_SECOND)
-        #     elif args.only_third:
-        #         print('Invalid args: AstraZeneca has no third shot')
-        #         return 1
-        #     else:
-        #         motives.append(docto.KEY_ASTRAZENECA)
-
         patients = docto.get_patients()
         entries = [docto, args.start_date, args.end_date, args.time_window, args.patient, patients,
             args.pfizer, args.moderna, args.janssen, args.astrazeneca, args.only_second, args.only_third]
@@ -928,24 +853,6 @@ class Application:
 
         vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
 
-        # if args.start_date:
-        #     try:
-        #         start_date = datetime.datetime.strptime(
-        #             args.start_date, '%d/%m/%Y').date()
-        #     except ValueError as e:
-        #         print('Invalid value for --start-date: %s' % e)
-        #         return 1
-        # else:
-        #     start_date = datetime.date.today()
-        # if args.end_date:
-        #     try:
-        #         end_date = datetime.datetime.strptime(
-        #             args.end_date, '%d/%m/%Y').date()
-        #     except ValueError as e:
-        #         print('Invalid value for --end-date: %s' % e)
-        #         return 1
-        # else:
-        #     end_date = start_date + relativedelta(days=args.time_window)
         log('Starting to look for vaccine slots for %s %s between %s and %s...',
             docto.patient['first_name'], docto.patient['last_name'], start_date, end_date)
         log('Vaccines: %s', ', '.join(vaccine_list))
