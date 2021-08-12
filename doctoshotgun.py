@@ -215,6 +215,12 @@ class Vaccine:
         self.motive = motive
 
 
+class Vaccine2:
+    def __init__(self, key2, motive2):
+        self.key = key2
+        self.motive = motive2
+
+
 class CityNotFound(Exception):
     pass
 
