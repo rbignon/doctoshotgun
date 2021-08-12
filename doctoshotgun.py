@@ -203,6 +203,29 @@ class AppointmentPostPage(JsonPage):
 
 
 class MasterPatientPage(JsonPage):
+    __instance = None
+
+    # static public method which ensures only one instance of a class
+    # double locking mechanism is used for thread safe implementation
+
+    @staticmethod
+    def get_instance():
+
+        if MasterPatientPage.__instance == None:
+            with threading.Lock():
+                if MasterPatientPage.__instance == None:
+                    MasterPatientPage()
+        return MasterPatientPage.__instance
+
+    #  private constructor.
+
+    def __init__(self):
+
+        if MasterPatientPage.__instance != None:
+            raise Exception("This class is a singleton, so multiple instances cannot be created.")
+        else:
+            MasterPatientPage.__instance = self
+
     def get_patients(self):
         return self.doc
 
@@ -234,7 +257,7 @@ class Doctolib(LoginBrowser):
         r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
     appointment_post = URL(
         r'/appointments/(?P<id>.+).json', AppointmentPostPage)
-    master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
+    master_patient = URL(r'/account/master_patients.json', MasterPatientPage.get_instance())
 
     def _setup_session(self, profile):
         session = Session()
