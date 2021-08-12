@@ -67,25 +67,25 @@ class Ibuilder(metaclass=ABCMeta):
 
 	@staticmethod
 	@abstractmethod
-	def date_builder(self, sda, eda, twa):
+	def date_builder(self):
 		pass
 
 
 	@staticmethod
 	@abstractmethod
-	def patient_builder(self, pa, p):
+	def patient_builder(self):
 		pass
 
 
 	@staticmethod
 	@abstractmethod
-	def vaccine_builder():
+	def vaccine_builder(self):
 		pass
 
 
 	@staticmethod
 	@abstractmethod
-	def get_result():
+	def get_result(self):
 		pass
 
 
