@@ -27,6 +27,8 @@ from woob.browser.url import URL
 from woob.browser.pages import JsonPage, HTMLPage
 from woob.tools.log import createColoredFormatter
 
+from abc import ABCMeta, abstractmethod
+
 SLEEP_INTERVAL_AFTER_CONNECTION_ERROR = 5
 SLEEP_INTERVAL_AFTER_LOGIN_ERROR = 10
 SLEEP_INTERVAL_AFTER_CENTER = 1
@@ -857,6 +859,98 @@ class Application:
                 return 1
         return 0
 
+
+class IBuilder(metaclass=ABCMeta):
+    "The Builder Interface"
+
+    @staticmethod
+    @abstractmethod
+    def build_patientDetails():
+        "The details of the patient (name, email)"
+    
+    @staticmethod
+    @abstractmethod
+    def build_typeVaccine():
+        "The type of vaccine"
+    
+    @staticmethod
+    @abstractmethod
+    def build_vaccineNumber():
+        "Vaccine number"
+
+    @staticmethod
+    @abstractmethod
+    def build_datetimeVaccine():
+        "The date and time of the vaccine"
+
+   @staticmethod
+    @abstractmethod
+    def build_locationVaccine():
+        "The location of the vaccination"
+
+    @staticmethod
+    @abstractmethod
+    def get_result():
+        "Return the final product"
+
+class Builder(IBuilder):
+    "The Concrete Builder."
+
+    def __init__(self):
+        self.product = Product()
+
+    #append the patients name and email
+    def build_patientDetails(self):
+        self.product.parts.append(self.doc[0]['first_name'], self.doc[0]['last_name'], 'email')
+        return self
+
+    #append the vaccine name selected
+    def build_typeVaccine(self):
+        self.product.parts.append('vaccine.name')
+        return self
+
+    #append the vaccine number (which dose)
+    def build_vaccineNumber(self):
+        self.product.parts.append('vaccine.number')
+        return self
+
+    #append the date and time of appointment
+    def build_datetimeVaccine(self):
+        self.product.parts.append('date', 'time')
+        return self
+
+    #append the site of the vaccine and the city name
+    def build_locationVaccine(self):
+        self.product.parts.append(center['name_with_title'], center['city'])
+        return self  
+
+    #return the total result
+    def get_result(self):
+        return self.product
+
+class Product():
+    "The Product"
+
+    def __init__(self):
+        self.parts = []
+
+class Director:
+    "The Director, builds the result"
+
+    @staticmethod
+    def construct():
+        "Constructs and returns the final product"
+        return Builder()\
+            .build_patientDetails()\
+            .build_typeVaccine()\
+            .build_vaccineNumber()\
+            .build_datetimeVaccine()\
+            .build_locationVaccine()\
+            .get_result()
+
+# The Client: Print the selected parts
+PRODUCT = Director.construct()
+print(PRODUCT.parts)
 
 if __name__ == '__main__':
     try:
