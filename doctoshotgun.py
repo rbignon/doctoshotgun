@@ -27,6 +27,8 @@ from woob.browser.url import URL
 from woob.browser.pages import JsonPage, HTMLPage
 from woob.tools.log import createColoredFormatter
 
+from abc import ABCMeta, abstractmethod
+
 SLEEP_INTERVAL_AFTER_CONNECTION_ERROR = 5
 SLEEP_INTERVAL_AFTER_LOGIN_ERROR = 10
 SLEEP_INTERVAL_AFTER_CENTER = 1
@@ -596,9 +598,84 @@ class DoctolibFR(Doctolib):
         KEY_ASTRAZENECA: 'AstraZeneca',
         KEY_ASTRAZENECA_SECOND: '2de.*AstraZeneca',
     }
-
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
+
+
+class IBuilder(metaclass=ABCMeta):
+    "The Builder Interface"
+
+    @staticmethod
+    @abstractmethod
+    def build_MODERNA():
+        "PFIZER"
+
+    @staticmethod
+    @abstractmethod
+    def build_MODERNA():
+        "MODERNA"
+
+    @staticmethod
+    @abstractmethod
+    def build_ASTRAZENECA():
+        "ASTRAZENECA"
+
+    @staticmethod
+    @abstractmethod
+    def build_JANSSEN():
+        "JANSSEN"
+
+    @staticmethod
+    @abstractmethod
+    def get_result():
+        "Vaccine"
+
+class Builder(IBuilder):
+    "The Concrete Builder."
+
+    def __init__(self):
+        self.vaccine. = Vaccine()
+
+    def build_MODERNA(self):
+        self.product.parts.append('PFIZER')
+        return self
+
+    def build_MODERNA(self):
+        self.product.parts.append('MODERNA')
+        return self
+
+    def build_ASTRAZENECA(self):
+        self.product.parts.append('ASTRAZENECA')
+        return self
+
+    def build_JANSSEN(self):
+        self.product.parts.append('JANSSEN')
+        return self
+
+    def get_result(self):
+        return self.product
+
+class Product():
+    "Vaccine"
+
+    def __init__(self):
+        self.parts = []
+
+class Director:
+    "The Director, building a complex representation."
+
+    @staticmethod
+    def construct():
+        "Constructs and returns the final product which in our case is the vaccines"
+        return Builder()\
+            .build_PFIZER()\
+            .build_MODERNA()\
+            .build_ASTRAZENECA()\
+            .build_JANSSEN()\
+            .get_result()
+
+
+PRODUCT = Director.construct()
 
 
 class Application:
