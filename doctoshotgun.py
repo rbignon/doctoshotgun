@@ -27,6 +27,8 @@ from woob.browser.url import URL
 from woob.browser.pages import JsonPage, HTMLPage
 from woob.tools.log import createColoredFormatter
 
+from abc import ABCMeta, abstractmethod
+
 SLEEP_INTERVAL_AFTER_CONNECTION_ERROR = 5
 SLEEP_INTERVAL_AFTER_LOGIN_ERROR = 10
 SLEEP_INTERVAL_AFTER_CENTER = 1
@@ -60,6 +62,45 @@ def log_ts(text=None, *args, **kwargs):
     if text:
         log(text, *args, **kwargs)
 
+# Different types of Vaccines
+
+class Vaccine:
+    def vaccine_dose(self, dose):
+        pass
+
+class Pfizer(Vaccine):
+    def vaccine_dose(self, dose):
+        print("The patient has their", dose," Pfizer dose.")
+
+class Moderna(Vaccine):
+    def vaccine_dose(self, dose):
+        print("The patient has their", dose," Moderna dose.")
+
+class Janssen(Vaccine):
+    def vaccine_dose(self, dose):
+        print("The patient has their", dose," Janssen dose.")
+
+class Astrazeneca(Vaccine):
+    def vaccine_dose(self, dose):
+        print("The patient has their", dose," Astrazeneca dose.")
+
+# Vaccine Dosages
+
+class VaccineDose:
+    def __init__(self, Vaccine):
+        self.vaccine = Vaccine
+
+class firstDose(VaccineDose):
+    def __init__(self, Vaccine):
+        super().__init__(Vaccine)
+
+class secondDose(VaccineDose):
+    def __init__(self, Vaccine):
+        super().__init__(Vaccine)
+
+class thirdDose(VaccineDose):
+    def __init__(self, Vaccine):
+        super().__init__(Vaccine)
 
 class Session(cloudscraper.CloudScraper):
     def send(self, *args, **kwargs):
