@@ -247,21 +247,25 @@ class Appointment_Builder(iAppointment_Builder):
     The Concrete Builder classes 1
     """
 
-    def __init__(self) -> None:
-        """
-        A fresh builder instance should contain a blank product object, which is
-        used in further assembly.
-        """
-        self.reset()
+    def __init__(self, list):
+    	self.list = list
+        self.product = Product(self.list)
+		self.docto = self.product.list[0]
+		self.motives = []
+    #     self.reset()
 
-    def reset(self) -> None:
-        self._product = appointmentBooking_product1()
+    # def reset(self) -> None:
+    #     self._product = product
 
-@property
-    def product(self) -> appointmentBooking_product1:
-        product = self._product
-        self.reset()
-        return product
+	
+
+    # def product(self):
+    #     product = self._product
+    #     self.reset()
+    #     return product
+
+
+    # for patient information
 
     def produce_patient(self) -> None:
         if len(self.product.list[5]) == 0:
@@ -286,6 +290,9 @@ class Appointment_Builder(iAppointment_Builder):
         else:
             self.docto.patient = self.product.list[5][0]
 		self.product.result.append(self.docto.patient)
+
+
+# for vaccine and dose
 
     def produce_vaccine(self) -> None:
          if not self.product.list[6] and not self.product.list[7] and not self.product.list[8] and not self.product.list[9]:
@@ -343,6 +350,11 @@ class Appointment_Builder(iAppointment_Builder):
 
 	def get_result(self):
 		return self.product.result
+
+
+
+#FOR Appointment date and time
+
 
     def produce_AppointmentDate(self) -> None:
         	if self.product.list[1]:
@@ -558,7 +570,7 @@ class Doctolib(LoginBrowser):
         for vaccine in vaccine_list:
             motives_id[vaccine] = self.page.find_motive(
                 r'.*({})'.format(vaccine), singleShot=(vaccine == self.vaccine_motives[self.KEY_JANSSEN] or only_second or only_third))
-                
+
 
         motives_id = dict((k, v)
                           for k, v in motives_id.items() if v is not None)
