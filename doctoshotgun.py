@@ -1,3 +1,15 @@
+
+
+# test test
+
+
+
+
+
+
+
+
+
 #!/usr/bin/env python3
 import sys
 import re
@@ -18,6 +30,7 @@ import cloudscraper
 import colorama
 from requests.adapters import ReadTimeout, ConnectionError
 from termcolor import colored
+from urllib import parse
 from urllib3.exceptions import NewConnectionError
 
 from woob.browser.exceptions import ClientError, ServerError, HTTPNotFound
@@ -94,6 +107,34 @@ class CentersPage(HTMLPage):
             data = json.loads(div.attrib['data-props'])
             yield data['searchResultId']
 
+    def get_next_page(self):
+        # French doctolib uses data-u attribute of span-element to create the link when user hovers span
+        for span in self.doc.xpath('//div[contains(@class, "next")]/span'):
+            if not span.attrib.has_key('data-u'):
+                continue
+
+            # How to find the corresponding javascript-code:
+            # Press F12 to open dev-tools, select elements-tab, find div.next, right click on element and enable break on substructure change
+            # Hover "Next" element and follow callstack upwards
+            # JavaScript:
+            # var t = (e = r()(e)).data("u")
+            #     , n = atob(t.replace(/\s/g, '').split('').reverse().join(''));
+            
+            import base64
+            href = base64.urlsafe_b64decode(''.join(span.attrib['data-u'].split())[::-1]).decode()
+            query = dict(parse.parse_qsl(parse.urlsplit(href).query))
+
+            if 'page' in query:
+                return int(query['page'])
+
+        for a in self.doc.xpath('//div[contains(@class, "next")]/a'):
+            href = a.attrib['href']
+            query = dict(parse.parse_qsl(parse.urlsplit(href).query))
+
+            if 'page' in query:
+                return int(query['page'])
+        
+        return None
 
 class CenterResultPage(JsonPage):
     pass
@@ -185,49 +226,12 @@ class CityNotFound(Exception):
     pass
 
 
-class VaccineCenter_agregate:
-
-    def _init_(self, Results: URL, vaccinecenter_Booking : URL):
-        self.BASEURL = ""
-        self.Results = Results
-        self.vaccinecenter_Booking = vaccinecenter_Booking
-         self.vaccine_motives = {}
-        self.centers = URL('')
-        self.center = URL('')
-
-    def change_BASEURL(self, BASEURL: URL):
-        self.BASEURL = BASEURL
-
-    def change_VaccineMotives(self, vaccine_motives: dict()):
-        self.vaccine_motives = vaccine_motives
-
-    def changeCenters(self,centers: URL):
-        self.centers = centers
-
-    def changeCenter(self,center: URL):
-        self.center = center
-
-    def changeCenterResults(self,Results: URL):
-        self.Results = Results
-
-    def changeCenterBooking(self,center_Booking: URL):
-        self.center_Booking = center_Booking
-
-
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
     BASEURL = ""
     vaccine_motives = {}
     centers = URL('')
     center = URL('')
-
-    vaccine_center_lookup = VaccineCenter_agregate(URL(r'/search_results/(?P<id>\d+).json', CenterResultPage), URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage))
-    center_booking = vaccine_center_lookup.center_Booking
-    center_result = vaccine_center_lookup.Results
- 
-
-
-
     # common properties
     login = URL('/login.json', LoginPage)
     send_auth_code = URL('/api/accounts/send_auth_code', SendAuthCodePage)
@@ -235,13 +239,13 @@ class Doctolib(LoginBrowser):
     center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
     center_booking = URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage)
     availabilities = URL(r'/availabilities.json', AvailabilitiesPage)
-   
-
     second_shot_availabilities = URL(
         r'/second_shot_availabilities.json', AvailabilitiesPage)
     appointment = URL(r'/appointments.json', AppointmentPage)
-    appointment_edit = URL(r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
-    appointment_post = URL(r'/appointments/(?P<id>.+).json', AppointmentPostPage)
+    appointment_edit = URL(
+        r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
+    appointment_post = URL(
+        r'/appointments/(?P<id>.+).json', AppointmentPostPage)
     master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
 
     def _setup_session(self, profile):
@@ -301,13 +305,13 @@ class Doctolib(LoginBrowser):
 
         return True
 
-    def find_centers(self, where, motives=None):
+    def find_centers(self, where, motives=None, page=1):
         if motives is None:
             motives = self.vaccine_motives.keys()
         for city in where:
             try:
                 self.centers.go(where=city, params={
-                                'ref_visit_motive_ids[]': motives})
+                                'ref_visit_motive_ids[]': motives, 'page': page})
             except ServerError as e:
                 if e.response.status_code in [503]:
                     if 'text/html' in e.response.headers['Content-Type'] \
@@ -321,6 +325,8 @@ class Doctolib(LoginBrowser):
                 raise
             except HTTPNotFound as e:
                 raise CityNotFound(city) from e
+
+            next_page = self.page.get_next_page()
 
             for i in self.page.iter_centers_ids():
                 page = self.center_result.open(
@@ -336,6 +342,10 @@ class Doctolib(LoginBrowser):
                     yield page.doc['search_result']
                 except KeyError:
                     pass
+
+            if next_page:
+                for center in self.find_centers(where, motives, next_page):
+                    yield center
 
     def get_patients(self):
         self.master_patient.go()
@@ -574,7 +584,7 @@ class DoctolibDE(Doctolib):
     }
     centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
     center = URL(r'/praxis/.*', CenterPage)
-    VaccineCenter_agregate(URL(''), URL(''))
+
 
 class DoctolibFR(Doctolib):
     BASEURL = 'https://www.doctolib.fr'
@@ -601,7 +611,6 @@ class DoctolibFR(Doctolib):
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
-    VaccineCenter_agregate(URL(''), URL(''))
 
 
 class Application:
