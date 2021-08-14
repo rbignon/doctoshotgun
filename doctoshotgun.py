@@ -27,6 +27,8 @@ from woob.browser.url import URL
 from woob.browser.pages import JsonPage, HTMLPage
 from woob.tools.log import createColoredFormatter
 
+from abc import ABCMeta, abstractmethod
+
 SLEEP_INTERVAL_AFTER_CONNECTION_ERROR = 5
 SLEEP_INTERVAL_AFTER_LOGIN_ERROR = 10
 SLEEP_INTERVAL_AFTER_CENTER = 1
@@ -599,6 +601,62 @@ class DoctolibFR(Doctolib):
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
+
+#Composite Design Pattern
+class Patient_vax(metaclass=ABCMeta):
+    @staticmethod
+    @abstractmethod
+    def print():
+        """Print the output """
+
+class Vaccine_1st_shot(Patient_vax):
+    def print(self):
+        if not self.pfizer and not self.moderna and not self.janssen:
+            print("AstraZeneca")
+
+        if not self.astrazeneca and not self.moderna and not self.janssen:
+            print("Pfizer")
+
+        if not self.pfizer and not self.moderna and not self.astrazeneca:
+            print("Janssen")
+
+        if not self.pfizer and not self.astrazeneca and not self.janssen:
+            print("Moderna")
+
+class Vaccine_2nd_shot(Patient_vax):
+    def print(self):
+        if not self.pfizer and not self.moderna and not self.janssen:
+            print("AstraZeneca")
+
+        if not self.astrazeneca and not self.moderna and not self.janssen:
+            print("Pfizer")
+
+        if not self.pfizer and not self.moderna and not self.astrazeneca:
+            print("Janssen")
+
+        if not self.pfizer and not self.astrazeneca and not self.janssen:
+            print("Moderna")
+
+class CompositeVax(Patient_vax):
+    def __init__(self):
+        self.child_vaccines = []
+
+    def add(self, graphic):
+        self.child_vaccines.append(vaccine)
+
+    def print(self):
+        for g in self.child_vaccines:
+            g.print()
+
+vax_1 = Vaccine_1st_shot()
+vax_2 = Vaccine_2nd_shot()
+
+comp1 = CompositeVax()
+comp1.add(vax_1)
+
+com2 = CompositeVax()
+com2.add(vax_2)
+com2.add(com1)
 
 
 class Application:
