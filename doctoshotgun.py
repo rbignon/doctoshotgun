@@ -1039,7 +1039,7 @@ class Application:
                     print('Invalid args: No third shot vaccinations in this country')
                     return 1
                 motives.append(docto.PFIZER_THIRD.key_value)
-                motives.append(docto.KEY_MODERNA_THIRD.key_value)
+                motives.append(docto.MODERNA_THIRD.key_value)
             else:
                 motives.append(docto.PFIZER.key_value)
                 motives.append(docto.MODERNA.key_value)
