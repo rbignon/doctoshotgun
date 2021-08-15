@@ -808,7 +808,10 @@ class Application:
             else:
                 motives.append(docto.KEY_ASTRAZENECA)
 
-        vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
+        #vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
+
+        ListofVaccine_adapterObject = VaccineList(Adapter())
+        vaccine_list = ListofVaccine_adapterObject.appeal(motives, docto)
 
         if args.start_date:
             try:
