@@ -11,6 +11,9 @@ import argparse
 import getpass
 import unicodedata
 
+from abc import ABC, abstractmethod
+from typing import Any
+
 from dateutil.parser import parse as parse_date
 from dateutil.relativedelta import relativedelta
 
@@ -600,6 +603,191 @@ class DoctolibFR(Doctolib):
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
 
+class Builder(ABC):
+    
+    """
+    This Builder is to lay out the Connection methods that are needed to 
+    create a connection to various parts of the DoctoLib website.
+    """
+    
+    """
+    This is the method that creates the object upon being built.
+    """
+    @abstractmethod
+    def page(self) -> None:
+        pass
+    
+    
+    """
+    This is the method that connects to the defined page, and returns the object to perform further actions.
+    """
+    @abstractmethod
+    def connectLogin(self) -> None:
+        pass
+    
+    """
+    This is the method that gets to the patient information.
+    """
+    @abstractmethod
+    def getPatients(self) -> None:
+        pass
+    
+    """
+    This is the method that finds the centers.
+    """
+    @abstractmethod
+    def findCenters(self) -> None:
+        pass
+    
+    """
+    This is the method that books the appointment.
+    """
+    @abstractmethod
+    def tryBooking(self) -> None:
+        pass
+ 
+    
+class ConcerteBuilderDoctoLibFR(Builder):
+    
+    def __init__(self, *args, **kwargs) -> None:
+        self.reset(*args, **kwargs)
+        
+    def reset(self, *args, **kwargs) -> None:
+        self._page = DoctolibFRConnect(*args, **kwargs)
+
+    @property
+    def page(self):
+        
+        page = self._page
+        self.reset()
+        return page
+    
+    def connectLogin(self, code):
+        return self._page.connect("Login", code)
+    
+    def getPatients(self):
+        return self._page.connect("Get Patients")
+        
+    def findCenters(self, cities, motives) -> None:
+        self._page.connect("Find Centers", cities, motives)
+    
+    def tryBooking(self, center, vaccine_list, start_date, end_date, only_second, only_third, dry_run) -> None:
+        self._page.connect("Try To Book", center, vaccine_list, start_date, end_date, only_second, only_third, dry_run)
+    
+    
+class DoctolibFRConnect(DoctolibFR):
+    
+    """
+    This connection is specifically for the French website of DoctoLib.
+    """
+    
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.visits = []
+    
+    
+    """
+    Describes what is done at each connect step, depenidng on the visit parameter provided.
+    """
+    def connect(self, visit: Any, code=None,cities=None, motives=None, center=None, vaccine_list=None, start_date=None, end_date=None, only_second=None, only_third=None, dry_run=None, doctoLib=None) -> Any:
+        self.visits.append(visit)
+        if visit == "Login":
+            self.do_login(code)
+            return self
+        elif visit == "Get Patients":
+            patient = self.get_patients()
+            return patient
+        elif visit == "Find Centers":
+            self.find_centers(cities, motives)
+        elif visit == "Try To Book":
+            self.try_to_book(center, vaccine_list, start_date, end_date, only_second, only_third, dry_run)
+            
+    """
+    Lists what has been done at each step of the connection.
+    """    
+    def list_visits(self) -> None:
+        print(f"Page Visits: {', '.join(self.visits)}", end="")
+
+
+class ConcerteBuilderDoctoLibDE(Builder):
+    
+    def __init__(self, *args, **kwargs) -> None:
+        self.reset(*args, **kwargs)
+        
+    def reset(self, *args, **kwargs) -> None:
+        self._page = DoctolibDEConnect(*args, **kwargs)
+
+    @property
+    def page(self):
+        
+        page = self._page
+        self.reset()
+        return page
+    
+    def connectLogin(self, code):
+        return self._page.connect("Login", code)
+    
+    def getPatients(self):
+        return self._page.connect("Get Patients")
+        
+    def findCenters(self, cities, motives) -> None:
+        self._page.connect("Find Centers", cities, motives)
+    
+    def tryBooking(self, center, vaccine_list, start_date, end_date, only_second, only_third, dry_run) -> None:
+        self._page.connect("Try To Book", center, vaccine_list, start_date, end_date, only_second, only_third, dry_run)
+    
+    
+class DoctolibDEConnect(DoctolibDE):
+    
+    """
+    This connection is specifically for the German website of DoctoLib.
+    """
+    
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.visits = []
+    
+    def connect(self, visit: Any, code=None,cities=None, motives=None, center=None, vaccine_list=None, start_date=None, end_date=None, only_second=None, only_third=None, dry_run=None, doctoLib=None) -> Any:
+        self.visits.append(visit)
+        if visit == "Login":
+            self.do_login(code)
+            return self
+        elif visit == "Get Patients":
+            patient = self.get_patients()
+            return patient
+        elif visit == "Find Centers":
+            self.find_centers(cities, motives)
+        elif visit == "Try To Book":
+            self.try_to_book(center, vaccine_list, start_date, end_date, only_second, only_third, dry_run)
+            
+        
+    def list_visits(self) -> None:
+        print(f"Page Visits: {', '.join(self.visits)}", end="")
+    
+
+class Director:
+    
+    """
+    This describes the director, which dictates how the builder is used.
+    """
+    
+    def __init__(self) -> None:
+        self._builder = None
+        
+    @property
+    def builder(self) -> Builder:
+        return self._builder
+    
+    @builder.setter
+    def builder(self, builder: Builder) -> None:
+        self._builder = builder
+        
+    def build_vaccine_booking_connection(self, code):
+        docto = self.builder.connectLogin(code)
+        patients = self.builder.getPatients()
+        return [patients, docto]
+        
+
 
 class Application:
     @classmethod
@@ -619,11 +807,6 @@ class Application:
 
     def main(self, cli_args=None):
         colorama.init()  # needed for windows
-
-        doctolib_map = {
-            "fr": DoctolibFR,
-            "de": DoctolibDE
-        }
 
         parser = argparse.ArgumentParser(
             description="Book a vaccine slot on Doctolib")
@@ -662,7 +845,7 @@ class Application:
         parser.add_argument('--dry-run', action='store_true',
                             help='do not really book the slot')
         parser.add_argument(
-            'country', help='country where to book', choices=list(doctolib_map.keys()))
+            'country', help='country where to book')
         parser.add_argument('city', help='city where to book')
         parser.add_argument('username', help='Doctolib username')
         parser.add_argument('password', nargs='?', help='Doctolib password')
@@ -681,12 +864,21 @@ class Application:
         if not args.password:
             args.password = getpass.getpass()
 
-        docto = doctolib_map[args.country](
+        director = Director()
+        
+        country = args.country;
+        
+        if country == "fr":
+            builder = ConcerteBuilderDoctoLibFR(
             args.username, args.password, responses_dirname=responses_dirname)
-        if not docto.do_login(args.code):
-            return 1
+        else:
+            builder = ConcerteBuilderDoctoLibDE(
+            args.username, args.password, responses_dirname=responses_dirname)
+        director.builder = builder
+        
+        [patients, docto] = director.build_vaccine_booking_connection(args.code)
 
-        patients = docto.get_patients()
+        #patients = docto.get_patients()
         if len(patients) == 0:
             print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
             return 1
