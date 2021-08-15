@@ -72,7 +72,29 @@ class Session(cloudscraper.CloudScraper):
         resp = super().send(*args, **kwargs)
 
         return callback(self, resp)
+# factory
+from abc import abstractmethod, ABCMeta
 
+
+class PageFactory(metaclass=ABCMeta):
+    @abstractmethod
+    def create_page(self):
+        pass
+
+
+class LoginPageFactory(PageFactory):
+    def create_page(self):
+        return LoginPage()
+
+
+class SendAuthCodePageFactory(PageFactory):
+    def create_page(self):
+        return SendAuthCodePageFactory()
+
+
+class ChallengePageFactory(PageFactory):
+    def create_page(self):
+        return ChallengePage()
 
 class LoginPage(JsonPage):
     def redirect(self):
