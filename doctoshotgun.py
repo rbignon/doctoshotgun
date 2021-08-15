@@ -3,6 +3,7 @@ import sys
 import re
 import logging
 import tempfile
+import time
 from time import sleep
 import json
 from urllib.parse import urlparse
@@ -601,6 +602,16 @@ class DoctolibFR(Doctolib):
     center = URL(r'/centre-de-sante/.*', CenterPage)
 
 
+class MyLog():
+    def __init__(self, application):
+        self._application = application
+
+    def main_decorator(self):
+        print('start main ,time is' + time.ctime())
+        self._application.main()
+        print('main stop ,time is ' + time.ctime())
+
+
 class Application:
     @classmethod
     def create_default_logger(cls):
@@ -860,7 +871,11 @@ class Application:
 
 if __name__ == '__main__':
     try:
-        sys.exit(Application().main())
+        # sys.exit(Application().main())
+        application = Application()
+        application_record_log = MyLog(application)
+        sys.exit(application_record_log.main_decorator())
+        # sys.exit(Application().main())
     except KeyboardInterrupt:
         print('Abort.')
         sys.exit(1)
