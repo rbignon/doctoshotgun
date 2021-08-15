@@ -89,18 +89,33 @@ class Astrazeneca(Vaccine):
 class VaccineDose:
     def __init__(self, Vaccine):
         self.vaccine = Vaccine
+    
+    def add_vaccines(self):
+        pass
 
 class firstDose(VaccineDose):
-    def __init__(self, Vaccine):
+    def __init__(self, Vaccine, vaccines):
         super().__init__(Vaccine)
+        self.vaccines = vaccines
+
+    def add_vaccines(self, new_vaccines):
+        self.vaccines += new_vaccines
 
 class secondDose(VaccineDose):
-    def __init__(self, Vaccine):
+    def __init__(self, Vaccine, vaccines):
         super().__init__(Vaccine)
+        self.vaccines = vaccines
+
+    def add_vaccines(self, new_vaccines):
+        self.vaccines += new_vaccines
 
 class thirdDose(VaccineDose):
-    def __init__(self, Vaccine):
+    def __init__(self, Vaccine, vaccines):
         super().__init__(Vaccine)
+        self.vaccines = vaccines
+
+    def add_vaccines(self, new_vaccines):
+        self.vaccines += new_vaccines
 
 class Session(cloudscraper.CloudScraper):
     def send(self, *args, **kwargs):
