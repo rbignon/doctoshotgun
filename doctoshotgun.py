@@ -171,8 +171,34 @@ class CenterBookingPage(JsonPage):
     def get_profile_id(self):
         return self.doc['data']['profile']['id']
 
+#Adaptee interface
+class AppointmentEditPageInterface:
+   def get_custom_fields(self): pass
 
-class AvailabilitiesPage(JsonPage):
+#Adaptee
+class AppointmentEditPage(AppointmentEditPageInterface):
+    def get_custom_fields(self):
+        for field in self.doc['appointment']['custom_fields']:
+            if field['required']:
+                yield field
+
+#Target interface
+class AvailabilitiesPageInterface:
+   def find_best_slot(self, start_date, end_date): pass
+
+
+# The Adapter
+class Adapter(AvailabilitiesPageInterface):
+    __adaptee = None
+
+    def __init__(self, adaptee):
+        self.__adaptee = adaptee
+
+    def find_best_slot(self, start_date, end_date):
+         self.__adaptee.get_custom_fields()
+
+#client
+class AvailabilitiesPage():
     def find_best_slot(self, start_date=None, end_date=None):
         for a in self.doc['availabilities']:
             date = parse_date(a['date']).date()
@@ -181,6 +207,13 @@ class AvailabilitiesPage(JsonPage):
             if len(a['slots']) == 0:
                 continue
             return a['slots'][-1]
+
+#How to test adapter
+
+#appointment_edit= AppointmentEditPage()
+#availability= AvailabilitiesPage()
+#adaptor  = Adapter(appointment_edit)
+#adaptor.find_best_slot(None,None)
 
 
 class AppointmentPage(JsonPage):
@@ -191,16 +224,8 @@ class AppointmentPage(JsonPage):
         return 'error' in self.doc
 
 
-class AppointmentEditPage(JsonPage):
-    def get_custom_fields(self):
-        for field in self.doc['appointment']['custom_fields']:
-            if field['required']:
-                yield field
-
-
 class AppointmentPostPage(JsonPage):
     pass
-
 
 class MasterPatientPage(JsonPage):
     def get_patients(self):
@@ -232,6 +257,7 @@ class Doctolib(LoginBrowser):
     appointment = URL(r'/appointments.json', AppointmentPage)
     appointment_edit = URL(
         r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
+    adaptor = Adapter(appointment_edit)
     appointment_post = URL(
         r'/appointments/(?P<id>.+).json', AppointmentPostPage)
     master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
@@ -503,9 +529,15 @@ class Doctolib(LoginBrowser):
 
         self.appointment_edit.go(
             id=a_id, params={'master_patient_id': self.patient['id']})
+        
+        # use of Adapter
+
+        # adapter converts find_best_slot(None,None) into get_custom_fields() and yields the result
+        # client makes a request by calling a method of adapter's interface
+        # Adapter translates the request into one or more calls to methods of the adaptee's interface
 
         custom_fields = {}
-        for field in self.page.get_custom_fields():
+        for field in self.page.adaptor.find_best_slot(None, None):
             if field['id'] == 'cov19':
                 value = 'Non'
             elif field['placeholder']:
