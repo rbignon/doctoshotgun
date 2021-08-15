@@ -31,6 +31,7 @@ SLEEP_INTERVAL_AFTER_CONNECTION_ERROR = 5
 SLEEP_INTERVAL_AFTER_LOGIN_ERROR = 10
 SLEEP_INTERVAL_AFTER_CENTER = 1
 SLEEP_INTERVAL_AFTER_RUN = 5
+
 try:
     from playsound import playsound as _playsound, PlaysoundException
 
@@ -545,7 +546,235 @@ class Doctolib(LoginBrowser):
         log('  └╴ Booking status: %s', self.page.doc['confirmed'])
 
         return self.page.doc['confirmed']
+#Director defines the order of building steps. It works with a builder object
+#through common Builder interface.
 
+class Director:
+
+    __builder = None
+
+    def setBuilder(self, builder):
+        self.__builder = builder
+
+    # The algorithm for assembling a vaccine
+    def getVaccine(self):
+        vaccine = Vaccine()
+
+        # First goes the key
+        key = self.__builder.getKey()
+        vaccine.setKey(key)
+
+        # Then motive
+        motive = self.__builder.getMotive()
+        vaccine.setMotive(motive)
+
+        return vaccine
+
+# Vaccine is a product class.
+
+class Vaccine:
+
+    def __init__(self):
+        self.__key = None
+        self.__motive = None
+
+    def setKey(self, key):
+        self.__key = key
+
+    def setMotive(self, motive):
+        self.__motive = motive
+
+    def key_value(self):
+        value = self.__key
+        return value
+
+    def motive_info(self):
+        value = self.__motive
+        return value
+
+#Builder interface defines all possible ways to configure a product.
+
+class Builder:
+    def getKey(self): pass
+    def getMotive(self): pass
+
+#Concrete builders implement steps defined in the common interface.
+
+# Vaccines for DoctolibDE
+
+class DE_pfizer(Builder):
+    def getKey(self):
+        key = '6768'
+        return key
+
+    def getMotive(self):
+        motive = 'Pfizer'
+        return motive
+
+class DE_pfizer2(Builder):
+    def getKey(self):
+        key = '6769'
+        return key
+
+    def getMotive(self):
+        motive = 'Zweit.*Pfizer|Pfizer.*Zweit'
+        return motive
+
+class DE_pfizer3(Builder):
+    def getKey(self):
+        key = None
+        return key
+
+    def getMotive(self):
+        motive = 'Dritt.*Pfizer|Pfizer.*Dritt'
+        return motive
+
+class DE_moderna(Builder):
+    def getKey(self):
+        key = '6936'
+        return key
+
+    def getMotive(self):
+        motive = 'Moderna'
+        return motive
+
+class DE_moderna2(Builder):
+    def getKey(self):
+        key = '6937'
+        return key
+
+    def getMotive(self):
+        motive = 'Zweit.*Moderna|Moderna.*Zweit'
+        return motive
+
+class DE_moderna3(Builder):
+    def getKey(self):
+        key = None
+        return key
+
+    def getMotive(self):
+        motive = 'Dritt.*Moderna|Moderna.*Dritt'
+        return motive
+
+class DE_janssen(Builder):
+    def getKey(self):
+        key = '7978'
+        return key
+
+    def getMotive(self):
+        motive = 'Janssen'
+        return motive
+
+class DE_astrazeneca(Builder):
+    def getKey(self):
+        key = '7109'
+        return key
+
+    def getMotive(self):
+        motive = 'AstraZeneca'
+        return motive
+
+class DE_astrazeneca2(Builder):
+    def getKey(self):
+        key = '7110'
+        return key
+
+    def getMotive(self):
+        motive = 'Zweit.*AstraZeneca|AstraZeneca.*Zweit'
+        return motive
+
+# Vaccines for DoctolibFR
+
+#Concrete builders implement steps defined in the common interface.
+
+class FR_pfizer(Builder):
+    def getKey(self):
+        key = '6970'
+        return key
+
+    def getMotive(self):
+        motive = 'Pfizer'
+        return motive
+
+
+class FR_pfizer2(Builder):
+    def getKey(self):
+        key = '6971'
+        return key
+
+    def getMotive(self):
+        motive = '2de.*Pfizer'
+        return motive
+
+
+class FR_pfizer3(Builder):
+    def getKey(self):
+        key = '8192'
+        return key
+
+    def getMotive(self):
+        motive = '3e.*Pfizer'
+        return motive
+
+
+class FR_moderna(Builder):
+    def getKey(self):
+        key = '7005'
+        return key
+
+    def getMotive(self):
+        motive = 'Moderna'
+        return motive
+
+
+class FR_moderna2(Builder):
+    def getKey(self):
+        key = '7004'
+        return key
+
+    def getMotive(self):
+        motive = '2de.*Moderna'
+        return motive
+
+
+class FR_moderna3(Builder):
+    def getKey(self):
+        key = '8193'
+        return key
+
+    def getMotive(self):
+        motive = '3e.*Moderna'
+        return motive
+
+
+class FR_janssen(Builder):
+    def getKey(self):
+        key = '7945'
+        return key
+
+    def getMotive(self):
+        motive = 'Janssen'
+        return motive
+
+
+class FR_astrazeneca(Builder):
+    def getKey(self):
+        key = '7107'
+        return key
+
+    def getMotive(self):
+        motive = 'AstraZeneca'
+        return motive
+
+
+class FR_astrazeneca2(Builder):
+    def getKey(self):
+        key = '7108'
+        return key
+
+    def getMotive(self):
+        motive = '2de.*AstraZeneca'
+        return motive
 
 class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
