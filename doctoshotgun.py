@@ -32,6 +32,7 @@ SLEEP_INTERVAL_AFTER_LOGIN_ERROR = 10
 SLEEP_INTERVAL_AFTER_CENTER = 1
 SLEEP_INTERVAL_AFTER_RUN = 5
 
+
 try:
     from playsound import playsound as _playsound, PlaysoundException
 
@@ -75,8 +76,9 @@ class Session(cloudscraper.CloudScraper):
 
 
 class LoginPage(JsonPage):
-    def redirect(self):
-        return self.doc['redirection']
+
+        def redirect(self):
+            return self.doc['redirection']
 
 
 class SendAuthCodePage(JsonPage):
@@ -107,7 +109,7 @@ class CentersPage(HTMLPage):
             # JavaScript:
             # var t = (e = r()(e)).data("u")
             #     , n = atob(t.replace(/\s/g, '').split('').reverse().join(''));
-            
+
             import base64
             href = base64.urlsafe_b64decode(''.join(span.attrib['data-u'].split())[::-1]).decode()
             query = dict(parse.parse_qsl(parse.urlsplit(href).query))
@@ -121,7 +123,7 @@ class CentersPage(HTMLPage):
 
             if 'page' in query:
                 return int(query['page'])
-        
+
         return None
 
 class CenterResultPage(JsonPage):
@@ -133,6 +135,8 @@ class CenterPage(HTMLPage):
 
 
 class CenterBookingPage(JsonPage):
+
+
     def find_motive(self, regex, singleShot=False):
         for s in self.doc['data']['visit_motives']:
             # ignore case as some doctors use their own spelling
@@ -171,8 +175,44 @@ class CenterBookingPage(JsonPage):
     def get_profile_id(self):
         return self.doc['data']['profile']['id']
 
+class SingletonMeta(type):
+    """
+    Singleton class implementation
+    """
 
-class AvailabilitiesPage(JsonPage):
+    _instances = {} #instances list
+
+    def __call__(cls, *args, **kwargs): #this call function will be responsible for setting newly declared instances equal to the first instance of the object
+        """
+        Possible changes to the value of the `__init__` argument do not affect
+        the returned instance.
+        """
+        if cls not in cls._instances:
+            instance = super().__call__(*args, **kwargs)
+            cls._instances[cls] = instance
+        return cls._instances[cls]
+
+class AvailabilitiesPage(JsonPage, metaclass=SingletonMeta):
+
+    __shared_instance = 'Singleton'
+
+    @staticmethod
+    def getInstance():
+
+        """Static Access Method"""
+        if AvailabilitiesPage.__shared_instance == 'Singleton':
+            AvailabilitiesPage()
+        return AvailabilitiesPage.__shared_instance
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        """virtual private constructor"""
+        if AvailabilitiesPage.__shared_instance != 'Singleton':
+            raise Exception ("This class is a singleton class !") #exception raised if an object isnt a singleton (has more than one instance.)
+        else:
+            AvailabilitiesPage.__shared_instance = self
+
     def find_best_slot(self, start_date=None, end_date=None):
         for a in self.doc['availabilities']:
             date = parse_date(a['date']).date()
@@ -192,6 +232,7 @@ class AppointmentPage(JsonPage):
 
 
 class AppointmentEditPage(JsonPage):
+
     def get_custom_fields(self):
         for field in self.doc['appointment']['custom_fields']:
             if field['required']:
@@ -213,6 +254,7 @@ class MasterPatientPage(JsonPage):
 class CityNotFound(Exception):
     pass
 
+#singleton global objects
 
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
