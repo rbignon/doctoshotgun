@@ -529,12 +529,13 @@ class Doctolib(LoginBrowser):
 
         self.appointment_edit.go(
             id=a_id, params={'master_patient_id': self.patient['id']})
-        
+
         # use of Adapter
 
         # adapter converts find_best_slot(None,None) into get_custom_fields() and yields the result
         # client makes a request by calling a method of adapter's interface
         # Adapter translates the request into one or more calls to methods of the adaptee's interface
+
 
         custom_fields = {}
         for field in self.page.adaptor.find_best_slot(None, None):
