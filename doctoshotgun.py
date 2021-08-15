@@ -777,56 +777,60 @@ class FR_astrazeneca2(Builder):
         return motive
 
 class DoctolibDE(Doctolib):
-    BASEURL = 'https://www.doctolib.de'
-    KEY_PFIZER = '6768'
-    KEY_PFIZER_SECOND = '6769'
-    KEY_PFIZER_THIRD = None
-    KEY_MODERNA = '6936'
-    KEY_MODERNA_SECOND = '6937'
-    KEY_MODERNA_THIRD = None
-    KEY_JANSSEN = '7978'
-    KEY_ASTRAZENECA = '7109'
-    KEY_ASTRAZENECA_SECOND = '7110'
-    vaccine_motives = {
-        KEY_PFIZER: 'Pfizer',
-        KEY_PFIZER_SECOND: 'Zweit.*Pfizer|Pfizer.*Zweit',
-        KEY_PFIZER_THIRD: 'Dritt.*Pfizer|Pfizer.*Dritt',
-        KEY_MODERNA: 'Moderna',
-        KEY_MODERNA_SECOND: 'Zweit.*Moderna|Moderna.*Zweit',
-        KEY_MODERNA_THIRD: 'Dritt.*Moderna|Moderna.*Dritt',
-        KEY_JANSSEN: 'Janssen',
-        KEY_ASTRAZENECA: 'AstraZeneca',
-        KEY_ASTRAZENECA_SECOND: 'Zweit.*AstraZeneca|AstraZeneca.*Zweit',
-    }
-    centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
-    center = URL(r'/praxis/.*', CenterPage)
+    def __init__(self, pfizer, pfizer2, pfizer3, moderna, moderna2, moderna3, janssen, astrazeneca, astrazeneca2):
+        super().__init__()
+        self.BASEURL = 'https://www.doctolib.de'
+        self.PFIZER = pfizer
+        self.PFIZER_SECOND = pfizer2
+        self.PFIZER_THIRD = pfizer3
+        self.MODERNA = moderna
+        self.MODERNA_SECOND = moderna2
+        self.MODERNA_THIRD = moderna3
+        self.JANSSEN = janssen
+        self.ASTRAZENECA = astrazeneca
+        self.ASTRAZENECA_SECOND = astrazeneca2
+        self.centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
+        self.center = URL(r'/praxis/.*', CenterPage)
+        self.vaccine_motives = {
+            self.PFIZER.key_value: self.PFIZER.motive_info,
+            self.PFIZER_SECOND.key_value: self.PFIZER_SECOND.motive_info,
+            self.PFIZER_THIRD.key_value: self.PFIZER_THIRD.motive_info,
+            self.MODERNA.key_value: self.MODERNA.motive_info,
+            self.MODERNA_SECOND.key_value: self.MODERNA_SECOND.motive_info,
+            self.MODERNA_THIRD.key_value: self.MODERNA_THIRD.motive_info,
+            self.JANSSEN.key_value: self.JANSSEN.motive_info,
+            self.ASTRAZENECA.key_value: self.ASTRAZENECA.motive_info,
+            self.ASTRAZENECA_SECOND.key_value: self.ASTRAZENECA_SECOND.motive_info,
+        }
 
 
 class DoctolibFR(Doctolib):
-    BASEURL = 'https://www.doctolib.fr'
-    KEY_PFIZER = '6970'
-    KEY_PFIZER_SECOND = '6971'
-    KEY_PFIZER_THIRD = '8192'
-    KEY_MODERNA = '7005'
-    KEY_MODERNA_SECOND = '7004'
-    KEY_MODERNA_THIRD = '8193'
-    KEY_JANSSEN = '7945'
-    KEY_ASTRAZENECA = '7107'
-    KEY_ASTRAZENECA_SECOND = '7108'
-    vaccine_motives = {
-        KEY_PFIZER: 'Pfizer',
-        KEY_PFIZER_SECOND: '2de.*Pfizer',
-        KEY_PFIZER_THIRD: '3e.*Pfizer',
-        KEY_MODERNA: 'Moderna',
-        KEY_MODERNA_SECOND: '2de.*Moderna',
-        KEY_MODERNA_THIRD: '3e.*Moderna',
-        KEY_JANSSEN: 'Janssen',
-        KEY_ASTRAZENECA: 'AstraZeneca',
-        KEY_ASTRAZENECA_SECOND: '2de.*AstraZeneca',
-    }
+    def __init__(self, pfizer, pfizer2, pfizer3, moderna, moderna2, moderna3, janssen, astrazeneca, astrazeneca2):
+        super().__init__()
+        self.BASEURL = 'https://www.doctolib.fr'
+        self.PFIZER = pfizer
+        self.PFIZER_SECOND = pfizer2
+        self.PFIZER_THIRD = pfizer3
+        self.MODERNA = moderna
+        self.MODERNA_SECOND = moderna2
+        self.MODERNA_THIRD = moderna3
+        self.JANSSEN = janssen
+        self.ASTRAZENECA = astrazeneca
+        self.ASTRAZENECA_SECOND = astrazeneca2
+        self.centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
+        self.center = URL(r'/centre-de-sante/.*', CenterPage)
+        self.vaccine_motives = {
+            self.PFIZER.key_value: self.PFIZER.motive_info,
+            self.PFIZER_SECOND.key_value: self.PFIZER_SECOND.motive_info,
+            self.PFIZER_THIRD.key_value: self.PFIZER_THIRD.motive_info,
+            self.MODERNA.key_value: self.MODERNA.motive_info,
+            self.MODERNA_SECOND.key_value: self.MODERNA_SECOND.motive_info,
+            self.MODERNA_THIRD.key_value: self.MODERNA_THIRD.motive_info,
+            self.JANSSEN.key_value: self.JANSSEN.motive_info,
+            self.ASTRAZENECA.key_value: self.ASTRAZENECA.motive_info,
+            self.ASTRAZENECA_SECOND.key_value: self.ASTRAZENECA_SECOND.motive_info,
+        }
 
-    centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
-    center = URL(r'/centre-de-sante/.*', CenterPage)
 
 
 class Application:
@@ -848,10 +852,97 @@ class Application:
     def main(self, cli_args=None):
         colorama.init()  # needed for windows
 
+        fr_pfizerBuilder = FR_pfizer()
+        fr_pfizer2Builder = FR_pfizer2()
+        fr_pfizer3Builder = FR_pfizer3()
+        fr_modernaBuilder = FR_moderna()
+        fr_moderna2Builder = FR_moderna2()
+        fr_moderna3Builder = FR_moderna3()
+        fr_janssenBuilder = FR_janssen()
+        fr_astrazenecaBuilder = FR_astrazeneca()
+        fr_astrazeneca2Builder = FR_astrazeneca2()
+
+        de_pfizerBuilder = DE_pfizer()
+        de_pfizer2Builder = DE_pfizer2()
+        de_pfizer3Builder = DE_pfizer3()
+        de_modernaBuilder = DE_moderna()
+        de_moderna2Builder = DE_moderna2()
+        de_moderna3Builder = DE_moderna3()
+        de_janssenBuilder = DE_janssen()
+        de_astrazenecaBuilder = DE_astrazeneca()
+        de_astrazeneca2Builder = DE_astrazeneca2()
+
+        director = Director()
+
+        # Building vaccines for DoctolibFR
+
+        director.setBuilder(fr_pfizerBuilder)
+        fr_pfizer = director.getVaccine()
+
+        director.setBuilder(fr_pfizer2Builder)
+        fr_pfizer2 = director.getVaccine()
+
+        director.setBuilder(fr_pfizer3Builder)
+        fr_pfizer3 = director.getVaccine()
+
+        director.setBuilder(fr_modernaBuilder)
+        fr_moderna = director.getVaccine()
+
+        director.setBuilder(fr_moderna2Builder)
+        fr_moderna2 = director.getVaccine()
+
+        director.setBuilder(fr_moderna3Builder)
+        fr_moderna3 = director.getVaccine()
+
+        director.setBuilder(fr_janssenBuilder)
+        fr_janssen = director.getVaccine()
+
+        director.setBuilder(fr_astrazenecaBuilder)
+        fr_astrazeneca = director.getVaccine()
+
+        director.setBuilder(fr_astrazeneca2Builder)
+        fr_astrazeneca2 = director.getVaccine()
+
+        doctolibFR = DoctolibFR(fr_pfizer, fr_pfizer2, fr_pfizer3, fr_moderna, fr_moderna2,
+                                fr_moderna3, fr_janssen, fr_astrazeneca, fr_astrazeneca2)
+
+        # Building vaccines for DoctolibDE
+
+        director.setBuilder(de_pfizerBuilder)
+        de_pfizer = director.getVaccine()
+
+        director.setBuilder(de_pfizer2Builder)
+        de_pfizer2 = director.getVaccine()
+
+        director.setBuilder(de_pfizer3Builder)
+        de_pfizer3 = director.getVaccine()
+
+        director.setBuilder(de_modernaBuilder)
+        de_moderna = director.getVaccine()
+
+        director.setBuilder(de_moderna2Builder)
+        de_moderna2 = director.getVaccine()
+
+        director.setBuilder(de_moderna3Builder)
+        de_moderna3 = director.getVaccine()
+
+        director.setBuilder(de_janssenBuilder)
+        de_janssen = director.getVaccine()
+
+        director.setBuilder(de_astrazenecaBuilder)
+        de_astrazeneca = director.getVaccine()
+
+        director.setBuilder(de_astrazeneca2Builder)
+        de_astrazeneca2 = director.getVaccine()
+
+        doctolibDE = DoctolibDE(de_pfizer, de_pfizer2, de_pfizer3, de_moderna, de_moderna2,
+                                de_moderna3, de_janssen, de_astrazeneca, de_astrazeneca2)
+
         doctolib_map = {
-            "fr": DoctolibFR,
-            "de": DoctolibDE
+            "fr": doctolibFR,
+            "de": doctolibDE
         }
+
 
         parser = argparse.ArgumentParser(
             description="Book a vaccine slot on Doctolib")
@@ -940,54 +1031,54 @@ class Application:
         motives = []
         if not args.pfizer and not args.moderna and not args.janssen and not args.astrazeneca:
             if args.only_second:
-                motives.append(docto.KEY_PFIZER_SECOND)
-                motives.append(docto.KEY_MODERNA_SECOND)
-                # motives.append(docto.KEY_ASTRAZENECA_SECOND) #do not add AstraZeneca by default
+                motives.append(docto.PFIZER_SECOND.key_value)
+                motives.append(docto.MODERNA_SECOND.key_value)
+                # motives.append(docto.ASTRAZENECA_SECOND.key_value) #do not add AstraZeneca by default
             elif args.only_third:
-                if not docto.KEY_PFIZER_THIRD and not docto.KEY_MODERNA_THIRD:
+                if not docto.PFIZER_THIRD.key_value and not docto.MODERNA_THIRD.key_value:
                     print('Invalid args: No third shot vaccinations in this country')
                     return 1
-                motives.append(docto.KEY_PFIZER_THIRD)
-                motives.append(docto.KEY_MODERNA_THIRD)
+                motives.append(docto.PFIZER_THIRD.key_value)
+                motives.append(docto.KEY_MODERNA_THIRD.key_value)
             else:
-                motives.append(docto.KEY_PFIZER)
-                motives.append(docto.KEY_MODERNA)
-                motives.append(docto.KEY_JANSSEN)
-                # motives.append(docto.KEY_ASTRAZENECA) #do not add AstraZeneca by default
+                motives.append(docto.PFIZER.key_value)
+                motives.append(docto.MODERNA.key_value)
+                motives.append(docto.JANSSEN.key_value)
+                # motives.append(docto.ASTRAZENECA.key_value) #do not add AstraZeneca by default
         if args.pfizer:
             if args.only_second:
-                motives.append(docto.KEY_PFIZER_SECOND)
+                motives.append(docto.PFIZER_SECOND.key_value)
             elif args.only_third:
-                if not docto.KEY_PFIZER_THIRD:  # not available in all countries
+                if not docto.PFIZER_THIRD.key_value:  # not available in all countries
                     print('Invalid args: Pfizer has no third shot in this country')
                     return 1
-                motives.append(docto.KEY_PFIZER_THIRD)
+                motives.append(docto.PFIZER_THIRD.key_value)
             else:
-                motives.append(docto.KEY_PFIZER)
+                motives.append(docto.PFIZER.key_value)
         if args.moderna:
             if args.only_second:
-                motives.append(docto.KEY_MODERNA_SECOND)
+                motives.append(docto.MODERNA_SECOND.key_value)
             elif args.only_third:
-                if not docto.KEY_MODERNA_THIRD:  # not available in all countries
+                if not docto.MODERNA_THIRD.key_value:  # not available in all countries
                     print('Invalid args: Moderna has no third shot in this country')
                     return 1
-                motives.append(docto.KEY_MODERNA_THIRD)
+                motives.append(docto.MODERNA_THIRD.key_value)
             else:
-                motives.append(docto.KEY_MODERNA)
+                motives.append(docto.MODERNA.key_value)
         if args.janssen:
             if args.only_second or args.only_third:
                 print('Invalid args: Janssen has no second or third shot')
                 return 1
             else:
-                motives.append(docto.KEY_JANSSEN)
+                motives.append(docto.JANSSEN.key_value)
         if args.astrazeneca:
             if args.only_second:
-                motives.append(docto.KEY_ASTRAZENECA_SECOND)
+                motives.append(docto.ASTRAZENECA_SECOND.key_value)
             elif args.only_third:
                 print('Invalid args: AstraZeneca has no third shot')
                 return 1
             else:
-                motives.append(docto.KEY_ASTRAZENECA)
+                motives.append(docto.ASTRAZENECA.key_value)
 
         vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
 
