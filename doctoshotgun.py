@@ -547,6 +547,98 @@ class Doctolib(LoginBrowser):
 
         return self.page.doc['confirmed']
 
+# ------ Bridge pattern ------
+
+class View: # View
+    def __init__(self, resource : IResource):
+        self.resource = resource
+    def show(self):
+        pass
+    
+class IResource: # Resource
+    def items (self):
+        pass
+    def name (self):
+        pass
+    def default (self):
+        pass
+    def count (self):
+        pass
+
+# Resources
+class ResourcePfizer(IResource):
+    def __init__(self, docto):
+        self.vax = docto
+    def items (self):
+        return [self.vax.KEY_PFIZER, self.vax.KEY_PFIZER_SECOND, self.vax.KEY_PFIZER_THIRD]
+    def name(self):
+        return 'Moderna'        
+    def default (self):
+        return True
+    def count (self):
+        return len(self.items())    
+class ResourceModerna(IResource):
+    def __init__(self, docto):
+        self.vax = docto
+    def items (self):
+        return [self.vax.KEY_MODERNA, self.vax.KEY_MODERNA_SECOND, self.vax.KEY_MODERNA_THIRD]
+    def name(self):
+        return 'Moderna'        
+    def default (self):
+        return True
+    def count (self):
+        return len(self.items()    
+class ResourceAstra(IResource):
+    def __init__(self, docto):
+        self.vax = docto    
+    def items (self):
+        return [self.vax.KEY_ASTRAZENECA, self.vax.KEY_ASTRAZENECA_SECOND]
+    def name(self):
+        return 'AstraZeneca'
+    def default(self):
+        return False
+    def count (self):
+        return len(self.items())   
+class ResourceJanssen(IResource):
+    def __init__(self, docto):
+        self.vax = docto    
+    def items (self):
+        return [self.vax.KEY_JANSSEN]
+    def name(self):
+        return 'Janssen'
+    def default(self):
+        return True
+    def count (self):
+        return len(self.items())    
+
+# Views
+class ViewDefault(View):
+    def show(self):
+        if self.resource.default():
+            return self.resource.items()[0]
+        else:
+            return []
+class ViewOnlySecond(View):
+    def show(self):
+        if self.resource.count() < 2:
+            print( f'Invalid args: {self.resource.name()} has no second shot')
+            return 1                 
+        else:
+            return self.resource.items()[1]
+class ViewOnlyThird(View):
+    def show(self):
+        if not self.resource.items()[2]:
+            print( f'Invalid args: {self.resource.name()} has no third shot vaccinations in this country')
+            return 1            
+        elif self.resource.count() < 3:
+            print( f'Invalid args: {self.resource.name()} has no third shot')
+            return 1
+        else:
+            return self.resource.items()[2]
+class ViewAll(View):
+    def show(self):
+        return self.resource.items()
+# ------ Bridge pattern ------
 
 class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
@@ -710,57 +802,27 @@ class Application:
             docto.patient = patients[0]
 
         motives = []
+              
         if not args.pfizer and not args.moderna and not args.janssen and not args.astrazeneca:
-            if args.only_second:
-                motives.append(docto.KEY_PFIZER_SECOND)
-                motives.append(docto.KEY_MODERNA_SECOND)
-                # motives.append(docto.KEY_ASTRAZENECA_SECOND) #do not add AstraZeneca by default
-            elif args.only_third:
-                if not docto.KEY_PFIZER_THIRD and not docto.KEY_MODERNA_THIRD:
-                    print('Invalid args: No third shot vaccinations in this country')
-                    return 1
-                motives.append(docto.KEY_PFIZER_THIRD)
-                motives.append(docto.KEY_MODERNA_THIRD)
-            else:
-                motives.append(docto.KEY_PFIZER)
-                motives.append(docto.KEY_MODERNA)
-                motives.append(docto.KEY_JANSSEN)
-                # motives.append(docto.KEY_ASTRAZENECA) #do not add AstraZeneca by default
-        if args.pfizer:
-            if args.only_second:
-                motives.append(docto.KEY_PFIZER_SECOND)
-            elif args.only_third:
-                if not docto.KEY_PFIZER_THIRD:  # not available in all countries
-                    print('Invalid args: Pfizer has no third shot in this country')
-                    return 1
-                motives.append(docto.KEY_PFIZER_THIRD)
-            else:
-                motives.append(docto.KEY_PFIZER)
-        if args.moderna:
-            if args.only_second:
-                motives.append(docto.KEY_MODERNA_SECOND)
-            elif args.only_third:
-                if not docto.KEY_MODERNA_THIRD:  # not available in all countries
-                    print('Invalid args: Moderna has no third shot in this country')
-                    return 1
-                motives.append(docto.KEY_MODERNA_THIRD)
-            else:
-                motives.append(docto.KEY_MODERNA)
-        if args.janssen:
-            if args.only_second or args.only_third:
-                print('Invalid args: Janssen has no second or third shot')
-                return 1
-            else:
-                motives.append(docto.KEY_JANSSEN)
-        if args.astrazeneca:
-            if args.only_second:
-                motives.append(docto.KEY_ASTRAZENECA_SECOND)
-            elif args.only_third:
-                print('Invalid args: AstraZeneca has no third shot')
-                return 1
-            else:
-                motives.append(docto.KEY_ASTRAZENECA)
-
+            motives.extend( ViewDefault(ResourcePfizer(docto)).show() )
+            motives.extend( ViewDefault(ResourceModerna(docto)).show() )
+            motives.extend( ViewDefault(ResourceJanssen(docto)).show() )
+       elif args.only_second:
+            motives.extend( ViewOnlySecond(ResourcePfizer(docto)).show() )
+            motives.extend( ViewOnlySecond(ResourceModerna(docto)).show() )
+            motives.extend( ViewOnlySecond(ResourceAstra(docto)).show() )
+            motives.extend( ViewOnlySecond(ResourceJanssen(docto)).show() )
+       elif args.only_third:
+            motives.extend( ViewOnlyThird(ResourcePfizer(docto)).show() )
+            motives.extend( ViewOnlyThird(ResourceModerna(docto)).show() )
+            motives.extend( ViewOnlyThird(ResourceAstra(docto)).show() )
+            motives.extend( ViewOnlyThird(ResourceJanssen(docto)).show() )
+        else:
+            motives.extend( ViewAll(ResourcePfizer(docto)).show() )
+            motives.extend( ViewAll(ResourceModerna(docto)).show() )
+            motives.extend( ViewAll(ResourceAstra(docto)).show() )
+            motives.extend( ViewAll(ResourceJanssen(docto)).show() )
+                   
         vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
 
         if args.start_date:
