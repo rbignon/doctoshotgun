@@ -201,44 +201,8 @@ class AppointmentEditPage(JsonPage):
 class AppointmentPostPage(JsonPage):
     pass
 
-#class to store patient related information. Patient Account
-class PatientID(JsonPage):
-    def __init__(self, docto = None, patient = None):
-        self.doctovalue = docto
-        self.patientvalue = patient
-        self.fetchpatientdata = getPatient(JsonPage)
 
-    def access_patient(self):
-        patients = self.doctovalue.get_patients()
-        if len(patients) == 0:
-            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
-            return 1
-        if self.patientvalue >= 0 and self.patientvalue < len(patients):
-            self.doctovalue = patients[self.patientvalue]
-        elif len(patients) > 1:
-            print('Available patients are:')
-            for i, patient in enumerate(patients):
-                print('* [%s] %s %s' %
-                      (i, patient['first_name'], patient['last_name']))
-            while True:
-                print('For which patient do you want to book a slot?',
-                      end=' ', flush=True)
-                try:
-                    self.doctovalue.patient = patients[int(sys.stdin.readline().strip())]
-                except (ValueError, IndexError):
-                    continue
-                else:
-                    break
-        else:
-            self.doctovalue.patient = patients[0]
-
-    def get_patients_data(self):
-        return self.fetchpatientdata.get_patients()
-
-    def get_patient_name(self):
-        return self.fetchpatientdata.get_name()
-
-class getPatient(JsonPage):
+class MasterPatientPage(JsonPage):
     def get_patients(self):
         return self.doc
 
@@ -249,25 +213,11 @@ class getPatient(JsonPage):
 class CityNotFound(Exception):
     pass
 
-#aggregate 1: object to store vaccine information
-class VaccineID:
-    def __init__(self):
-        self.keys = []
-        self.values = {}
-    def getKeys(self):
-        return self.values.keys()
-    def getValue(self, key):
-        return self.values[key]
-    def addValue(self, key, value):
-        self.keys.append(key)
-        self.values[key] = value
-
 
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
     BASEURL = ""
-    #store information more efficiently
-    vaccine_motives = VaccineID()
+    vaccine_motives = {}
     centers = URL('')
     center = URL('')
     # common properties
@@ -284,7 +234,7 @@ class Doctolib(LoginBrowser):
         r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
     appointment_post = URL(
         r'/appointments/(?P<id>.+).json', AppointmentPostPage)
-    master_patient = URL(r'/account/master_patients.json', PatientID)
+    master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
 
     def _setup_session(self, profile):
         session = Session()
@@ -343,11 +293,9 @@ class Doctolib(LoginBrowser):
 
         return True
 
-
-
     def find_centers(self, where, motives=None, page=1):
         if motives is None:
-            motives = self.vaccine_motives.getKeys()
+            motives = self.vaccine_motives.keys()
         for city in where:
             try:
                 self.centers.go(where=city, params={
@@ -389,9 +337,8 @@ class Doctolib(LoginBrowser):
 
     def get_patients(self):
         self.master_patient.go()
-        return self.page.get_patients_data()
 
-
+        return self.page.get_patients()
 
     @classmethod
     def normalize(cls, string):
@@ -412,7 +359,7 @@ class Doctolib(LoginBrowser):
         motives_id = dict()
         for vaccine in vaccine_list:
             motives_id[vaccine] = self.page.find_motive(
-                r'.*({})'.format(vaccine), singleShot=(vaccine == self.vaccine_motives.getValue(self.KEY_JANSSEN) or only_second or only_third))
+                r'.*({})'.format(vaccine), singleShot=(vaccine == self.vaccine_motives[self.KEY_JANSSEN] or only_second or only_third))
 
         motives_id = dict((k, v)
                           for k, v in motives_id.items() if v is not None)
@@ -612,17 +559,17 @@ class DoctolibDE(Doctolib):
     KEY_JANSSEN = '7978'
     KEY_ASTRAZENECA = '7109'
     KEY_ASTRAZENECA_SECOND = '7110'
-    #object to hold vaccine info: key and value
-    vaccine_motives = VaccineID()
-    vaccine_motives.addValue(KEY_PFIZER, 'Pfizer')
-    vaccine_motives.addValue(KEY_PFIZER_SECOND, 'Zweit.*Pfizer|Pfizer.*Zweit')
-    vaccine_motives.addValue(KEY_PFIZER_THIRD, 'Dritt.*Pfizer|Pfizer.*Dritt')
-    vaccine_motives.addValue(KEY_MODERNA, 'Moderna')
-    vaccine_motives.addValue(KEY_MODERNA_SECOND, 'Zweit.*Moderna|Moderna.*Zweit')
-    vaccine_motives.addValue(KEY_MODERNA_THIRD, 'Dritt.*Moderna|Moderna.*Dritt')
-    vaccine_motives.addValue(KEY_JANSSEN, 'Janssen')
-    vaccine_motives.addValue(KEY_ASTRAZENECA, 'AstraZeneca')
-    vaccine_motives.addValue(KEY_ASTRAZENECA_SECOND, 'Zweit.*AstraZeneca|AstraZeneca.*Zweit')
+    vaccine_motives = {
+        KEY_PFIZER: 'Pfizer',
+        KEY_PFIZER_SECOND: 'Zweit.*Pfizer|Pfizer.*Zweit',
+        KEY_PFIZER_THIRD: 'Dritt.*Pfizer|Pfizer.*Dritt',
+        KEY_MODERNA: 'Moderna',
+        KEY_MODERNA_SECOND: 'Zweit.*Moderna|Moderna.*Zweit',
+        KEY_MODERNA_THIRD: 'Dritt.*Moderna|Moderna.*Dritt',
+        KEY_JANSSEN: 'Janssen',
+        KEY_ASTRAZENECA: 'AstraZeneca',
+        KEY_ASTRAZENECA_SECOND: 'Zweit.*AstraZeneca|AstraZeneca.*Zweit',
+    }
     centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
     center = URL(r'/praxis/.*', CenterPage)
 
@@ -638,21 +585,20 @@ class DoctolibFR(Doctolib):
     KEY_JANSSEN = '7945'
     KEY_ASTRAZENECA = '7107'
     KEY_ASTRAZENECA_SECOND = '7108'
-
-    vaccine_motives = VaccineID()
-    vaccine_motives.addValue(KEY_PFIZER, 'Pfizer')
-    vaccine_motives.addValue(KEY_PFIZER_SECOND, '2de.*Pfizer')
-    vaccine_motives.addValue(KEY_PFIZER_THIRD, '3e.*Pfizer')
-    vaccine_motives.addValue(KEY_MODERNA, 'Moderna')
-    vaccine_motives.addValue(KEY_MODERNA_SECOND, '2de.*Moderna')
-    vaccine_motives.addValue(KEY_MODERNA_THIRD, '3e.*Moderna')
-    vaccine_motives.addValue(KEY_JANSSEN, 'Janssen')
-    vaccine_motives.addValue(KEY_ASTRAZENECA, 'AstraZeneca')
-    vaccine_motives.addValue(KEY_ASTRAZENECA_SECOND, '2de.*AstraZeneca')
+    vaccine_motives = {
+        KEY_PFIZER: 'Pfizer',
+        KEY_PFIZER_SECOND: '2de.*Pfizer',
+        KEY_PFIZER_THIRD: '3e.*Pfizer',
+        KEY_MODERNA: 'Moderna',
+        KEY_MODERNA_SECOND: '2de.*Moderna',
+        KEY_MODERNA_THIRD: '3e.*Moderna',
+        KEY_JANSSEN: 'Janssen',
+        KEY_ASTRAZENECA: 'AstraZeneca',
+        KEY_ASTRAZENECA_SECOND: '2de.*AstraZeneca',
+    }
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
-
 
 
 class Application:
@@ -740,9 +686,28 @@ class Application:
         if not docto.do_login(args.code):
             return 1
 
-        # create an object for Patient
-        patient_access = PatientID()
-        patient_access.access_patient()
+        patients = docto.get_patients()
+        if len(patients) == 0:
+            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
+            return 1
+        if args.patient >= 0 and args.patient < len(patients):
+            docto.patient = patients[args.patient]
+        elif len(patients) > 1:
+            print('Available patients are:')
+            for i, patient in enumerate(patients):
+                print('* [%s] %s %s' %
+                      (i, patient['first_name'], patient['last_name']))
+            while True:
+                print('For which patient do you want to book a slot?',
+                      end=' ', flush=True)
+                try:
+                    docto.patient = patients[int(sys.stdin.readline().strip())]
+                except (ValueError, IndexError):
+                    continue
+                else:
+                    break
+        else:
+            docto.patient = patients[0]
 
         motives = []
         if not args.pfizer and not args.moderna and not args.janssen and not args.astrazeneca:
@@ -796,7 +761,7 @@ class Application:
             else:
                 motives.append(docto.KEY_ASTRAZENECA)
 
-        vaccine_list = [docto.vaccine_motives.getValue(motive) for motive in motives]
+        vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
 
         if args.start_date:
             try:
