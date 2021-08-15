@@ -91,7 +91,7 @@ class ChallengePage(JsonPage):
     def build_doc(self, content):
         return ""  # Do not choke on empty response from server
 
-
+##test
 class CentersPage(HTMLPage):
     def iter_centers_ids(self):
         for div in self.doc.xpath('//div[@class="js-dl-search-results-calendar"]'):
