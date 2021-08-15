@@ -296,6 +296,8 @@ class vaccine_astrazeneca(Vaccine_type):
         self.objects += new_objects   
 
 
+vaccine = Vaccine_type()
+dosenumber = Dosenumber()
 
 
 class Doctolib(LoginBrowser):
