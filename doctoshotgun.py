@@ -358,7 +358,7 @@ class Vaccine():
         vaccines_data = [self.vaccine_list, self.motives]
         return vaccines_data
 
-
+"""
 class Patient:
 
     def getpatient(self, docto, args):
@@ -388,7 +388,7 @@ class Patient:
             docto.patient = patients[0]
         return docto.patient
 
-
+"""
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
     BASEURL = ""
