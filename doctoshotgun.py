@@ -91,6 +91,28 @@ class ChallengePage(JsonPage):
 
 
 class CentersPage(HTMLPage):
+
+    _instance = None
+
+    @staticmethod
+
+    def get_instance():
+        if CentersPage._instance == None:
+            with threading.Lock():
+                if CentersPage._instance == None:
+                   CentersPage("set the centers page")
+        return CentersPage._instance
+    
+    ## constructor
+    def _init_(self):
+        if CentersPage._instance == None:
+            self.HTMLpage = HTMLPage
+            CentersPage._instance = self
+        else:
+            raise Exception("Error in creating another instance under a Singleton design pattern because one other CentersPage instance already exists ")
+
+
+
     def iter_centers_ids(self):
         for div in self.doc.xpath('//div[@class="js-dl-search-results-calendar"]'):
             data = json.loads(div.attrib['data-props'])
