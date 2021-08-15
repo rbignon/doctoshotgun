@@ -883,7 +883,7 @@ class IBuilder(metaclass=ABCMeta):
     def build_datetimeVaccine():
         "The date and time of the vaccine"
 
-   @staticmethod
+    @staticmethod
     @abstractmethod
     def build_locationVaccine():
         "The location of the vaccination"
