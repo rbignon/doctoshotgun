@@ -182,28 +182,6 @@ class AvailabilitiesPage(JsonPage):
                 continue
             return a['slots'][-1]
 
-class Appointment(JsonPage):
-
-    def AppointmentEditPage(self):
-        for field in self.doc['appointment']['custom_fields']:
-            if field['required']:
-                yield field
-    
-    def AppointmentPostPage(self):
-        pass
-
-    def __init__(self):
-        self.appointment_edit = URL(r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
-        self.appointment_post = URL(r'/appointments/(?P<id>.+).json', AppointmentPostPage)
-
-        appointment = {'profile_id': profile_id,
-                       'source_action': 'profile',
-                       'start_date': first_date,
-                       'visit_motive_ids': str(motive_id),
-                       }
-
-ApAccess = Appointment()
-
 
 class AppointmentPage(JsonPage):
     def get_error(self):
@@ -213,7 +191,15 @@ class AppointmentPage(JsonPage):
         return 'error' in self.doc
 
 
+class AppointmentEditPage(JsonPage):
+    def get_custom_fields(self):
+        for field in self.doc['appointment']['custom_fields']:
+            if field['required']:
+                yield field
 
+
+class AppointmentPostPage(JsonPage):
+    pass
 
 
 class MasterPatientPage(JsonPage):
@@ -227,33 +213,6 @@ class MasterPatientPage(JsonPage):
 class CityNotFound(Exception):
     pass
 
-class Vaccine_Center:
-    
-    def _init_(self, Results: URL, center_Booking : URL):
-        self.BASEURL = ""
-        self.vaccine_motives = {}
-        self.centers = URL('')
-        self.center = URL('')
-        self.Results = Results
-        self.center_Booking = center_Booking
-    
-    def change_BASEURL(self, BASEURL: URL):
-        self.BASEURL = BASEURL
-    
-    def change_VaccineMotives(self, vaccine_motives: dict()):
-        self.vaccine_motives = vaccine_motives
-    
-    def changeCenters(self,centers: URL):
-        self.centers = centers
-
-    def changeCenter(self,center: URL):
-        self.center = center
-
-    def changeCenterResults(self,Results: URL):
-        self.Results = Results
-
-    def changeCenterBooking(self,center_Booking: URL):
-        self.center_Booking = center_Booking
 
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
@@ -261,10 +220,6 @@ class Doctolib(LoginBrowser):
     vaccine_motives = {}
     centers = URL('')
     center = URL('')
-    # The aggregate root of the newly defined Aggegate Vaccine_Center
-    vac_C = Vaccine_Center(URL(r'/search_results/(?P<id>\d+).json', CenterResultPage), URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage))
-    center_result = vac_C.Results
-    center_booking = vac_C.center_Booking
     # common properties
     login = URL('/login.json', LoginPage)
     send_auth_code = URL('/api/accounts/send_auth_code', SendAuthCodePage)
@@ -275,10 +230,10 @@ class Doctolib(LoginBrowser):
     second_shot_availabilities = URL(
         r'/second_shot_availabilities.json', AvailabilitiesPage)
     appointment = URL(r'/appointments.json', AppointmentPage)
-    #appointment_edit = URL(
-    #    r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
-    #appointment_post = URL(
-    #    r'/appointments/(?P<id>.+).json', AppointmentPostPage)
+    appointment_edit = URL(
+        r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
+    appointment_post = URL(
+        r'/appointments/(?P<id>.+).json', AppointmentPostPage)
     master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
 
     def _setup_session(self, profile):
@@ -380,10 +335,10 @@ class Doctolib(LoginBrowser):
                 for center in self.find_centers(where, motives, next_page):
                     yield center
 
-    def new_patients(self):
+    def get_patients(self):
         self.master_patient.go()
 
-        return self.page.new_patients()
+        return self.page.get_patients()
 
     @classmethod
     def normalize(cls, string):
@@ -480,13 +435,11 @@ class Doctolib(LoginBrowser):
         log('  ├╴ Best slot found: %s', parse_date(
             slot_date_first).strftime('%c'))
 
-        #appointment = {'profile_id':    profile_id,
-        #               'source_action': 'profile',
-        #               'start_date':    slot_date_first,
-        #               'visit_motive_ids': str(motive_id),
-        #               }
-        
-        appointment = ApAccess.appointment
+        appointment = {'profile_id':    profile_id,
+                       'source_action': 'profile',
+                       'start_date':    slot_date_first,
+                       'visit_motive_ids': str(motive_id),
+                       }
 
         data = {'agenda_ids': '-'.join(agenda_ids),
                 'appointment': appointment,
@@ -496,8 +449,6 @@ class Doctolib(LoginBrowser):
             'content-type': 'application/json',
         }
         self.appointment.go(data=json.dumps(data), headers=headers)
-
-        
 
         if self.page.is_error():
             log('  └╴ Appointment not available anymore :( %s', self.page.get_error())
@@ -596,39 +547,6 @@ class Doctolib(LoginBrowser):
 
         return self.page.doc['confirmed']
 
-class Patient:
-    def new_patients(self):
-        self.master_patient.go()
-
-        return self.page.new_patients()
-
-    def newPatients(self, args.patient, patients):
-        patients = docto.new_patients()
-    
-        if len(patients) == 0:
-            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
-            return 1
-        
-        if args.patient >= 0 and args.patient < len(patients):
-            docto.patient = patients[args.patient]
-        
-        elif len(patients) > 1:
-            print('Available patients are:')
-            for i, patient in enumerate(patients):
-                print('* [%s] %s %s' %
-                      (i, patient['first_name'], patient['last_name']))
-            while True:
-                print('For which patient do you want to book a slot?',
-                      end=' ', flush=True)
-                try:
-                    docto.patient = patients[int(sys.stdin.readline().strip())]
-                except (ValueError, IndexError):
-                    continue
-                else:
-                    break
-        else:
-            docto.patient = patients[0]
-        
 
 class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
@@ -654,7 +572,6 @@ class DoctolibDE(Doctolib):
     }
     centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
     center = URL(r'/praxis/.*', CenterPage)
-    Vaccine_Center(URL(''), URL(''))
 
 
 class DoctolibFR(Doctolib):
@@ -682,7 +599,6 @@ class DoctolibFR(Doctolib):
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
-    Vaccine_Center(URL(''), URL(''))
 
 
 class Application:
