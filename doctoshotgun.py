@@ -358,37 +358,7 @@ class Vaccine():
         vaccines_data = [self.vaccine_list, self.motives]
         return vaccines_data
 
-"""
-class Patient:
 
-    def getpatient(self, docto, args):
-
-        patients = docto.get_patients()
-        if len(patients) == 0:
-            print(
-                "It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
-            return 1
-        if args.patient >= 0 and args.patient < len(patients):
-            docto.patient = patients[args.patient]
-        elif len(patients) > 1:
-            print('Available patients are:')
-            for i, patient in enumerate(patients):
-                print('* [%s] %s %s' %
-                      (i, patient['first_name'], patient['last_name']))
-            while True:
-                print('For which patient do you want to book a slot?',
-                      end=' ', flush=True)
-                try:
-                    docto.patient = patients[int(sys.stdin.readline().strip())]
-                except (ValueError, IndexError):
-                    continue
-                else:
-                    break
-        else:
-            docto.patient = patients[0]
-        return docto.patient
-
-"""
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
     BASEURL = ""
