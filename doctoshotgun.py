@@ -571,6 +571,15 @@ class Doctolib(LoginBrowser):
 
         return self.page.doc['confirmed']
 
+class ListofVaccine(metaclass=ABCMeta):
+
+    @staticmethod
+    @abstractmethod
+    
+    def request(self, motives, docto):
+        pass
+
+
 
 class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
