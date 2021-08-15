@@ -600,6 +600,26 @@ class DoctolibFR(Doctolib):
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
 
+class DocToLibLangMap:
+    def __init__(self):
+        self.children = {}
+    
+    def add(self, language, child):
+        if child not in self.children:
+            self.children.[language] = child
+
+    def remove(self, language):
+        if child in self.children:
+            self.children.pop(language)
+
+    def get(self, language):
+        if language not in self.children:
+            raise Exception("Language not configured")
+
+        return self.children[language]
+
+    def get_keys(self):
+        return self.children.keys()
 
 class Application:
     @classmethod
@@ -619,11 +639,9 @@ class Application:
 
     def main(self, cli_args=None):
         colorama.init()  # needed for windows
-
-        doctolib_map = {
-            "fr": DoctolibFR,
-            "de": DoctolibDE
-        }
+        doc_to_lib_mapper = DocToLibLangMap()
+        doc_to_lib_mapper.add("fe", DoctolibFR())
+        doc_to_lib_mapper.add("de", DoctolibDE())
 
         parser = argparse.ArgumentParser(
             description="Book a vaccine slot on Doctolib")
@@ -662,7 +680,7 @@ class Application:
         parser.add_argument('--dry-run', action='store_true',
                             help='do not really book the slot')
         parser.add_argument(
-            'country', help='country where to book', choices=list(doctolib_map.keys()))
+            'country', help='country where to book', choices=list(doc_to_lib_mapper.get_keys()))
         parser.add_argument('city', help='city where to book')
         parser.add_argument('username', help='Doctolib username')
         parser.add_argument('password', nargs='?', help='Doctolib password')
@@ -681,7 +699,7 @@ class Application:
         if not args.password:
             args.password = getpass.getpass()
 
-        docto = doctolib_map[args.country](
+        docto = doc_to_lib_mapper.get(args.country)(
             args.username, args.password, responses_dirname=responses_dirname)
         if not docto.do_login(args.code):
             return 1
