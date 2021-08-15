@@ -640,8 +640,8 @@ class Application:
     def main(self, cli_args=None):
         colorama.init()  # needed for windows
         doc_to_lib_mapper = DocToLibLangMap()
-        doc_to_lib_mapper.add("fe", DoctolibFR())
-        doc_to_lib_mapper.add("de", DoctolibDE())
+        doc_to_lib_mapper.add("fe", DoctolibFR)
+        doc_to_lib_mapper.add("de", DoctolibDE)
 
         parser = argparse.ArgumentParser(
             description="Book a vaccine slot on Doctolib")
