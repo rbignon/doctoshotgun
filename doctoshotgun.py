@@ -10,7 +10,7 @@ import datetime
 import argparse
 import getpass
 import unicodedata
-
+from abc import ABCMeta, abstractmetho
 from dateutil.parser import parse as parse_date
 from dateutil.relativedelta import relativedelta
 
@@ -547,6 +547,28 @@ class Doctolib(LoginBrowser):
 
         return self.page.doc['confirmed']
 
+class IVaccineList(metaclass=ABCMeta):
+    # vaccine_list_adapter_object = VaccineList(Original_code())
+    # vaccine_list = vaccine_list_adapter_object.request(motives, docto)
+    @staticmethod
+    @abstractmethod
+    def request(self, motives, docto):
+        pass
+
+class VaccineList(IVaccineList):
+
+    def __init__(self, adaptee_obj):
+        self.vaccine_list = adaptee_obj
+
+    # Pull out specific requirements for vaccines
+    def request(self, motives, docto):
+        return self.vaccine_list.specificRequest(motives, docto)
+
+# Write the original code into the object method
+class Original_code:
+    def specificRequest(self, motives, docto):
+        return [docto.vaccine_motives[motive] for motive in motives]
+
 
 class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
@@ -761,7 +783,9 @@ class Application:
             else:
                 motives.append(docto.KEY_ASTRAZENECA)
 
-        vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
+        # add
+        vaccine_list_adapter_object = VaccineList(Original_code())
+        vaccine_list = vaccine_list_adapter_object.request(motives, docto)
 
         if args.start_date:
             try:
