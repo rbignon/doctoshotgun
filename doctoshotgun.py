@@ -576,8 +576,22 @@ class ListofVaccine(metaclass=ABCMeta):
     @staticmethod
     @abstractmethod
     
-    def request(self, motives, docto):
+    def appeal(self, motives, docto):
         pass
+
+class VaccineList(ListofVaccine):
+
+    def __init__(self, adapterObject):
+        self.vaccine_list = adapterObject
+
+    # Make a list of particular vaccine requirements.
+    def appeal(self, motives, docto):
+        return self.vaccine_list.this_request(motives,docto)
+
+# Into the object method
+class Adapter:
+    def this_request(self, motives, docto):
+        return [docto.vaccine_motives[motive] for motive in motives]
 
 
 
