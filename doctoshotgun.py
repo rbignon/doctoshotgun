@@ -3,6 +3,7 @@ import sys
 import re
 import logging
 import tempfile
+import time
 from time import sleep
 import json
 from urllib.parse import urlparse
@@ -34,6 +35,7 @@ SLEEP_INTERVAL_AFTER_RUN = 5
 
 try:
     from playsound import playsound as _playsound, PlaysoundException
+
 
     def playsound(*args):
         try:
@@ -74,8 +76,32 @@ class Session(cloudscraper.CloudScraper):
         return callback(self, resp)
 
 
+# factory
+from abc import abstractmethod, ABCMeta
+
+
+class PageFactory(metaclass=ABCMeta):
+    def create_page(self):
+        pass
+
+
+class LoginPageFactory(PageFactory):
+    def create_page(self):
+        return LoginPage()
+
+
+class SendAuthCodePageFactory(PageFactory):
+    def create_page(self):
+        return SendAuthCodePageFactory()
+
+
+class ChallengePageFactory(PageFactory):
+    def create_page(self):
+        return ChallengePage()
+
+
 class LoginPage(JsonPage):
-    def redirect(self):
+    def redidrect(self):
         return self.doc['redirection']
 
 
@@ -107,7 +133,7 @@ class CentersPage(HTMLPage):
             # JavaScript:
             # var t = (e = r()(e)).data("u")
             #     , n = atob(t.replace(/\s/g, '').split('').reverse().join(''));
-            
+
             import base64
             href = base64.urlsafe_b64decode(''.join(span.attrib['data-u'].split())[::-1]).decode()
             query = dict(parse.parse_qsl(parse.urlsplit(href).query))
@@ -121,8 +147,9 @@ class CentersPage(HTMLPage):
 
             if 'page' in query:
                 return int(query['page'])
-        
+
         return None
+
 
 class CenterResultPage(JsonPage):
     pass
@@ -162,8 +189,8 @@ class CenterBookingPage(JsonPage):
         agenda_ids = []
         for a in self.doc['data']['agendas']:
             if motive_id in a['visit_motive_ids'] and \
-               not a['booking_disabled'] and \
-               (not practice_id or a['practice_id'] == practice_id):
+                    not a['booking_disabled'] and \
+                    (not practice_id or a['practice_id'] == practice_id):
                 agenda_ids.append(str(a['id']))
 
         return agenda_ids
@@ -213,8 +240,37 @@ class MasterPatientPage(JsonPage):
 class CityNotFound(Exception):
     pass
 
-class User(LoginBrowser):
+
+class Doctolib(LoginBrowser):
+    __instance = None
+
+    # sington
+    def __new__(cls, *args, **kwargs):
+        if cls.__instance:
+            return cls.__instance
+        else:
+            cls.__instance = Doctolib()
+
+    # individual properties for each country. To be defined in subclasses
+    BASEURL = ""
+    vaccine_motives = {}
+    centers = URL('')
+    center = URL('')
+    # common properties
     login = URL('/login.json', LoginPage)
+    send_auth_code = URL('/api/accounts/send_auth_code', SendAuthCodePage)
+    challenge = URL('/login/challenge', ChallengePage)
+    center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
+    center_booking = URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage)
+    availabilities = URL(r'/availabilities.json', AvailabilitiesPage)
+    second_shot_availabilities = URL(
+        r'/second_shot_availabilities.json', AvailabilitiesPage)
+    appointment = URL(r'/appointments.json', AppointmentPage)
+    appointment_edit = URL(
+        r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
+    appointment_post = URL(
+        r'/appointments/(?P<id>.+).json', AppointmentPostPage)
+    master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
 
     def _setup_session(self, profile):
         session = Session()
@@ -233,9 +289,11 @@ class User(LoginBrowser):
         self.session.headers[
             'User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'
 
-    def do_login(self, code,baseurl):
+        self.patient = None
+
+    def do_login(self, code):
         try:
-            self.open(baseurl + '/sessions/new')
+            self.open(self.BASEURL + '/sessions/new')
         except ServerError as e:
             if e.response.status_code in [503] \
                     and 'text/html' in e.response.headers['Content-Type'] \
@@ -259,8 +317,7 @@ class User(LoginBrowser):
             print("Requesting 2fa code...")
             if not code:
                 if not sys.__stdin__.isatty():
-                    log(
-                        "Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.",
+                    log("Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.",
                         color='red')
                     return False
                 self.send_auth_code.go(
@@ -275,60 +332,18 @@ class User(LoginBrowser):
 
         return True
 
-class Doctolib(LoginBrowser):
-    # individual properties for each country. To be defined in subclasses
-    BASEURL = ""
-    vaccine_motives = {}
-    centers = URL('')
-    center = URL('')
-    # common properties
-    login = URL('/login.json', LoginPage)
-    send_auth_code = URL('/api/accounts/send_auth_code', SendAuthCodePage)
-    challenge = URL('/login/challenge', ChallengePage)
-    center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
-    center_booking = URL(r'/booking/(?P<center_id>.+).json', CenterBookingPage)
-    availabilities = URL(r'/availabilities.json', AvailabilitiesPage)
-    second_shot_availabilities = URL(
-        r'/second_shot_availabilities.json', AvailabilitiesPage)
-    appointment = URL(r'/appointments.json', AppointmentPage)
-    appointment_edit = URL(
-        r'/appointments/(?P<id>.+)/edit.json', AppointmentEditPage)
-    appointment_post = URL(
-        r'/appointments/(?P<id>.+).json', AppointmentPostPage)
-    master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
-    user=User("name","password")
-
-    def _setup_session(self, profile):
-        session = Session()
-
-        session.hooks['response'].append(self.set_normalized_url)
-        if self.responses_dirname is not None:
-            session.hooks['response'].append(self.save_response)
-
-        self.session = session
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.session.headers['sec-fetch-dest'] = 'document'
-        self.session.headers['sec-fetch-mode'] = 'navigate'
-        self.session.headers['sec-fetch-site'] = 'same-origin'
-        self.session.headers['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'
-
-        self.patient = None
-        self.user=User(*args, **kwargs)
-
     def find_centers(self, where, motives=None, page=1):
         if motives is None:
             motives = self.vaccine_motives.keys()
         for city in where:
             try:
                 self.centers.go(where=city, params={
-                                'ref_visit_motive_ids[]': motives, 'page': page})
+                    'ref_visit_motive_ids[]': motives, 'page': page})
             except ServerError as e:
                 if e.response.status_code in [503]:
                     if 'text/html' in e.response.headers['Content-Type'] \
-                        and ('cloudflare' in e.response.text or
-                             'Checking your browser before accessing' in e .response.text):
+                            and ('cloudflare' in e.response.text or
+                                 'Checking your browser before accessing' in e.response.text):
                         log('Request blocked by CloudFlare', color='red')
                     return
                 if e.response.status_code in [520]:
@@ -383,7 +398,8 @@ class Doctolib(LoginBrowser):
         motives_id = dict()
         for vaccine in vaccine_list:
             motives_id[vaccine] = self.page.find_motive(
-                r'.*({})'.format(vaccine), singleShot=(vaccine == self.vaccine_motives[self.KEY_JANSSEN] or only_second or only_third))
+                r'.*({})'.format(vaccine),
+                singleShot=(vaccine == self.vaccine_motives[self.KEY_JANSSEN] or only_second or only_third))
 
         motives_id = dict((k, v)
                           for k, v in motives_id.items() if v is not None)
@@ -403,12 +419,14 @@ class Doctolib(LoginBrowser):
                     # do not filter to give a chance
                     agenda_ids = center_page.get_agenda_ids(motive_id)
 
-                if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, vac_name.lower(), start_date, end_date, only_second, only_third, dry_run):
+                if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, vac_name.lower(), start_date,
+                                          end_date, only_second, only_third, dry_run):
                     return True
 
         return False
 
-    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, vac_name, start_date, end_date, only_second, only_third, dry_run=False):
+    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, vac_name, start_date, end_date,
+                          only_second, only_third, dry_run=False):
         date = start_date.strftime('%Y-%m-%d')
         while date is not None:
             self.availabilities.go(
@@ -459,9 +477,9 @@ class Doctolib(LoginBrowser):
         log('  ├╴ Best slot found: %s', parse_date(
             slot_date_first).strftime('%c'))
 
-        appointment = {'profile_id':    profile_id,
+        appointment = {'profile_id': profile_id,
                        'source_action': 'profile',
-                       'start_date':    slot_date_first,
+                       'start_date': slot_date_first,
                        'visit_motive_ids': str(motive_id),
                        }
 
@@ -623,8 +641,19 @@ class DoctolibFR(Doctolib):
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
-class Parser:
 
+
+class MyLog():
+    def __init__(self, application):
+        self._application = application
+
+    def main_decorator(self):
+        print('start main ,time is' + time.ctime())
+        self._application.main()
+        print('main stop ,time is ' + time.ctime())
+
+
+class Application:
     @classmethod
     def create_default_logger(cls):
         # stderr logger
@@ -640,7 +669,9 @@ class Parser:
         logging.root.setLevel(level)
         logging.root.addHandler(self.create_default_logger())
 
-    def argument_parser(self,cli_args):
+    def main(self, cli_args=None):
+        colorama.init()  # needed for windows
+
         doctolib_map = {
             "fr": DoctolibFR,
             "de": DoctolibDE
@@ -704,16 +735,13 @@ class Parser:
 
         docto = doctolib_map[args.country](
             args.username, args.password, responses_dirname=responses_dirname)
-        url_map = {
-            "fr": 'https://www.doctolib.fr',
-            "de": 'https://www.doctolib.de'
-        }
-        if not docto.user.do_login(args.code,url_map[args.country]):
+        if not docto.do_login(args.code):
             return 1
 
         patients = docto.get_patients()
         if len(patients) == 0:
-            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
+            print(
+                "It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
             return 1
         if args.patient >= 0 and args.patient < len(patients):
             docto.patient = patients[args.patient]
@@ -855,7 +883,8 @@ class Parser:
 
                     log('Center %(name_with_title)s (%(city)s):' % center)
 
-                    if docto.try_to_book(center, vaccine_list, start_date, end_date, args.only_second, args.only_third, args.dry_run):
+                    if docto.try_to_book(center, vaccine_list, start_date, end_date, args.only_second, args.only_third,
+                                         args.dry_run):
                         log('')
                         log('💉 %s Congratulations.' %
                             colored('Booked!', 'green', attrs=('bold',)))
@@ -864,7 +893,8 @@ class Parser:
                     sleep(SLEEP_INTERVAL_AFTER_CENTER)
 
                     log('')
-                log('No free slots found at selected centers. Trying another round in %s sec...', SLEEP_INTERVAL_AFTER_RUN)
+                log('No free slots found at selected centers. Trying another round in %s sec...',
+                    SLEEP_INTERVAL_AFTER_RUN)
                 sleep(SLEEP_INTERVAL_AFTER_RUN)
             except CityNotFound as e:
                 print('\n%s: City %s not found. Make sure you selected a city from the available countries.' % (
@@ -883,18 +913,13 @@ class Parser:
         return 0
 
 
-class Application:
-
-    def main(self, cli_args=None):
-        colorama.init()  # needed for windows
-        parser=Parser()
-        parser.argument_parser(cli_args)
-
-
-
 if __name__ == '__main__':
     try:
-        sys.exit(Application().main())
+        # sys.exit(Application().main())
+        application = Application()
+        mylog_application = MyLog(application)
+        sys.exit(mylog_application.main_decorator())
+        # sys.exit(Application().main())
     except KeyboardInterrupt:
         print('Abort.')
         sys.exit(1)
