@@ -44,22 +44,39 @@ except ImportError:
     def playsound(*args):
         pass
 
+class LogIn:
+    TEXT = None
+    ARGS = None
+    KWARGS = None 
 
-def log(text, *args, **kwargs):
-    args = (colored(arg, 'yellow') for arg in args)
-    if 'color' in kwargs:
-        text = colored(text, kwargs.pop('color'))
-    text = text % tuple(args)
-    print(text, **kwargs)
+    def __init__(self, text, args, kwargs):
+        self.TEXT = text
+        self.ARGS = args
+        self.KWARGS = kwargs
+    
+    def get_text(self):
+        return self.TEXT
+    
+    def get_args(self):
+        return self.ARGS
 
+    def get_kwargs(self):
+        return self.KWARGS
+    
+    def log(text, *args, **kwargs):
+        args = (colored(arg, 'yellow') for arg in args)
+        if 'color' in kwargs:
+            text = colored(text, kwargs.pop('color'))
+        text = text % tuple(args)
+        print(text, **kwargs)
 
-def log_ts(text=None, *args, **kwargs):
-    ''' Log with timestamp'''
-    now = datetime.datetime.now()
-    print("[%s]" % now.isoformat(" ", "seconds"))
-    if text:
-        log(text, *args, **kwargs)
-
+class LogInTimeStamp(LogIn):
+    def log_ts(text, *args, **kwargs):
+        ''' Log with timestamp'''
+        now = datetime.datetime.now()
+        print("[%s]" % now.isoformat(" ", "seconds"))
+        if text:
+            log(text, *args, **kwargs)
 
 class Session(cloudscraper.CloudScraper):
     def send(self, *args, **kwargs):
