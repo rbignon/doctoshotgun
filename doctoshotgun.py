@@ -602,6 +602,21 @@ class DoctolibFR(Doctolib):
 
 
 class Application:
+    __instance = None
+
+    @staticmethod
+    def get_instance():
+        if Application.__instance is None:
+            Application()
+
+        return Application.__instance
+
+    def __init__(self):
+        if Application.__instance is None:
+            Application.__instance = self
+        else:
+            raise Exception("The application class constructor can not be called more than once, as it is a Singleton")
+
     @classmethod
     def create_default_logger(cls):
         # stderr logger
@@ -860,7 +875,7 @@ class Application:
 
 if __name__ == '__main__':
     try:
-        sys.exit(Application().main())
+        sys.exit(Application.get_instance().main())
     except KeyboardInterrupt:
         print('Abort.')
         sys.exit(1)
