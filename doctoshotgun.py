@@ -10,7 +10,7 @@ import datetime
 import argparse
 import getpass
 import unicodedata
-
+from abc import ABCMeta, abstractmetho
 from dateutil.parser import parse as parse_date
 from dateutil.relativedelta import relativedelta
 
@@ -546,6 +546,79 @@ class Doctolib(LoginBrowser):
         log('  └╴ Booking status: %s', self.page.doc['confirmed'])
 
         return self.page.doc['confirmed']
+
+class IBuilder(metaclass=ABCMeta):
+
+    @staticmethod
+    @abstractmethod
+    def build_PFIZER():
+        "PFIZER"
+
+    @staticmethod
+    @abstractmethod
+    def build_MODERNA():
+        "MODERNA"
+
+    @staticmethod
+    @abstractmethod
+    def build_ASTRAZENECA():
+        "ASTRAZENECA"
+
+    @staticmethod
+    @abstractmethod
+    def build_JANSSEN():
+        "JANSSEN"
+
+    # @staticmethod
+    @staticmethod
+    # @abstractmethod
+    @abstractmethod
+    def get_result():
+        "Vaccine"
+
+
+# Create a new class on the basis of the above-mentioned existing class
+class Builder(IBuilder):
+
+    def build_PFIZER(self):
+        self.product.parts.append('PFIZER')
+        return self
+
+    def build_MODERNA(self):
+        self.product.parts.append('MODERNA')
+        return self
+
+    def build_ASTRAZENECA(self):
+        self.product.parts.append('ASTRAZENECA')
+        return self
+
+    def build_JANSSEN(self):
+        self.product.parts.append('JANSSEN')
+        return self
+
+    def get_result(self):
+        return self.product
+
+class Product():
+    "Vaccine products"
+
+    def __init__(self):
+        self.parts = []
+
+class Director:
+
+    @staticmethod
+    def construct():
+        "Build and return the final vaccine in the instance"
+        return Builder()\
+            .build_PFIZER()\
+            .build_MODERNA()\
+            .build_ASTRAZENECA()\
+            .build_JANSSEN()\
+            .get_result()
+
+# Build types of vaccine product
+PRODUCT = Director.construct()
 
 
 class DoctolibDE(Doctolib):
