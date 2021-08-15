@@ -89,7 +89,6 @@ class Astrazeneca(Vaccine):
 class VaccineDose:
     def __init__(self, Vaccine):
         self.vaccine = Vaccine
-    
 
 class firstDose(VaccineDose):
     def __init__(self, Vaccine):
