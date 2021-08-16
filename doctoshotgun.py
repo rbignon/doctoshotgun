@@ -190,8 +190,6 @@ class AppointmentPage(JsonPage):
     def is_error(self):
         return 'error' in self.doc
 
-
-class AppointmentEditPage(JsonPage):
     def get_custom_fields(self):
         for field in self.doc['appointment']['custom_fields']:
             if field['required']:
