@@ -574,6 +574,11 @@ class DoctolibDE(Doctolib):
     center = URL(r'/praxis/.*', CenterPage)
 
 
+
+
+
+
+
 class DoctolibFR(Doctolib):
     BASEURL = 'https://www.doctolib.fr'
     KEY_PFIZER = '6970'
