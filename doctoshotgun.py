@@ -73,7 +73,6 @@ class Session(cloudscraper.CloudScraper):
 
         return callback(self, resp)
 
-
 class LoginPage(JsonPage):
     def redirect(self):
         return self.doc['redirection']
@@ -82,7 +81,6 @@ class LoginPage(JsonPage):
 class SendAuthCodePage(JsonPage):
     def build_doc(self, content):
         return ""  # Do not choke on empty response from server
-
 
 class ChallengePage(JsonPage):
     def build_doc(self, content):
@@ -548,32 +546,54 @@ class Doctolib(LoginBrowser):
         return self.page.doc['confirmed']
 
 
-class DoctolibDE(Doctolib):
-    BASEURL = 'https://www.doctolib.de'
-    KEY_PFIZER = '6768'
-    KEY_PFIZER_SECOND = '6769'
-    KEY_PFIZER_THIRD = None
-    KEY_MODERNA = '6936'
-    KEY_MODERNA_SECOND = '6937'
-    KEY_MODERNA_THIRD = None
-    KEY_JANSSEN = '7978'
-    KEY_ASTRAZENECA = '7109'
-    KEY_ASTRAZENECA_SECOND = '7110'
-    vaccine_motives = {
-        KEY_PFIZER: 'Pfizer',
-        KEY_PFIZER_SECOND: 'Zweit.*Pfizer|Pfizer.*Zweit',
-        KEY_PFIZER_THIRD: 'Dritt.*Pfizer|Pfizer.*Dritt',
-        KEY_MODERNA: 'Moderna',
-        KEY_MODERNA_SECOND: 'Zweit.*Moderna|Moderna.*Zweit',
-        KEY_MODERNA_THIRD: 'Dritt.*Moderna|Moderna.*Dritt',
-        KEY_JANSSEN: 'Janssen',
-        KEY_ASTRAZENECA: 'AstraZeneca',
-        KEY_ASTRAZENECA_SECOND: 'Zweit.*AstraZeneca|AstraZeneca.*Zweit',
-    }
-    centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
-    center = URL(r'/praxis/.*', CenterPage)
-
-
+class DoctolibDESingleton(Doctolib):
+    __instance = None
+    
+    def __init__(self):
+        if DoctolibDESingleton.instance is None:
+           DoctolibDESingleton.instance = self
+    
+    @staticmethod
+    def get_Doctolibde_Instance():
+        if DoctolibDESingleton.instance is None:
+            DoctolibDESingleton()
+        return DoctolibDESingleton.instance
+    
+    def get_keys(self):
+        keys = {
+            BASEURL : 'https://www.doctolib.de'
+            KEY_PFIZER : '6768'
+            KEY_PFIZER_SECOND : '6769'
+            KEY_PFIZER_THIRD : None
+            KEY_MODERNA : '6936'
+            KEY_MODERNA_SECOND : '6937'
+            KEY_MODERNA_THIRD : None
+            KEY_JANSSEN : '7978'
+            KEY_ASTRAZENECA : '7109'
+            KEY_ASTRAZENECA_SECOND : '7110'
+        }
+        return keys
+    def get_Vaccine_Motives(self):
+        vaccine_motives = {
+            KEY_PFIZER: 'Pfizer',
+            KEY_PFIZER_SECOND: 'Zweit.*Pfizer|Pfizer.*Zweit',
+            KEY_PFIZER_THIRD: 'Dritt.*Pfizer|Pfizer.*Dritt',
+            KEY_MODERNA: 'Moderna',
+            KEY_MODERNA_SECOND: 'Zweit.*Moderna|Moderna.*Zweit',
+            KEY_MODERNA_THIRD: 'Dritt.*Moderna|Moderna.*Dritt',
+            KEY_JANSSEN: 'Janssen',
+            KEY_ASTRAZENECA: 'AstraZeneca',
+            KEY_ASTRAZENECA_SECOND: 'Zweit.*AstraZeneca|AstraZeneca.*Zweit',
+        }
+        return vaccine_motives
+    def get_centers(self):
+        centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
+        return centers
+    def get_center(self):
+        center = URL(r'/praxis/.*', CenterPage)
+        return center
+        
+   
 class DoctolibFR(Doctolib):
     BASEURL = 'https://www.doctolib.fr'
     KEY_PFIZER = '6970'
@@ -619,10 +639,10 @@ class Application:
 
     def main(self, cli_args=None):
         colorama.init()  # needed for windows
-
+        
         doctolib_map = {
             "fr": DoctolibFR,
-            "de": DoctolibDE
+            "de": DoctolibDESingleton.get_Doctolibde_Instance()
         }
 
         parser = argparse.ArgumentParser(
