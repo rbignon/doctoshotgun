@@ -61,7 +61,23 @@ def log_ts(text=None, *args, **kwargs):
         log(text, *args, **kwargs)
 
 
-class Session(cloudscraper.CloudScraper):
+class Website(): 
+
+    _instance = None #initialize private instance variable
+
+    @staticmethod
+    def get_instance(): #gets the one and only instance
+        if Website.__instance == None:
+            Website()
+        return Website.__instance 
+
+    def __init__(self): #constructor 
+        if Website.__instance != None: #catching error
+            raise Exception("Website cannot be instantiated more than once")
+        else:
+            Website.__instance = self
+            
+
     def send(self, *args, **kwargs):
         callback = kwargs.pop('callback', lambda future, response: response)
         is_async = kwargs.pop('is_async', False)
@@ -73,23 +89,16 @@ class Session(cloudscraper.CloudScraper):
 
         return callback(self, resp)
 
-
-class LoginPage(JsonPage):
     def redirect(self):
         return self.doc['redirection']
 
 
-class SendAuthCodePage(JsonPage):
     def build_doc(self, content):
         return ""  # Do not choke on empty response from server
 
-
-class ChallengePage(JsonPage):
     def build_doc(self, content):
         return ""  # Do not choke on empty response from server
-
-
-class CentersPage(HTMLPage):
+    
     def iter_centers_ids(self):
         for div in self.doc.xpath('//div[@class="js-dl-search-results-calendar"]'):
             data = json.loads(div.attrib['data-props'])
@@ -124,15 +133,6 @@ class CentersPage(HTMLPage):
         
         return None
 
-class CenterResultPage(JsonPage):
-    pass
-
-
-class CenterPage(HTMLPage):
-    pass
-
-
-class CenterBookingPage(JsonPage):
     def find_motive(self, regex, singleShot=False):
         for s in self.doc['data']['visit_motives']:
             # ignore case as some doctors use their own spelling
@@ -171,8 +171,6 @@ class CenterBookingPage(JsonPage):
     def get_profile_id(self):
         return self.doc['data']['profile']['id']
 
-
-class AvailabilitiesPage(JsonPage):
     def find_best_slot(self, start_date=None, end_date=None):
         for a in self.doc['availabilities']:
             date = parse_date(a['date']).date()
@@ -182,20 +180,87 @@ class AvailabilitiesPage(JsonPage):
                 continue
             return a['slots'][-1]
 
-
-class AppointmentPage(JsonPage):
     def get_error(self):
         return self.doc['error']
 
     def is_error(self):
         return 'error' in self.doc
 
-
-class AppointmentEditPage(JsonPage):
     def get_custom_fields(self):
         for field in self.doc['appointment']['custom_fields']:
             if field['required']:
                 yield field
+
+
+    def get_patients(self):
+        return self.doc
+
+    def get_name(self):
+        return '%s %s' % (self.doc[0]['first_name'], self.doc[0]['last_name'])
+
+
+
+WebsiteObject = Website()  # fuction object
+
+class Session(cloudscraper.CloudScraper):
+    Website.send(WebsiteObject, WebsiteObject.args, WebsiteObject.kwargs)
+    
+
+
+class LoginPage(JsonPage):
+    Website.redirect(WebsiteObject)
+
+
+class SendAuthCodePage(JsonPage):
+  
+  Website.build_doc(WebsiteObject, WebsiteObject.content)
+      
+
+class ChallengePage(JsonPage):
+    
+    Website.build_doc(WebsiteObject, WebsiteObject.content)
+        
+
+
+class CentersPage(HTMLPage):
+  
+    Website.iter_centers_ids(WebsiteObject)
+
+    Website.get_next_page(WebsiteObject)
+
+class CenterResultPage(JsonPage):
+    pass
+
+
+class CenterPage(HTMLPage):
+    pass
+
+
+class CenterBookingPage(JsonPage):
+    Website.find_motive(WebsiteObject, WebsiteObject.regex, singleShot=False)
+
+    Website.get_motives(WebsiteObject)
+    Website.get_places(WebsiteObject)
+
+    Website.get_practice(WebsiteObject)
+
+    Website.get_agenda_ids(WebsiteObject, WebsiteObject.motive_id, practice_id=None)
+
+    Website.get_profile_id(WebsiteObject)
+
+
+class AvailabilitiesPage(JsonPage):
+    Website.find_best_slot(WebsiteObject, start_date=None, end_date=None)
+
+class AppointmentPage(JsonPage):
+    Website.get_error(WebsiteObject)
+        
+
+    Website.is_error(WebsiteObject)
+
+
+class AppointmentEditPage(JsonPage):
+    Website.get_custom_fields(WebsiteObject)
 
 
 class AppointmentPostPage(JsonPage):
@@ -203,12 +268,9 @@ class AppointmentPostPage(JsonPage):
 
 
 class MasterPatientPage(JsonPage):
-    def get_patients(self):
-        return self.doc
+    Website.get_patients(WebsiteObject)
 
-    def get_name(self):
-        return '%s %s' % (self.doc[0]['first_name'], self.doc[0]['last_name'])
-
+    Website.get_name(WebsiteObject)
 
 class CityNotFound(Exception):
     pass
