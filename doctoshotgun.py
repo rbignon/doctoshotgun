@@ -20,6 +20,7 @@ from requests.adapters import ReadTimeout, ConnectionError
 from termcolor import colored
 from urllib import parse
 from urllib3.exceptions import NewConnectionError
+from abc import ABCMeta, abstractstaticmethod
 
 from woob.browser.exceptions import ClientError, ServerError, HTTPNotFound
 from woob.browser.browsers import LoginBrowser
@@ -73,6 +74,26 @@ class Session(cloudscraper.CloudScraper):
 
         return callback(self, resp)
 
+class UserSingleton(Ilogin):
+
+    __instance = None
+    @staticmethod
+    def get_instance():
+        if UserSingleton.__instance == None:
+            UserSingleton("default name", 0)
+        return __instance
+    
+    def __init__(self, username, password):
+        if UserSingleton.__instance != None:
+            raise Exception("singleton cant be used more than once")
+        else:
+            self.username = username
+            self.password = password
+            UserSingleton.__instance = self
+    
+    @staticmethod
+    def get_data():
+        print(f"name: {UserSingleton.__instance.username}, age: {UserSingleton.__instance.password}")
 
 class LoginPage(JsonPage):
     def redirect(self):
