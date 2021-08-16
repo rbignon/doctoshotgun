@@ -60,6 +60,11 @@ def log_ts(text=None, *args, **kwargs):
     if text:
         log(text, *args, **kwargs)
 
+class CompositeWebsite(): #composite function
+    def __init__(self): #constructor
+        self.child_websites = []
+    def add(self,website): #add leafs/subclasses method
+        self.child_websites.append(website)
 
 class Session(cloudscraper.CloudScraper):
     def send(self, *args, **kwargs):
@@ -213,6 +218,33 @@ class MasterPatientPage(JsonPage):
 class CityNotFound(Exception):
     pass
 
+#store all leafs/subclasses in a variable name 
+session = Session()
+loginpage = LoginPage()
+sendauthcodepage = SendAuthCodePage()
+challengepage = ChallengePage()
+centerspage = CentersPage()
+centerbookingpage = CenterBookingPage()
+availabilitiespage = AvailabilitiesPage()
+appointmentpage = AppointmentPage()
+appointmenteditpage = AppointmentEditPage()
+appointmentpostpage = AppointmentPostPage()
+masterpatientpage = MasterPatientPage()
+
+
+composite = CompositeWebsite() #function object 
+#add leafs/subclasses to composite function
+composite.add(session)
+composite.add(loginpage)
+composite.add(sendauthcodepage)
+composite.add(challengepage)
+composite.add(centerspage)
+composite.add(centerbookingpage)
+composite.add(availabilitiespage)
+composite.add(appointmentpage)
+composite.add(appointmenteditpage)
+composite.add(appointmentpostpage) 
+composite.add(masterpatientpage)
 
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
@@ -863,4 +895,4 @@ if __name__ == '__main__':
         sys.exit(Application().main())
     except KeyboardInterrupt:
         print('Abort.')
-        sys.exit(1)
+        sys.exit(1) 
