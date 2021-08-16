@@ -184,11 +184,29 @@ class AvailabilitiesPage(JsonPage):
 
 
 class AppointmentPage(JsonPage):
+    __instance = None 
+    @staticmethod
+    
+    def getInstance():
+        if AppointmentPage.__instance == None:
+            AppointmentPage()
+        return AppointmentPage.__instance 
+    
+    def __init__(self):
+        if AppointmentPage.__instance == None: 
+            AppointmentPage.__instance = self 
+        else 
+            raise Exception("The current class is singleton")
+ 
     def get_error(self):
         return self.doc['error']
 
     def is_error(self):
         return 'error' in self.doc
+    
+   
+    
+    
 
 
 class AppointmentEditPage(JsonPage):
