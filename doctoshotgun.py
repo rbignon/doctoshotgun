@@ -74,26 +74,6 @@ class Session(cloudscraper.CloudScraper):
 
         return callback(self, resp)
 
-class UserSingleton(Ilogin):
-
-    __instance = None
-    @staticmethod
-    def get_instance():
-        if UserSingleton.__instance == None:
-            UserSingleton("default name", 0)
-        return __instance
-    
-    def __init__(self, username, password):
-        if UserSingleton.__instance != None:
-            raise Exception("singleton cant be used more than once")
-        else:
-            self.username = username
-            self.password = password
-            UserSingleton.__instance = self
-    
-    @staticmethod
-    def get_data():
-        print(f"name: {UserSingleton.__instance.username}, age: {UserSingleton.__instance.password}")
 
 class LoginPage(JsonPage):
     def redirect(self):
@@ -568,6 +548,74 @@ class Doctolib(LoginBrowser):
 
         return self.page.doc['confirmed']
 
+class Ivaccine(metaclass=ABCMeta):
+    @staticmethod
+    @abstractmethod
+    def print():
+        """print information"""
+
+class DoctolibDE(Ivaccine):
+    BASEURL = 'https://www.doctolib.de'
+    KEY_PFIZER = '6768'
+    KEY_PFIZER_SECOND = '6769'
+    KEY_PFIZER_THIRD = None
+    KEY_MODERNA = '6936'
+    KEY_MODERNA_SECOND = '6937'
+    KEY_MODERNA_THIRD = None
+    KEY_JANSSEN = '7978'
+    KEY_ASTRAZENECA = '7109'
+    KEY_ASTRAZENECA_SECOND = '7110'
+    vaccine_motives = {
+        KEY_PFIZER: 'Pfizer',
+        KEY_PFIZER_SECOND: 'Zweit.*Pfizer|Pfizer.*Zweit',
+        KEY_PFIZER_THIRD: 'Dritt.*Pfizer|Pfizer.*Dritt',
+        KEY_MODERNA: 'Moderna',
+        KEY_MODERNA_SECOND: 'Zweit.*Moderna|Moderna.*Zweit',
+        KEY_MODERNA_THIRD: 'Dritt.*Moderna|Moderna.*Dritt',
+        KEY_JANSSEN: 'Janssen',
+        KEY_ASTRAZENECA: 'AstraZeneca',
+        KEY_ASTRAZENECA_SECOND: 'Zweit.*AstraZeneca|AstraZeneca.*Zweit',
+    }
+    centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
+    center = URL(r'/praxis/.*', CenterPage)
+
+
+class DoctolibFR(Ivaccine):
+    BASEURL = 'https://www.doctolib.fr'
+    KEY_PFIZER = '6970'
+    KEY_PFIZER_SECOND = '6971'
+    KEY_PFIZER_THIRD = '8192'
+    KEY_MODERNA = '7005'
+    KEY_MODERNA_SECOND = '7004'
+    KEY_MODERNA_THIRD = '8193'
+    KEY_JANSSEN = '7945'
+    KEY_ASTRAZENECA = '7107'
+    KEY_ASTRAZENECA_SECOND = '7108'
+    vaccine_motives = {
+        KEY_PFIZER: 'Pfizer',
+        KEY_PFIZER_SECOND: '2de.*Pfizer',
+        KEY_PFIZER_THIRD: '3e.*Pfizer',
+        KEY_MODERNA: 'Moderna',
+        KEY_MODERNA_SECOND: '2de.*Moderna',
+        KEY_MODERNA_THIRD: '3e.*Moderna',
+        KEY_JANSSEN: 'Janssen',
+        KEY_ASTRAZENECA: 'AstraZeneca',
+        KEY_ASTRAZENECA_SECOND: '2de.*AstraZeneca',
+    }
+
+    centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
+    center = URL(r'/centre-de-sante/.*', CenterPage)
+
+class Composite(Ivaccine):
+    def __init__(self):
+        self.vaccines = []
+
+    def add(self, vaccine):
+        self.vaccines.append(vaccine)
+
+    def print(self):
+        for vac in self.vaccines:
+            vac.print() #print vaccines
 
 class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
