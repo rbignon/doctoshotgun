@@ -214,7 +214,32 @@ class CityNotFound(Exception):
     pass
 
 
-class Doctolib(LoginBrowser):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class DoctolibLogin(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
     BASEURL = ""
     vaccine_motives = {}
@@ -235,6 +260,16 @@ class Doctolib(LoginBrowser):
     appointment_post = URL(
         r'/appointments/(?P<id>.+).json', AppointmentPostPage)
     master_patient = URL(r'/account/master_patients.json', MasterPatientPage)
+
+
+
+
+
+
+
+
+
+
 
     def _setup_session(self, profile):
         session = Session()
@@ -293,6 +328,31 @@ class Doctolib(LoginBrowser):
 
         return True
 
+
+    def find_centers(self, where, motives=None, page=1):
+        DoctolibOperations.find_centers(self, where, motives=None, page=1)
+  
+
+    def get_patients(self):
+        DoctolibOperations.get_patients(self)
+
+    @classmethod
+    def normalize(cls, string):
+        DoctolibOperations.normalize(cls, string)
+
+    def try_to_book(self, center, vaccine_list, start_date, end_date, only_second, only_third, dry_run=False):
+        DoctolibOperations.try_to_book(self, center, vaccine_list, start_date, end_date, only_second, only_third, dry_run=False)
+
+    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, vac_name, start_date, end_date, only_second, only_third, dry_run=False):
+        DoctolibOperations.try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, vac_name, start_date, end_date, only_second, only_third, dry_run=False)
+
+
+
+
+
+
+
+class DoctolibOperations(LoginBrowser):
     def find_centers(self, where, motives=None, page=1):
         if motives is None:
             motives = self.vaccine_motives.keys()
@@ -546,9 +606,24 @@ class Doctolib(LoginBrowser):
         log('  └╴ Booking status: %s', self.page.doc['confirmed'])
 
         return self.page.doc['confirmed']
+   
 
 
-class DoctolibDE(Doctolib):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class DoctolibDE(DoctolibLogin):
     BASEURL = 'https://www.doctolib.de'
     KEY_PFIZER = '6768'
     KEY_PFIZER_SECOND = '6769'
@@ -574,7 +649,7 @@ class DoctolibDE(Doctolib):
     center = URL(r'/praxis/.*', CenterPage)
 
 
-class DoctolibFR(Doctolib):
+class DoctolibFR(DoctolibLogin):
     BASEURL = 'https://www.doctolib.fr'
     KEY_PFIZER = '6970'
     KEY_PFIZER_SECOND = '6971'
