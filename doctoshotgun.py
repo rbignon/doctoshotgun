@@ -176,6 +176,94 @@ class MasterPatientPage(JsonPage):
 class CityNotFound(Exception):
     pass
 
+# DIRECTOR CLASS in the builder design pattern
+# Client calls this class to add a patient
+# Account when created has no patients
+# can add patients
+
+
+class Account:
+    # initialize the account
+    def __init__(self):
+        self.patient_list = []
+
+    # create a patient with just a name and no preferences yet
+    # adds patient to patient list
+    def add_patient(self, name):
+        patient = BuildPatient
+        self.patient_list.append(patient)
+
+    # create patients with preferences
+    # adds patient to the list
+    def add_patient_preference(self, name, age, city_p,vaccine_p, time_p, center_p):
+        patient = BuildPatient.build_age(age).build_city_preference(city_p).build_vaccine_preference(vaccine_p).\
+            build_timer_preference(time_p).build_center(center_p)
+        self.patientlist.append(patient)
+
+
+# Patient class which the builder builds
+class Patient:
+    def __init__(self, name):
+        self.name = name
+        self.age
+        self.city_preference
+        self.vaccine_preference
+        self.time_preference
+        self.center_preference
+
+
+# Interface for builder
+class Ibuild:
+    def __init__(self, name):
+        pass
+
+    def build_age(self, age):
+        pass
+
+    def build_city_preference(self, city):
+        pass
+
+    def build_vaccine_preference(self, vaccine_preference):
+        pass
+
+    def build_timer_preference(self, time):
+        pass
+
+    def build_center(self, center):
+        pass
+
+    def get_patient(self):
+        pass
+
+
+# builder class
+class BuildPatient:
+    def __init__(self, name):
+        self.p = Patient(name)
+        return self.p
+
+    def build_age(self, age):
+        self.p.age = age
+        return self.p
+
+    def build_city_preference(self, city):
+        self.p.city_preference = city
+        return self.p
+
+    def build_vaccine_preference(self, vaccine_preference):
+        self.p.vaccine_preference = vaccine_preference
+        return self.p
+
+    def build_timer_preference(self, time):
+        self.p.time_preference = time
+        return self.p
+
+    def build_center(self, center):
+        self.p.center_preference = center
+        return self.p
+
+    def get_patient(self):
+        return self.p
 
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
@@ -516,37 +604,6 @@ class DoctolibFR(Doctolib):
 
     centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
     center = URL(r'/centre-de-sante/.*', CenterPage)
-
-
-class Vaccine:
-    def __init__(self, vtype):
-        self.vaccine_type = vtype
-
-
-class Patient:
-    def __init__(self, n):
-        self.name = n
-        self.country = None
-        self.city = None
-        self.vaccine_preferrence = None
-
-# aggregate root
-# moved all the vaccine center functionality here
-# Only way to access the class patient is through here
-
-
-class VaccineCenter:
-    def __init__(self, name, country):
-        self.name = name
-        self.country = country
-        self.patient_list = []
-
-    def add_patient(self, name):
-        p = Patient.__init__(name)
-        self.patient_list.append(p)
-
-    def remove_patient(self, p):
-        self.patient_list.remove(self, p)
 
     def find_centers(self, where, motives=None, page=1):
         if motives is None:
