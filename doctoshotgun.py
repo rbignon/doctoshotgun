@@ -5,6 +5,7 @@ import logging
 import tempfile
 from time import sleep
 import json
+from typing import Dict
 from urllib.parse import urlparse
 import datetime
 import argparse
@@ -544,58 +545,133 @@ class Doctolib(LoginBrowser):
 
         return self.page.doc['confirmed']
 
+    def set_base_url(self, base_url):
+        self.BASEURL = base_url
 
-class DoctolibDE(Doctolib):
-    BASEURL = 'https://www.doctolib.de'
-    KEY_PFIZER = '6768'
-    KEY_PFIZER_SECOND = '6769'
-    KEY_PFIZER_THIRD = None
-    KEY_MODERNA = '6936'
-    KEY_MODERNA_SECOND = '6937'
-    KEY_MODERNA_THIRD = None
-    KEY_JANSSEN = '7978'
-    KEY_ASTRAZENECA = '7109'
-    KEY_ASTRAZENECA_SECOND = '7110'
-    vaccine_motives = {
-        KEY_PFIZER: 'Pfizer',
-        KEY_PFIZER_SECOND: 'Zweit.*Pfizer|Pfizer.*Zweit',
-        KEY_PFIZER_THIRD: 'Dritt.*Pfizer|Pfizer.*Dritt',
-        KEY_MODERNA: 'Moderna',
-        KEY_MODERNA_SECOND: 'Zweit.*Moderna|Moderna.*Zweit',
-        KEY_MODERNA_THIRD: 'Dritt.*Moderna|Moderna.*Dritt',
-        KEY_JANSSEN: 'Janssen',
-        KEY_ASTRAZENECA: 'AstraZeneca',
-        KEY_ASTRAZENECA_SECOND: 'Zweit.*AstraZeneca|AstraZeneca.*Zweit',
-    }
-    centers = URL(r'/impfung-covid-19-corona/(?P<where>\w+)', CentersPage)
-    center = URL(r'/praxis/.*', CenterPage)
+    def set_vaccine_keys(self, ids: Dict[int]):
+        self.KEY_PFIZER = ids[0]
+        self.KEY_PFIZER_SECOND = ids[1]
+        self.KEY_PFIZER_THIRD = ids[2]
+        self.KEY_MODERNA = ids[3]
+        self.KEY_MODERNA_SECOND = ids[4]
+        self.KEY_MODERNA_THIRD = ids[5]
+        self.KEY_JANSSEN = ids[6]
+        self.KEY_ASTRAZENECA = ids[7]
+        self.KEY_ASTRAZENECA_SECOND = ids[8]
 
+    def set_vaccine_motives(self, motives):
+        self.vaccine_motives = motives
 
-class DoctolibFR(Doctolib):
-    BASEURL = 'https://www.doctolib.fr'
-    KEY_PFIZER = '6970'
-    KEY_PFIZER_SECOND = '6971'
-    KEY_PFIZER_THIRD = '8192'
-    KEY_MODERNA = '7005'
-    KEY_MODERNA_SECOND = '7004'
-    KEY_MODERNA_THIRD = '8193'
-    KEY_JANSSEN = '7945'
-    KEY_ASTRAZENECA = '7107'
-    KEY_ASTRAZENECA_SECOND = '7108'
-    vaccine_motives = {
-        KEY_PFIZER: 'Pfizer',
-        KEY_PFIZER_SECOND: '2de.*Pfizer',
-        KEY_PFIZER_THIRD: '3e.*Pfizer',
-        KEY_MODERNA: 'Moderna',
-        KEY_MODERNA_SECOND: '2de.*Moderna',
-        KEY_MODERNA_THIRD: '3e.*Moderna',
-        KEY_JANSSEN: 'Janssen',
-        KEY_ASTRAZENECA: 'AstraZeneca',
-        KEY_ASTRAZENECA_SECOND: '2de.*AstraZeneca',
-    }
+    def set_centers(self, regex):
+        self.centers = URL(regex, CentersPage)
 
-    centers = URL(r'/vaccination-covid-19/(?P<where>\w+)', CentersPage)
-    center = URL(r'/centre-de-sante/.*', CenterPage)
+    def set_center(self, regex):
+        self.center = URL(regex, CenterPage)
+
+class Director:
+    _builder = None
+
+    def set_builder(self, builder):
+        self._builder = builder
+
+    def create_doctoplitlib_map(self, *args, **kwargs) -> Doctolib:
+        if (self._builder == None):
+            raise Exception("Assign a Builder before constructing the Director.")
+
+        doctolib_map = Doctolib(args, kwargs)
+
+        doctolib_map_str = self._builder._get_doctolib_map_str()
+        doctolib_map.set_doctolib_map(doctolib_map_str)
+
+        url = self._builder._get_base_url()
+        doctolib_map.set_base_url(url)
+
+        keys = self._builder._get_vaccine_keys()
+        doctolib_map.set_vaccine_keys(keys)
+
+        motives = self._builder._get_vaccine_motives()
+        doctolib_map.set_vaccine_motives(motives)
+
+        centers_regex = self._builder._get_centers_regex()
+        doctolib_map.set_centers(centers_regex)
+
+        center_regex = self._builder._get_center_regex()
+        doctolib_map.set_center(center_regex)
+
+        return doctolib_map
+
+class Builder:
+    def _get_doctolib_map_str(self): pass
+    def _get_base_url(self): pass
+    def _get_vaccine_keys(self): pass
+    def _get_vaccine_motives(self): pass
+    def _get_centers_regex(self): pass
+    def _get_center_regex(self): pass
+
+class DoctolibDE(Builder):
+    
+    def _get_base_url(self):
+        return 'https://www.doctolib.de'
+
+    def _get_doctolib_map_str(self):
+        return 'de'
+
+    def _get_vaccine_keys(self):
+        keys = ['6768', '6769', None, '6936',
+                '6937', None, '7978', '7109', '7110']
+                
+        
+    def _get_vaccine_motives(self):
+        vaccine_motives = ['Pfizer', 
+                'Zweit.*Pfizer|Pfizer.*Zweit', 
+                'Dritt.*Pfizer|Pfizer.*Dritt', 
+                'Moderna',
+                'Zweit.*Moderna|Moderna.*Zweit', 
+                'Dritt.*Moderna|Moderna.*Dritt', 
+                'Janssen', 
+                'AstraZeneca', 
+                'Zweit.*AstraZeneca|AstraZeneca.*Zweit']
+
+        return vaccine_motives
+
+    def _get_centers_regex(self):
+        return r'/impfung-covid-19-corona/(?P<where>\w+)'
+
+    def _get_center_regex(self):
+        return r'/praxis/.*'
+
+    
+class DoctolibFR(Builder):
+    def _get_base_url(self):
+        return 'https://www.doctolib.fr'
+
+    def _get_locale_str(self):
+        return 'fr'
+
+    def _get_vaccine_keys(self):
+        keys = ['6970', '6971', '8192', '7005',
+                '7004', '8193', '7945', '7107', '7108']
+        return keys
+
+    def _get_vaccine_motives(self):
+        vaccine_motives = [
+            'Pfizer', 
+            '2de.*Pfizer', 
+            '3e.*Pfizer', 
+            'Moderna',
+            '2de.*Moderna', 
+            '3e.*Moderna', 
+            'Janssen', 
+            'AstraZeneca', 
+            '2de.*AstraZeneca']
+        
+        return vaccine_motives
+
+    def _get_centers_regex(self):
+        return r'/vaccination-covid-19/(?P<where>\w+)'
+
+    def _get_center_regex(self):
+        return r'/centre-de-sante/.*'
 
 
 class Application:
@@ -678,8 +754,11 @@ class Application:
         if not args.password:
             args.password = getpass.getpass()
 
-        docto = doctolib_map[args.country](
+        director = Director()
+        director.set_builder(doctolib_map[args.country])
+        docto = director.create_doctoplitlib_map(
             args.username, args.password, responses_dirname=responses_dirname)
+        
         if not docto.do_login(args.code):
             return 1
 
