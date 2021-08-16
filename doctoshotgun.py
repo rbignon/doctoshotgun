@@ -10,6 +10,7 @@ import datetime
 import argparse
 import getpass
 import unicodedata
+from abc import ABCMeta, abstractmethod
 
 from dateutil.parser import parse as parse_date
 from dateutil.relativedelta import relativedelta
@@ -601,6 +602,103 @@ class DoctolibFR(Doctolib):
     center = URL(r'/centre-de-sante/.*', CenterPage)
 
 
+class InterfaceBuilder (metaclass=ABCMeta):
+    
+    @abstractstaticmethod
+    def patients_selector(self):
+        """ gives registered patients info to user and asks to select patient, otherwise tells them to register """
+    
+    
+    @abstractstaticmethod
+    def set_start_date(self):
+        """ sets start date """
+        
+    @abstractstaticmethod
+    def set_end_date(self):
+        """ sets end date """
+        
+    
+    @abstractstaticmethod
+    def get_product(self):
+        """ returns the product """
+        
+        
+class concereteBuilder (InterfaceBuilder):
+
+    def __init__(self):
+        self.product = Product()
+        
+    def patients_selector(self):
+        patients = docto.get_patients()
+        if len(patients) == 0:
+            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
+            return 1
+        if args.patient >= 0 and args.patient < len(patients):
+            docto.patient = patients[args.patient]
+        elif len(patients) > 1:
+            print('Available patients are:')
+            for i, patient in enumerate(patients):
+                print('* [%s] %s %s' %
+                      (i, patient['first_name'], patient['last_name']))
+            while True:
+                print('For which patient do you want to book a slot?',
+                      end=' ', flush=True)
+                try:
+                    docto.patient = patients[int(sys.stdin.readline().strip())]
+                except (ValueError, IndexError):
+                    continue
+                else:
+                    break
+        else:
+            docto.patient = patients[0]
+        self.product.parts.append(docto.patient)
+        return self
+            
+    def set_start_date(self):
+        if args.start_date:
+        try:
+            start_date = datetime.datetime.strptime(
+                args.start_date, '%d/%m/%Y').date()
+        except ValueError as e:
+                print('Invalid value for --start-date: %s' % e)
+                return 1
+        else:
+            start_date = datetime.date.today()
+        self.product.parts.append(start_date)
+        return self
+            
+    def set_end_date(self):
+        if args.end_date:
+        try:
+            end_date = datetime.datetime.strptime(
+                args.end_date, '%d/%m/%Y').date()
+        except ValueError as e:
+                print('Invalid value for --end-date: %s' % e)
+                return 1
+        else:
+            end_date = start_date + relativedelta(days=args.time_window)
+        self.product.parts.append(end_date)
+        return self
+        
+    def get_product(self):
+        return self.product
+        
+class Product():
+
+    def __init__(self):
+        self.parts = []
+        
+class Director:
+    @staticmethod
+    def construct():
+    
+        return concereteBuilder()\
+            .patients_selector()\
+            .set_start_date()\
+            .set_end_date()\
+            .get_product()
+
+
 class Application:
     @classmethod
     def create_default_logger(cls):
@@ -685,29 +783,12 @@ class Application:
             args.username, args.password, responses_dirname=responses_dirname)
         if not docto.do_login(args.code):
             return 1
-
-        patients = docto.get_patients()
-        if len(patients) == 0:
-            print("It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
-            return 1
-        if args.patient >= 0 and args.patient < len(patients):
-            docto.patient = patients[args.patient]
-        elif len(patients) > 1:
-            print('Available patients are:')
-            for i, patient in enumerate(patients):
-                print('* [%s] %s %s' %
-                      (i, patient['first_name'], patient['last_name']))
-            while True:
-                print('For which patient do you want to book a slot?',
-                      end=' ', flush=True)
-                try:
-                    docto.patient = patients[int(sys.stdin.readline().strip())]
-                except (ValueError, IndexError):
-                    continue
-                else:
-                    break
-        else:
-            docto.patient = patients[0]
+        
+        DATA = Director.construct()
+        patient = DATA.parts[0]
+        start_date = DATA.parts[1]
+        end_date = DATA.parts[2]
+       
 
         motives = []
         if not args.pfizer and not args.moderna and not args.janssen and not args.astrazeneca:
@@ -763,24 +844,6 @@ class Application:
 
         vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
 
-        if args.start_date:
-            try:
-                start_date = datetime.datetime.strptime(
-                    args.start_date, '%d/%m/%Y').date()
-            except ValueError as e:
-                print('Invalid value for --start-date: %s' % e)
-                return 1
-        else:
-            start_date = datetime.date.today()
-        if args.end_date:
-            try:
-                end_date = datetime.datetime.strptime(
-                    args.end_date, '%d/%m/%Y').date()
-            except ValueError as e:
-                print('Invalid value for --end-date: %s' % e)
-                return 1
-        else:
-            end_date = start_date + relativedelta(days=args.time_window)
         log('Starting to look for vaccine slots for %s %s between %s and %s...',
             docto.patient['first_name'], docto.patient['last_name'], start_date, end_date)
         log('Vaccines: %s', ', '.join(vaccine_list))
@@ -864,3 +927,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print('Abort.')
         sys.exit(1)
+
