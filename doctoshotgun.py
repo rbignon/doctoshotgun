@@ -3,6 +3,7 @@ import sys
 import re
 import logging
 import tempfile
+import time
 from time import sleep
 import json
 from urllib.parse import urlparse
@@ -60,7 +61,12 @@ def log_ts(text=None, *args, **kwargs):
     if text:
         log(text, *args, **kwargs)
 
-
+class Time():
+    def __init__(self, hours = None, minutes = None, seconds = None):
+        self.hours = hours
+        self.minutes = minutes
+        self.seconds = seconds
+        
 class Session(cloudscraper.CloudScraper):
     def send(self, *args, **kwargs):
         callback = kwargs.pop('callback', lambda future, response: response)
