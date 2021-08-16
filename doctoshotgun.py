@@ -89,6 +89,7 @@ class ChallengePage(JsonPage):
         return ""  # Do not choke on empty response from server
 
 
+
 class CentersPage(HTMLPage):
     def iter_centers_ids(self):
         for div in self.doc.xpath('//div[@class="js-dl-search-results-calendar"]'):
@@ -602,6 +603,19 @@ class DoctolibFR(Doctolib):
 
 
 class Application:
+     #creational pattern
+    __instance = None
+    @staticmethod
+    def getInstance():
+        if Application.__instance == None:
+            Application()
+            return Application.__instance
+        #private constructor
+        def __init__(self):
+            if Application.__instance != None:
+                raise Exception("This is a singleton class")
+             else:
+                Application.__instance = self
     @classmethod
     def create_default_logger(cls):
         # stderr logger
