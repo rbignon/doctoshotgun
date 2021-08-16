@@ -26,6 +26,7 @@ from woob.browser.browsers import LoginBrowser
 from woob.browser.url import URL
 from woob.browser.pages import JsonPage, HTMLPage
 from woob.tools.log import createColoredFormatter
+#from Patient import Patient
 
 SLEEP_INTERVAL_AFTER_CONNECTION_ERROR = 5
 SLEEP_INTERVAL_AFTER_LOGIN_ERROR = 10
@@ -34,7 +35,6 @@ SLEEP_INTERVAL_AFTER_RUN = 5
 
 try:
     from playsound import playsound as _playsound, PlaysoundException
-
 
     def playsound(*args):
         try:
@@ -45,14 +45,12 @@ except ImportError:
     def playsound(*args):
         pass
 
-
 def log(text, *args, **kwargs):
     args = (colored(arg, 'yellow') for arg in args)
     if 'color' in kwargs:
         text = colored(text, kwargs.pop('color'))
     text = text % tuple(args)
     print(text, **kwargs)
-
 
 def log_ts(text=None, *args, **kwargs):
     ''' Log with timestamp'''
@@ -73,6 +71,46 @@ class Session(cloudscraper.CloudScraper):
         resp = super().send(*args, **kwargs)
 
         return callback(self, resp)
+
+
+class CenterBookingPage(JsonPage):
+    def find_motive(self, regex, singleShot=False):
+        for s in self.doc['data']['visit_motives']:
+            # ignore case as some doctors use their own spelling
+            if re.search(regex, s['name'], re.IGNORECASE):
+                if s['allow_new_patients'] == False:
+                    log('Motive %s not allowed for new patients at this center. Skipping vaccine...',
+                        s['name'], flush=True)
+                    continue
+                if not singleShot and not s['first_shot_motive']:
+                    log('Skipping second shot motive %s...',
+                        s['name'], flush=True)
+                    continue
+                return s['id']
+
+        return None
+
+    def get_motives(self):
+        return [s['name'] for s in self.doc['data']['visit_motives']]
+
+    def get_places(self):
+        return self.doc['data']['places']
+
+    def get_practice(self):
+        return self.doc['data']['places'][0]['practice_ids'][0]
+
+    def get_agenda_ids(self, motive_id, practice_id=None):
+        agenda_ids = []
+        for a in self.doc['data']['agendas']:
+            if motive_id in a['visit_motive_ids'] and \
+               not a['booking_disabled'] and \
+               (not practice_id or a['practice_id'] == practice_id):
+                agenda_ids.append(str(a['id']))
+
+        return agenda_ids
+
+    def get_profile_id(self):
+        return self.doc['data']['profile']['id']
 
 
 class LoginPage(JsonPage):
@@ -134,44 +172,8 @@ class CenterPage(HTMLPage):
     pass
 
 
-class CenterBookingPage(JsonPage):
-    def find_motive(self, regex, singleShot=False):
-        for s in self.doc['data']['visit_motives']:
-            # ignore case as some doctors use their own spelling
-            if re.search(regex, s['name'], re.IGNORECASE):
-                if s['allow_new_patients'] == False:
-                    log('Motive %s not allowed for new patients at this center. Skipping vaccine...',
-                        s['name'], flush=True)
-                    continue
-                if not singleShot and not s['first_shot_motive']:
-                    log('Skipping second shot motive %s...',
-                        s['name'], flush=True)
-                    continue
-                return s['id']
-
-        return None
-
-    def get_motives(self):
-        return [s['name'] for s in self.doc['data']['visit_motives']]
-
-    def get_places(self):
-        return self.doc['data']['places']
-
-    def get_practice(self):
-        return self.doc['data']['places'][0]['practice_ids'][0]
-
-    def get_agenda_ids(self, motive_id, practice_id=None):
-        agenda_ids = []
-        for a in self.doc['data']['agendas']:
-            if motive_id in a['visit_motive_ids'] and \
-                    not a['booking_disabled'] and \
-                    (not practice_id or a['practice_id'] == practice_id):
-                agenda_ids.append(str(a['id']))
-
-        return agenda_ids
-
-    def get_profile_id(self):
-        return self.doc['data']['profile']['id']
+class AppointmentPostPage(JsonPage):
+    pass
 
 
 class AvailabilitiesPage(JsonPage):
@@ -200,10 +202,6 @@ class AppointmentEditPage(JsonPage):
                 yield field
 
 
-class AppointmentPostPage(JsonPage):
-    pass
-
-
 class MasterPatientPage(JsonPage):
     def get_patients(self):
         return self.doc
@@ -216,6 +214,163 @@ class CityNotFound(Exception):
     pass
 
 
+class IVaccination:
+    def do_login(self, code):
+        pass
+    def getpatient(self, docto, args):
+        pass
+    def get_vaccination(self):
+        pass
+
+class Login(IVaccination):
+
+    login = URL('/login.json', LoginPage)
+
+    def do_login(self, code):
+        try:
+            self.open(self.BASEURL + '/sessions/new')
+        except ServerError as e:
+            if e.response.status_code in [503] \
+                and 'text/html' in e.response.headers['Content-Type'] \
+                    and ('cloudflare' in e.response.text or 'Checking your browser before accessing' in e .response.text):
+                log('Request blocked by CloudFlare', color='red')
+            if e.response.status_code in [520]:
+                log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
+            raise
+        try:
+            self.login.go(json={'kind': 'patient',
+                                'username': self.username,
+                                'password': self.password,
+                                'remember': True,
+                                'remember_username': True})
+        except ClientError:
+            print('Wrong login/password')
+            return False
+
+        if self.page.redirect() == "/sessions/two-factor":
+            print("Requesting 2fa code...")
+            if not code:
+                if not sys.__stdin__.isatty():
+                    log("Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.", color='red')
+                    return False
+                self.send_auth_code.go(
+                    json={'two_factor_auth_method': 'email'}, method="POST")
+                code = input("Enter auth code: ")
+            try:
+                self.challenge.go(
+                    json={'auth_code': code, 'two_factor_auth_method': 'email'}, method="POST")
+            except HTTPNotFound:
+                print("Invalid auth code")
+                return False
+
+        return True
+
+
+class Patient(IVaccination):
+
+    def getpatient(self, docto, args):
+
+        patients = docto.get_patients()
+        if len(patients) == 0:
+            print(
+                "It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
+            return 1
+        if args.patient >= 0 and args.patient < len(patients):
+            docto.patient = patients[args.patient]
+        elif len(patients) > 1:
+            print('Available patients are:')
+            for i, patient in enumerate(patients):
+                print('* [%s] %s %s' %
+                      (i, patient['first_name'], patient['last_name']))
+            while True:
+                print('For which patient do you want to book a slot?',
+                      end=' ', flush=True)
+                try:
+                    docto.patient = patients[int(sys.stdin.readline().strip())]
+                except (ValueError, IndexError):
+                    continue
+                else:
+                    break
+        else:
+            docto.patient = patients[0]
+        return docto.patient
+
+
+class Vaccine(IVaccination):
+    def __init__(self, docto=None, pfizer=None, moderna=None, janssen=None,
+                 astrazeneca=None, only_second=None, only_third=None):
+        self.docto = docto
+        self.pfizer = pfizer
+        self.moderna = moderna
+        self.janssen = janssen
+        self.astrazeneca = astrazeneca
+        self.only_second = only_second
+        self.only_third = only_third
+        self.vaccine_list = None
+        self.motives = None
+
+    def get_vaccines(self):
+        self.motives = []
+        if not self.pfizer and not self.moderna and not self.janssen and not self.astrazeneca:
+            if self.only_second:
+                self.motives.append(self.docto.KEY_PFIZER_SECOND)
+                self.motives.append(self.docto.KEY_MODERNA_SECOND)
+                # motives.append(docto.KEY_ASTRAZENECA_SECOND) #do not add AstraZeneca by default
+            elif self.only_third:
+                if not self.docto.KEY_PFIZER_THIRD and not self.docto.KEY_MODERNA_THIRD:
+                    print('Invalid args: No third shot vaccinations in this country')
+                    return 1
+                self.motives.append(self.docto.KEY_PFIZER_THIRD)
+                self.motives.append(self.docto.KEY_MODERNA_THIRD)
+            else:
+                self.motives.append(self.docto.KEY_PFIZER)
+                self.motives.append(self.docto.KEY_MODERNA)
+                self.motives.append(self.docto.KEY_JANSSEN)
+                # motives.append(docto.KEY_ASTRAZENECA) #do not add AstraZeneca by default
+        if self.pfizer:
+            if self.only_second:
+                self.motives.append(self.docto.KEY_PFIZER_SECOND)
+            elif self.only_third:
+                if not self.docto.KEY_PFIZER_THIRD:  # not available in all countries
+                    print('Invalid args: Pfizer has no third shot in this country')
+                    return 1
+                self.motives.append(self.docto.KEY_PFIZER_THIRD)
+            else:
+                self.motives.append(self.docto.KEY_PFIZER)
+        if self.moderna:
+            if self.only_second:
+                self.motives.append(self.docto.KEY_MODERNA_SECOND)
+            elif self.only_third:
+                if not self.docto.KEY_MODERNA_THIRD:  # not available in all countries
+                    print('Invalid args: Moderna has no third shot in this country')
+                    return 1
+                self.motives.append(self.docto.KEY_MODERNA_THIRD)
+            else:
+                self.motives.append(self.docto.KEY_MODERNA)
+        if self.janssen:
+            if self.only_second or self.only_third:
+                print('Invalid args: Janssen has no second or third shot')
+                return 1
+            else:
+                self.motives.append(self.docto.KEY_JANSSEN)
+        if self.astrazeneca:
+            if self.only_second:
+                self.motives.append(self.docto.KEY_ASTRAZENECA_SECOND)
+            elif self.only_third:
+                print('Invalid args: AstraZeneca has no third shot')
+                return 1
+            else:
+                self.motives.append(self.docto.KEY_ASTRAZENECA)
+        self.vaccine_list = [self.docto.vaccine_motives[motive]
+                             for motive in self.motives]
+        vaccines_data = [self.vaccine_list, self.motives]
+        return vaccines_data
+
+class Reciever:
+    record = Login
+    vaccination = Vaccine
+
+
 class Doctolib(LoginBrowser):
     # individual properties for each country. To be defined in subclasses
     BASEURL = ""
@@ -223,7 +378,7 @@ class Doctolib(LoginBrowser):
     centers = URL('')
     center = URL('')
     # common properties
-    login = URL('/login.json', LoginPage)
+    login = Reciever.record.login
     send_auth_code = URL('/api/accounts/send_auth_code', SendAuthCodePage)
     challenge = URL('/login/challenge', ChallengePage)
     center_result = URL(r'/search_results/(?P<id>\d+).json', CenterResultPage)
@@ -252,51 +407,13 @@ class Doctolib(LoginBrowser):
         self.session.headers['sec-fetch-dest'] = 'document'
         self.session.headers['sec-fetch-mode'] = 'navigate'
         self.session.headers['sec-fetch-site'] = 'same-origin'
-        self.session.headers[
-            'User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'
+        self.session.headers['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'
 
-        self.patient = None
+        self.patient = None;
 
-    def do_login(self, code):
-        try:
-            self.open(self.BASEURL + '/sessions/new')
-        except ServerError as e:
-            if e.response.status_code in [503] \
-                    and 'text/html' in e.response.headers['Content-Type'] \
-                    and (
-                    'cloudflare' in e.response.text or 'Checking your browser before accessing' in e.response.text):
-                log('Request blocked by CloudFlare', color='red')
-            if e.response.status_code in [520]:
-                log('Cloudflare is unable to connect to Doctolib server. Please retry later.', color='red')
-            raise
-        try:
-            self.login.go(json={'kind': 'patient',
-                                'username': self.username,
-                                'password': self.password,
-                                'remember': True,
-                                'remember_username': True})
-        except ClientError:
-            print('Wrong login/password')
-            return False
-
-        if self.page.redirect() == "/sessions/two-factor":
-            print("Requesting 2fa code...")
-            if not code:
-                if not sys.__stdin__.isatty():
-                    log("Auth Code input required, but no interactive terminal available. Please provide it via command line argument '--code'.",
-                        color='red')
-                    return False
-                self.send_auth_code.go(
-                    json={'two_factor_auth_method': 'email'}, method="POST")
-                code = input("Enter auth code: ")
-            try:
-                self.challenge.go(
-                    json={'auth_code': code, 'two_factor_auth_method': 'email'}, method="POST")
-            except HTTPNotFound:
-                print("Invalid auth code")
-                return False
-
-        return True
+    def user_login(self, code):
+        if(Login.do_login(self, code)):
+            return 1
 
     def find_centers(self, where, motives=None, page=1):
         if motives is None:
@@ -304,12 +421,12 @@ class Doctolib(LoginBrowser):
         for city in where:
             try:
                 self.centers.go(where=city, params={
-                    'ref_visit_motive_ids[]': motives, 'page': page})
+                                'ref_visit_motive_ids[]': motives, 'page': page})
             except ServerError as e:
                 if e.response.status_code in [503]:
                     if 'text/html' in e.response.headers['Content-Type'] \
-                            and ('cloudflare' in e.response.text or
-                                 'Checking your browser before accessing' in e.response.text):
+                        and ('cloudflare' in e.response.text or
+                             'Checking your browser before accessing' in e .response.text):
                         log('Request blocked by CloudFlare', color='red')
                     return
                 if e.response.status_code in [520]:
@@ -345,6 +462,12 @@ class Doctolib(LoginBrowser):
 
         return self.page.get_patients()
 
+    def get_vaccines_list(self, docto=None, pfizer=None, moderna=None, janssen=None,
+                          astrazeneca=None, only_second=None, only_third=None):
+        vaccine = Reciever.vaccination(docto, pfizer, moderna, janssen,
+                          astrazeneca, only_second, only_third)
+        return vaccine.get_vaccines()
+
     @classmethod
     def normalize(cls, string):
         nfkd = unicodedata.normalize('NFKD', string)
@@ -364,8 +487,7 @@ class Doctolib(LoginBrowser):
         motives_id = dict()
         for vaccine in vaccine_list:
             motives_id[vaccine] = self.page.find_motive(
-                r'.*({})'.format(vaccine),
-                singleShot=(vaccine == self.vaccine_motives[self.KEY_JANSSEN] or only_second or only_third))
+                r'.*({})'.format(vaccine), singleShot=(vaccine == self.vaccine_motives[self.KEY_JANSSEN] or only_second or only_third))
 
         motives_id = dict((k, v)
                           for k, v in motives_id.items() if v is not None)
@@ -385,14 +507,12 @@ class Doctolib(LoginBrowser):
                     # do not filter to give a chance
                     agenda_ids = center_page.get_agenda_ids(motive_id)
 
-                if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, vac_name.lower(), start_date,
-                                          end_date, only_second, only_third, dry_run):
+                if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, vac_name.lower(), start_date, end_date, only_second, only_third, dry_run):
                     return True
 
         return False
 
-    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, vac_name, start_date, end_date,
-                          only_second, only_third, dry_run=False):
+    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, vac_name, start_date, end_date, only_second, only_third, dry_run=False):
         date = start_date.strftime('%Y-%m-%d')
         while date is not None:
             self.availabilities.go(
@@ -609,6 +729,7 @@ class DoctolibFR(Doctolib):
     center = URL(r'/centre-de-sante/.*', CenterPage)
 
 
+
 class Application:
     @classmethod
     def create_default_logger(cls):
@@ -691,86 +812,16 @@ class Application:
 
         docto = doctolib_map[args.country](
             args.username, args.password, responses_dirname=responses_dirname)
-        if not docto.do_login(args.code):
+        if not docto.user_login(args.code):
             return 1
 
-        patients = docto.get_patients()
-        if len(patients) == 0:
-            print(
-                "It seems that you don't have any Patient registered in your Doctolib account. Please fill your Patient data on Doctolib Website.")
-            return 1
-        if args.patient >= 0 and args.patient < len(patients):
-            docto.patient = patients[args.patient]
-        elif len(patients) > 1:
-            print('Available patients are:')
-            for i, patient in enumerate(patients):
-                print('* [%s] %s %s' %
-                      (i, patient['first_name'], patient['last_name']))
-            while True:
-                print('For which patient do you want to book a slot?',
-                      end=' ', flush=True)
-                try:
-                    docto.patient = patients[int(sys.stdin.readline().strip())]
-                except (ValueError, IndexError):
-                    continue
-                else:
-                    break
-        else:
-            docto.patient = patients[0]
+        obj_patient = Patient()
+        docto.patient = obj_patient.getpatient(docto, args)
 
-        motives = []
-        if not args.pfizer and not args.moderna and not args.janssen and not args.astrazeneca:
-            if args.only_second:
-                motives.append(docto.KEY_PFIZER_SECOND)
-                motives.append(docto.KEY_MODERNA_SECOND)
-                # motives.append(docto.KEY_ASTRAZENECA_SECOND) #do not add AstraZeneca by default
-            elif args.only_third:
-                if not docto.KEY_PFIZER_THIRD and not docto.KEY_MODERNA_THIRD:
-                    print('Invalid args: No third shot vaccinations in this country')
-                    return 1
-                motives.append(docto.KEY_PFIZER_THIRD)
-                motives.append(docto.KEY_MODERNA_THIRD)
-            else:
-                motives.append(docto.KEY_PFIZER)
-                motives.append(docto.KEY_MODERNA)
-                motives.append(docto.KEY_JANSSEN)
-                # motives.append(docto.KEY_ASTRAZENECA) #do not add AstraZeneca by default
-        if args.pfizer:
-            if args.only_second:
-                motives.append(docto.KEY_PFIZER_SECOND)
-            elif args.only_third:
-                if not docto.KEY_PFIZER_THIRD:  # not available in all countries
-                    print('Invalid args: Pfizer has no third shot in this country')
-                    return 1
-                motives.append(docto.KEY_PFIZER_THIRD)
-            else:
-                motives.append(docto.KEY_PFIZER)
-        if args.moderna:
-            if args.only_second:
-                motives.append(docto.KEY_MODERNA_SECOND)
-            elif args.only_third:
-                if not docto.KEY_MODERNA_THIRD:  # not available in all countries
-                    print('Invalid args: Moderna has no third shot in this country')
-                    return 1
-                motives.append(docto.KEY_MODERNA_THIRD)
-            else:
-                motives.append(docto.KEY_MODERNA)
-        if args.janssen:
-            if args.only_second or args.only_third:
-                print('Invalid args: Janssen has no second or third shot')
-                return 1
-            else:
-                motives.append(docto.KEY_JANSSEN)
-        if args.astrazeneca:
-            if args.only_second:
-                motives.append(docto.KEY_ASTRAZENECA_SECOND)
-            elif args.only_third:
-                print('Invalid args: AstraZeneca has no third shot')
-                return 1
-            else:
-                motives.append(docto.KEY_ASTRAZENECA)
+        vaccine_data = docto.get_vaccines_list(docto, args.pfizer, args.moderna, args.janssen,
+                                               args.astrazeneca, args.only_second, args.only_third)
 
-        vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
+        vaccine_list = vaccine_data[0]
 
         if args.start_date:
             try:
@@ -800,7 +851,7 @@ class Application:
         while True:
             log_ts()
             try:
-                for center in docto.find_centers(cities, motives):
+                for center in docto.find_centers(cities, vaccine_data[1]):
                     if args.center:
                         if center['name_with_title'] not in args.center:
                             logging.debug("Skipping center '%s'" %
@@ -839,8 +890,7 @@ class Application:
 
                     log('Center %(name_with_title)s (%(city)s):' % center)
 
-                    if docto.try_to_book(center, vaccine_list, start_date, end_date, args.only_second, args.only_third,
-                                         args.dry_run):
+                    if docto.try_to_book(center, vaccine_list, start_date, end_date, args.only_second, args.only_third, args.dry_run):
                         log('')
                         log('💉 %s Congratulations.' %
                             colored('Booked!', 'green', attrs=('bold',)))
@@ -849,8 +899,7 @@ class Application:
                     sleep(SLEEP_INTERVAL_AFTER_CENTER)
 
                     log('')
-                log('No free slots found at selected centers. Trying another round in %s sec...',
-                    SLEEP_INTERVAL_AFTER_RUN)
+                log('No free slots found at selected centers. Trying another round in %s sec...', SLEEP_INTERVAL_AFTER_RUN)
                 sleep(SLEEP_INTERVAL_AFTER_RUN)
             except CityNotFound as e:
                 print('\n%s: City %s not found. Make sure you selected a city from the available countries.' % (
