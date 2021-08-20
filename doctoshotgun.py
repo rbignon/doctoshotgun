@@ -21,6 +21,8 @@ from termcolor import colored
 from urllib import parse
 from urllib3.exceptions import NewConnectionError
 
+from abc import ABC, abstractmethod
+
 from woob.browser.exceptions import ClientError, ServerError, HTTPNotFound
 from woob.browser.browsers import LoginBrowser
 from woob.browser.url import URL
@@ -60,6 +62,67 @@ def log_ts(text=None, *args, **kwargs):
     if text:
         log(text, *args, **kwargs)
 
+'''
+Obeserver Design pattern
+'''
+
+class User:
+    '''
+    User class will act role of observer(patient) to subject(new update)
+    '''
+    def __init__(self, name):
+        self.name = name
+
+    def update(self, vaccine, center):
+        print(f'For {self.name}, new vaccines available at {center.name}')
+
+class CentersAvailability:
+    '''
+    CentersAvailability class is useful to centers to add a new vaccine
+    and manage subscribers to the doctolib as well
+    '''
+    def __init__(self, name):
+        self.name = name
+        self.__subscribers = []
+        self.__vaccines = []
+
+    def add_vaccine(self, vaccine):
+        '''
+        Add new vaccine and notify subscribers
+        '''
+        self.__vaccines.append(vaccine)
+        self.notify_subscribers(vaccine)
+
+    def get_vaccines(self):
+        '''
+        Get vaccines distributed by {self}
+        '''
+        return self.__vaccine
+
+    def subscribe(self, subscriber):
+        '''
+        Add new subscriber to notify on adding vaccine
+        '''
+        self.__subscribers.append(subscriber)
+
+    def unsubscribe(self, subscriber):
+        '''
+        User can unsubscribe from further notifications
+        '''
+        return self.__subscribers.remove(subscriber)
+
+    def subscribers(self):
+        '''
+        Get subsribers
+        '''
+        return self.__subscribers
+
+    def notify_subscribers(self, vaccine):
+        '''
+        Notifying all the subsribers about new addition of an vaccine
+        '''
+        for sub in self.__subscribers:
+            sub.update(vaccine, self)
 
 class Session(cloudscraper.CloudScraper):
     def send(self, *args, **kwargs):
