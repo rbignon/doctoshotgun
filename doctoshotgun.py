@@ -61,6 +61,70 @@ def log_ts(text=None, *args, **kwargs):
         log(text, *args, **kwargs)
 
 
+'''Observer Pattern'''
+from abc import ABCMeta, abstractmethod
+
+class IVaccinationBooking(metaclass=ABCMeta):
+    '''interface for the observable
+       to be implemented by class VaccinationBooking'''
+    @staticmethod
+    @abstractmethod
+    def add(observer):
+        pass
+        
+    @staticmethod
+    @abstractmethod
+    def remove(observer):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def notify(observer):
+        pass
+       
+
+class VaccinationBooking(IVaccinationBooking):
+    '''concrete class for the observable'''
+    def __init__(self):
+        self.observers = set()
+
+    # method to add observers 
+    def add(self, observer):
+        self.observers.add(observer)
+
+    # method to remove observers
+    def remove(self, observer):
+        self.observers.remove(observer)
+
+    '''method to notify the users of the successful vaccination booking 
+       and provide data for it to analyse '''
+    def notify(self, *args):
+        for observer in self.observers:
+            observer.notify(*args)
+
+class IVaccinationData(metaclass=ABCMeta):
+    '''interface for the observer
+       to be implemented by class VaccinationData'''
+    @staticmethod
+    @abstractmethod
+    def notify(observable, *args):
+        pass
+
+
+class VaccinationData(IVaccinationData):
+    '''concrete class for the observer'''
+    def __init__(self, observable):
+        # adding this observer to the list managed by this observable
+        observable.add(self)
+
+    def notify(self, *args):
+        data = args
+        '''Here we can make a data base connection and store the data 
+           gathered through vaccination booking for data analyse for our SUD
+           or government'''
+
+'''****************'''
+
 class Session(cloudscraper.CloudScraper):
     def send(self, *args, **kwargs):
         callback = kwargs.pop('callback', lambda future, response: response)
@@ -500,7 +564,7 @@ class Doctolib(LoginBrowser):
         self.appointment_edit.go(id=a_id)
 
         log('  ├╴ Booking for %(first_name)s %(last_name)s...' % self.patient)
-
+       
         self.appointment_edit.go(
             id=a_id, params={'master_patient_id': self.patient['id']})
 
@@ -831,6 +895,18 @@ class Application:
                     log('Center %(name_with_title)s (%(city)s):' % center)
 
                     if docto.try_to_book(center, vaccine_list, start_date, end_date, args.only_second, args.only_third, args.dry_run):
+                        #observable
+                        observableBooking = VaccinationBooking() 
+
+                        #observer
+                        observerVaccineData = VaccinationData(observableBooking)
+
+                        #observable notifying the observer of data once,
+                        #the booking is successful i.e. method try_to_book returns true
+                        observableBooking.notify(center, vaccine_list, start_date, end_date, args.only_second, args.only_third)
+
+                        #removing observer from the observable's list of observers
+                        observableBooking.remove(observerVaccineData)
                         log('')
                         log('💉 %s Congratulations.' %
                             colored('Booked!', 'green', attrs=('bold',)))
