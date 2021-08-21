@@ -60,6 +60,42 @@ def log_ts(text=None, *args, **kwargs):
     if text:
         log(text, *args, **kwargs)
 
+'''
+Observer Design Patter: Example 1
+'''
+class User:
+    def __init__(self, name):
+        self.name = name
+    def update(self, vaccine, center):
+        print(f'For {self.name}, new vaccines available at {center.name}')
+
+class CentersAvailability:
+  
+    def __init__(self, name):
+        self.name = name
+        self.__subscribers = []
+        self.__vaccines = []
+
+    def add_vaccine(self, vaccine):
+        self.__vaccines.append(vaccine)
+        self.notify_subscribers(vaccine)
+
+    def get_vaccines(self):
+        return self.__vaccine
+
+    def subscribe(self, subscriber):
+        self.__subscribers.append(subscriber)
+
+    def unsubscribe(self, subscriber):
+        return self.__subscribers.remove(subscriber)
+
+    def subscribers(self):
+        return self.__subscribers
+
+    def notify_subscribers(self, vaccine):
+        for sub in self.__subscribers:
+            sub.update(vaccine, self)
+
 
 class Session(cloudscraper.CloudScraper):
     def send(self, *args, **kwargs):
