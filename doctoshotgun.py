@@ -61,41 +61,54 @@ def log_ts(text=None, *args, **kwargs):
     if text:
         log(text, *args, **kwargs)
 
-'''
-Observer Design Patter: Example 1
-'''
-class User:
-    def __init__(self, name):
-        self.name = name
-    def update(self, vaccine, center):
-        print(f'For {self.name}, new vaccines available at {center.name}')
+'''Observer Design Pattern: Example 2'''
+class IVaccinationBooking(metaclass=ABCMeta):
+    @staticmethod
+    @abstractmethod
+    def add(observer):
+        pass
 
-class CentersAvailability:
-  
-    def __init__(self, name):
-        self.name = name
-        self.__subscribers = []
-        self.__vaccines = []
+    @staticmethod
+    @abstractmethod
+    def remove(observer):
+        pass
 
-    def add_vaccine(self, vaccine):
-        self.__vaccines.append(vaccine)
-        self.notify_subscribers(vaccine)
+    @staticmethod
+    @abstractmethod
+    def notify(observer):
+        pass
 
-    def get_vaccines(self):
-        return self.__vaccine
+class VaccinationBooking(IVaccinationBooking):
+    def __init__(self):
+        self.observers = set()
 
-    def subscribe(self, subscriber):
-        self.__subscribers.append(subscriber)
+    # add observers 
+    def add(self, observer):
+        self.observers.add(observer)
 
-    def unsubscribe(self, subscriber):
-        return self.__subscribers.remove(subscriber)
+    # remove observers
+    def remove(self, observer):
+        self.observers.remove(observer)
 
-    def subscribers(self):
-        return self.__subscribers
+    def notify(self, *args):
+        for observer in self.observers:
+            observer.notify(*args)
 
-    def notify_subscribers(self, vaccine):
-        for sub in self.__subscribers:
-            sub.update(vaccine, self)
+class IVaccinationData(metaclass=ABCMeta):
+    @staticmethod
+    @abstractmethod
+    def notify(observable, *args):
+        pass
+
+
+class VaccinationData(IVaccinationData):
+    def __init__(self, observable):
+        observable.add(self)
+
+    def notify(self, *args):
+        data = args
+
+
 
 
 class Session(cloudscraper.CloudScraper):
