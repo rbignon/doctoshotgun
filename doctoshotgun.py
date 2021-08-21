@@ -520,7 +520,7 @@ class Doctolib(LoginBrowser):
         if dry_run:
             log('  └╴ Booking status: %s', 'fake')
             return True
-
+	'''
         data = {'appointment': {'custom_fields_values': custom_fields,
                                 'new_patient': True,
                                 'qualification_answers': {},
@@ -533,6 +533,22 @@ class Doctolib(LoginBrowser):
                 'patient': None,
                 'phone_number': None,
                 }
+	'''
+	
+	class data():
+	def __init__():
+		self.apointment = None
+		self.email = None
+		self.new_patient = True
+		self.patient = None
+		self.phone_number = None
+		self.master_patient = None
+		self.bypass_mandatory_relsative_contact_info = None
+	def change_properties(self, a):
+		self.patient = a
+	def add_properties():
+		pass
+
 
         self.appointment_post.go(id=a_id, data=json.dumps(
             data), headers=headers, method='PUT')
