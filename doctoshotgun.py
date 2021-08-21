@@ -10,6 +10,7 @@ import datetime
 import argparse
 import getpass
 import unicodedata
+from abc import ABC, abstractmethod
 
 from dateutil.parser import parse as parse_date
 from dateutil.relativedelta import relativedelta
