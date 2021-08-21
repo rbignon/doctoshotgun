@@ -385,6 +385,13 @@ class Doctolib(LoginBrowser):
         return False
 
     def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, vac_name, start_date, end_date, only_second, only_third, dry_run=False):
+        check_for_data_validity()
+        check_for_patient_info()
+        check_for_available_centers()
+        check_for_available_times()
+        confirm_booking_status()
+
+    def check_for_data_validity():
         date = start_date.strftime('%Y-%m-%d')
         while date is not None:
             self.availabilities.go(
@@ -400,6 +407,8 @@ class Doctolib(LoginBrowser):
             else:
                 date = None
 
+    
+    def check_for_available_centers():
         if len(self.page.doc['availabilities']) == 0:
             log('no availabilities', color='red')
             return False
@@ -435,6 +444,7 @@ class Doctolib(LoginBrowser):
         log('  ├╴ Best slot found: %s', parse_date(
             slot_date_first).strftime('%c'))
 
+    def check_for_patient_info():
         appointment = {'profile_id':    profile_id,
                        'source_action': 'profile',
                        'start_date':    slot_date_first,
@@ -495,45 +505,48 @@ class Doctolib(LoginBrowser):
                     self.page.get_error())
                 return False
 
-        a_id = self.page.doc['id']
+        def check_for_available_times():
+            a_id = self.page.doc['id']
 
-        self.appointment_edit.go(id=a_id)
+            self.appointment_edit.go(id=a_id)
 
-        log('  ├╴ Booking for %(first_name)s %(last_name)s...' % self.patient)
+            log('  ├╴ Booking for %(first_name)s %(last_name)s...' % self.patient)
 
-        self.appointment_edit.go(
-            id=a_id, params={'master_patient_id': self.patient['id']})
+            self.appointment_edit.go(
+                id=a_id, params={'master_patient_id': self.patient['id']})
 
-        custom_fields = {}
-        for field in self.page.get_custom_fields():
-            if field['id'] == 'cov19':
-                value = 'Non'
-            elif field['placeholder']:
-                value = field['placeholder']
-            else:
-                print('%s (%s):' %
-                      (field['label'], field['placeholder']), end=' ', flush=True)
-                value = sys.stdin.readline().strip()
+            custom_fields = {}
+            for field in self.page.get_custom_fields():
+                if field['id'] == 'cov19':
+                    value = 'Non'
+                elif field['placeholder']:
+                    value = field['placeholder']
+                else:
+                    print('%s (%s):' %
+                        (field['label'], field['placeholder']), end=' ', flush=True)
+                    value = sys.stdin.readline().strip()
 
-            custom_fields[field['id']] = value
+                custom_fields[field['id']] = value
 
-        if dry_run:
-            log('  └╴ Booking status: %s', 'fake')
-            return True
+            if dry_run:
+                log('  └╴ Booking status: %s', 'fake')
+                return True
 
-        data = {'appointment': {'custom_fields_values': custom_fields,
-                                'new_patient': True,
-                                'qualification_answers': {},
-                                'referrer_id': None,
-                                },
-                'bypass_mandatory_relative_contact_info': False,
-                'email': None,
-                'master_patient': self.patient,
-                'new_patient': True,
-                'patient': None,
-                'phone_number': None,
-                }
+            data = {'appointment': {'custom_fields_values': custom_fields,
+                                    'new_patient': True,
+                                    'qualification_answers': {},
+                                    'referrer_id': None,
+                                    },
+                    'bypass_mandatory_relative_contact_info': False,
+                    'email': None,
+                    'master_patient': self.patient,
+                    'new_patient': True,
+                    'patient': None,
+                    'phone_number': None,
+                    }
 
+    
+    def confirm_booking_status():
         self.appointment_post.go(id=a_id, data=json.dumps(
             data), headers=headers, method='PUT')
 
@@ -546,6 +559,7 @@ class Doctolib(LoginBrowser):
         log('  └╴ Booking status: %s', self.page.doc['confirmed'])
 
         return self.page.doc['confirmed']
+
 
 
 class DoctolibDE(Doctolib):
