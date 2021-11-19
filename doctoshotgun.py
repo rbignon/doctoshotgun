@@ -552,20 +552,20 @@ class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
     KEY_PFIZER = '6768'
     KEY_PFIZER_SECOND = '6769'
-    KEY_PFIZER_THIRD = None
+    KEY_PFIZER_THIRD = '9093'
     KEY_MODERNA = '6936'
     KEY_MODERNA_SECOND = '6937'
-    KEY_MODERNA_THIRD = None
+    KEY_MODERNA_THIRD = '9040'
     KEY_JANSSEN = '7978'
     KEY_ASTRAZENECA = '7109'
     KEY_ASTRAZENECA_SECOND = '7110'
     vaccine_motives = {
         KEY_PFIZER: 'Pfizer',
         KEY_PFIZER_SECOND: 'Zweit.*Pfizer|Pfizer.*Zweit',
-        KEY_PFIZER_THIRD: 'Dritt.*Pfizer|Pfizer.*Dritt',
+        KEY_PFIZER_THIRD: 'Auffrischung.*Pfizer|Pfizer.*Auffrischung|Dritt.*Pfizer|Booster.*Pfizer',
         KEY_MODERNA: 'Moderna',
         KEY_MODERNA_SECOND: 'Zweit.*Moderna|Moderna.*Zweit',
-        KEY_MODERNA_THIRD: 'Dritt.*Moderna|Moderna.*Dritt',
+        KEY_MODERNA_THIRD: 'Auffrischung.*Moderna|Moderna.*Auffrischung|Dritt.*Moderna|Booster.*Moderna',
         KEY_JANSSEN: 'Janssen',
         KEY_ASTRAZENECA: 'AstraZeneca',
         KEY_ASTRAZENECA_SECOND: 'Zweit.*AstraZeneca|AstraZeneca.*Zweit',
