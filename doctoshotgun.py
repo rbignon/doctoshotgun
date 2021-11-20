@@ -552,7 +552,7 @@ class DoctolibDE(Doctolib):
     BASEURL = 'https://www.doctolib.de'
     KEY_PFIZER = '6768'
     KEY_PFIZER_SECOND = '6769'
-    KEY_PFIZER_THIRD = '9093'
+    KEY_PFIZER_THIRD = '9039'
     KEY_MODERNA = '6936'
     KEY_MODERNA_SECOND = '6937'
     KEY_MODERNA_THIRD = '9040'
