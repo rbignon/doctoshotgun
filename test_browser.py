@@ -12,6 +12,36 @@ from doctoshotgun import CentersPage, DoctolibDE, DoctolibFR, CenterBookingPage
 # globals
 FIXTURES_FOLDER = "test_fixtures"
 
+# URL to be mocked using responses
+SEARCH_URL_FOR_KOLN = (
+    'https://127.0.0.1/search_results/1234567.json?limit=4'
+    '&ref_visit_motive_ids%5B%5D=6768'
+    '&ref_visit_motive_ids%5B%5D=6769'
+    '&ref_visit_motive_ids%5B%5D=9039'
+    '&ref_visit_motive_ids%5B%5D=6936'
+    '&ref_visit_motive_ids%5B%5D=6937'
+    '&ref_visit_motive_ids%5B%5D=9040'
+    '&ref_visit_motive_ids%5B%5D=7978'
+    '&ref_visit_motive_ids%5B%5D=7109'
+    '&ref_visit_motive_ids%5B%5D=7110'
+    '&speciality_id=5494'
+    '&search_result_format=json'
+)
+
+SEARCH_URL_FOR_MUNCHEN=(
+        'https://127.0.0.1/impfung-covid-19-corona/M%C3%BCnchen'
+        '?ref_visit_motive_ids%5B%5D=6768'
+        '&ref_visit_motive_ids%5B%5D=6769'
+        '&ref_visit_motive_ids%5B%5D=9039'
+        '&ref_visit_motive_ids%5B%5D=6936'
+        '&ref_visit_motive_ids%5B%5D=6937'
+        '&ref_visit_motive_ids%5B%5D=9040'
+        '&ref_visit_motive_ids%5B%5D=7978'
+        '&ref_visit_motive_ids%5B%5D=7109'
+        '&ref_visit_motive_ids%5B%5D=7110'
+        '&page=1'
+)
+
 
 @responses.activate
 def test_find_centers_fr_returns_503_should_continue(tmp_path):
@@ -44,7 +74,7 @@ def test_find_centers_de_returns_503_should_continue(tmp_path):
 
     responses.add(
         responses.GET,
-        "https://127.0.0.1/impfung-covid-19-corona/M%C3%BCnchen?ref_visit_motive_ids%5B%5D=6768&ref_visit_motive_ids%5B%5D=6769&ref_visit_motive_ids%5B%5D=6936&ref_visit_motive_ids%5B%5D=6937&ref_visit_motive_ids%5B%5D=7978&ref_visit_motive_ids%5B%5D=7109&ref_visit_motive_ids%5B%5D=7110&page=1",
+        SEARCH_URL_FOR_MUNCHEN,
         status=503
     )
 
@@ -64,7 +94,7 @@ def test_find_centers_de_returns_520_should_continue(tmp_path):
 
     responses.add(
         responses.GET,
-        "https://127.0.0.1/impfung-covid-19-corona/M%C3%BCnchen?ref_visit_motive_ids%5B%5D=6768&ref_visit_motive_ids%5B%5D=6769&ref_visit_motive_ids%5B%5D=6936&ref_visit_motive_ids%5B%5D=6937&ref_visit_motive_ids%5B%5D=7978&ref_visit_motive_ids%5B%5D=7109&ref_visit_motive_ids%5B%5D=7110&page=1",
+        SEARCH_URL_FOR_MUNCHEN,
         status=520
     )
 
@@ -105,7 +135,7 @@ def test_find_centers_de_returns_502_should_fail(tmp_path):
 
     responses.add(
         responses.GET,
-        "https://127.0.0.1/impfung-covid-19-corona/M%C3%BCnchen?ref_visit_motive_ids%5B%5D=6768&ref_visit_motive_ids%5B%5D=6769&ref_visit_motive_ids%5B%5D=6936&ref_visit_motive_ids%5B%5D=6937&ref_visit_motive_ids%5B%5D=7978&ref_visit_motive_ids%5B%5D=7109&ref_visit_motive_ids%5B%5D=7110&page=1",
+        SEARCH_URL_FOR_MUNCHEN,
         status=502
     )
 
@@ -429,8 +459,18 @@ def test_book_slots_should_succeed(tmp_path):
 
     responses.add(
         responses.GET,
-        "https://127.0.0.1/impfung-covid-19-corona/K%C3%B6ln?ref_visit_motive_ids%5B%5D=6768&ref_visit_motive_ids%5B%5D=6769&ref_visit_motive_ids%5B%5D=6936&ref_visit_motive_ids%5B%5D=6937&ref_visit_motive_ids%5B%5D=7978&ref_visit_motive_ids%5B%5D=7109&ref_visit_motive_ids%5B%5D=7110&page=1",
-        status=200,
+        ("https://127.0.0.1/impfung-covid-19-corona/K%C3%B6ln"
+         "?ref_visit_motive_ids%5B%5D=6768"
+         "&ref_visit_motive_ids%5B%5D=6769"
+         "&ref_visit_motive_ids%5B%5D=9039"
+         "&ref_visit_motive_ids%5B%5D=6936"
+         "&ref_visit_motive_ids%5B%5D=6937"
+         "&ref_visit_motive_ids%5B%5D=9040"
+         "&ref_visit_motive_ids%5B%5D=7978"
+         "&ref_visit_motive_ids%5B%5D=7109"
+         "&ref_visit_motive_ids%5B%5D=7110"
+         "&page=1"),
+         status=200,
         body="<div class='js-dl-search-results-calendar' data-props='{dataProps}'></div>".format(
             dataProps=mock_search_result_id_escaped_json)
     )
@@ -440,7 +480,7 @@ def test_book_slots_should_succeed(tmp_path):
 
         responses.add(
             responses.GET,
-            "https://127.0.0.1/search_results/1234567.json?limit=4&ref_visit_motive_ids%5B%5D=6768&ref_visit_motive_ids%5B%5D=6769&ref_visit_motive_ids%5B%5D=6936&ref_visit_motive_ids%5B%5D=6937&ref_visit_motive_ids%5B%5D=7978&ref_visit_motive_ids%5B%5D=7109&ref_visit_motive_ids%5B%5D=7110&speciality_id=5494&search_result_format=json",
+            SEARCH_URL_FOR_KOLN,
             status=200,
             body=json.dumps(mock_search_result)
         )
