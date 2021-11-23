@@ -45,13 +45,6 @@ except ImportError:
         pass
 
 
-def log_ts(text, *args, **kwargs):
-    ''' Log with time stamp'''
-    now = datetime.datetime.now()
-    print("[%s]" % now.isoformat(" ", "seconds"))
-    log(text, *args, **kwargs)
-
-
 def log(text, *args, **kwargs):
     args = (colored(arg, 'yellow') for arg in args)
     if 'color' in kwargs:
@@ -798,8 +791,6 @@ class Application:
         while True:
             log_ts()
             try:
-                log('')
-                log_ts('Going through the centers found')
                 for center in docto.find_centers(cities, motives):
                     if args.center:
                         if center['name_with_title'] not in args.center:
