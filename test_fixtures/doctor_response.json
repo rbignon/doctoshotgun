@@ -1,0 +1,51 @@
+{
+    "data": {
+        "profile": {
+            "id": 9876543
+        },
+        "visit_motives": [
+            {
+                "id": 2741702,
+                "name": "Erstimpfung Covid-19 (AstraZeneca)",
+                "vaccination_days_range": 42,
+                "first_shot_motive": true,
+                "allow_new_patients": true
+            },
+            {
+                "id": 2746983,
+                "name": "Erstimpfung Covid-19 (BioNTech-Pfizer)",
+                "vaccination_days_range": 21,
+                "first_shot_motive": true,
+                "allow_new_patients": true
+            },
+            {
+                "id": 2746984,
+                "name": "Zweitimpfung Covid-19 (BioNTech-Pfizer)",
+                "vaccination_days_range": 0,
+                "first_shot_motive": false,
+                "allow_new_patients": true
+            },
+            {
+                "id": 2920448,
+                "name": "Einzelimpfung Covid-19 (Janssen)",
+                "vaccination_days_range": 0,
+                "first_shot_motive": false,
+                "allow_new_patients": true
+            }
+        ],
+        "agendas": [
+            {
+                "booking_disabled": false,
+                "visit_motive_ids": []
+            }
+        ],
+        "places": [
+            {
+                "name": "Praxis Prof. Dr. med. Dre",
+                "practice_ids": [
+                    234567
+                ]
+            }
+        ]
+    }
+}
