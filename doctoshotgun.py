@@ -528,8 +528,10 @@ class Doctolib(LoginBrowser, StatesMixin):
             elif field['placeholder']:
                 value = field['placeholder']
             else:
-                print('%s (%s):' %
-                      (field['label'], field['placeholder']), end=' ', flush=True)
+                for key, value in field.get('options', []):
+                    print('  │  %s %s' % (colored(key, 'green'), colored(value, 'yellow')))
+                print('  ├╴ %s%s:' % (field['label'], (' (%s)' % field['placeholder']) if field['placeholder'] else ''),
+                      end=' ', flush=True)
                 value = sys.stdin.readline().strip()
 
             custom_fields[field['id']] = value
