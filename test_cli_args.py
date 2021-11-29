@@ -81,6 +81,9 @@ def get_mocked_doctolib(MockDoctolibDE):
 
     mock_doctolib_de.try_to_book.return_value = True
 
+    mock_doctolib_de.load_state.return_value = {}
+    mock_doctolib_de.dump_state.return_value = None
+
     return mock_doctolib_de
 
 
