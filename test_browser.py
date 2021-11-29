@@ -584,6 +584,7 @@ def test_book_slots_should_succeed(tmp_path):
                                      year=2021, month=6, day=1),
                                  end_date=datetime.date(
                                      year=2021, month=6, day=14),
+                                 excluded_weekdays=[],
                                  only_second=False,
                                  only_third=False,
                                  dry_run=False)
@@ -596,6 +597,7 @@ def test_book_slots_should_succeed(tmp_path):
                                      year=2021, month=6, day=1),
                                  end_date=datetime.date(
                                      year=2021, month=6, day=14),
+                                 excluded_weekdays=[],
                                  only_second=False,
                                  only_third=False,
                                  dry_run=False)
