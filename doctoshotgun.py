@@ -90,6 +90,13 @@ class ChallengePage(JsonPage):
 
 
 class CentersPage(HTMLPage):
+    def on_load(self):
+        try:
+            v = self.doc.xpath('//input[@id="wait-time-value"]')[0]
+        except IndexError:
+            return
+        raise WaitingInQueue(int(v.attrib['value']))
+
     def iter_centers_ids(self):
         for div in self.doc.xpath('//div[@class="js-dl-search-results-calendar"]'):
             data = json.loads(div.attrib['data-props'])
@@ -208,6 +215,10 @@ class MasterPatientPage(JsonPage):
 
     def get_name(self):
         return '%s %s' % (self.doc[0]['first_name'], self.doc[0]['last_name'])
+
+
+class WaitingInQueue(Exception):
+    pass
 
 
 class CityNotFound(Exception):
@@ -845,6 +856,9 @@ class Application:
                 print('\n%s: City %s not found. Make sure you selected a city from the available countries.' % (
                     colored('Error', 'red'), colored(e, 'yellow')))
                 return 1
+            except WaitingInQueue as waiting_time:
+                log('Within the queue, estimated waiting time %s minutes', waiting_time)
+                sleep(30)
             except (ReadTimeout, ConnectionError, NewConnectionError) as e:
                 print('\n%s' % (colored(
                     'Connection error. Check your internet connection. Retrying ...', 'red')))
