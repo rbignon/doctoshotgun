@@ -16,6 +16,7 @@ import unicodedata
 from dateutil.parser import parse as parse_date
 from dateutil.relativedelta import relativedelta
 
+import calendar
 import cloudscraper
 import colorama
 from requests.adapters import ReadTimeout, ConnectionError
@@ -134,6 +135,7 @@ class CentersPage(HTMLPage):
 
         return None
 
+
 class CenterResultPage(JsonPage):
     pass
 
@@ -183,10 +185,12 @@ class CenterBookingPage(JsonPage):
 
 
 class AvailabilitiesPage(JsonPage):
-    def find_best_slot(self, start_date=None, end_date=None):
+    def find_best_slot(self, start_date=None, end_date=None, excluded_weekdays=[]):
         for a in self.doc['availabilities']:
             date = parse_date(a['date']).date()
             if start_date and date < start_date or end_date and date > end_date:
+                continue
+            if date.weekday() in excluded_weekdays:
                 continue
             if len(a['slots']) == 0:
                 continue
@@ -366,7 +370,7 @@ class Doctolib(LoginBrowser, StatesMixin):
         normalized = re.sub(r'\W', '-', normalized)
         return normalized.lower()
 
-    def try_to_book(self, center, vaccine_list, start_date, end_date, only_second, only_third, dry_run=False, confirm=False):
+    def try_to_book(self, center, vaccine_list, start_date, end_date, excluded_weekdays, only_second, only_third, dry_run=False, confirm=False):
         try:
             self.open(center['url'])
         except ClientError as e:
@@ -403,12 +407,12 @@ class Doctolib(LoginBrowser, StatesMixin):
                     # do not filter to give a chance
                     agenda_ids = center_page.get_agenda_ids(motive_id)
 
-                if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, vac_name.lower(), start_date, end_date, only_second, only_third, dry_run, confirm):
+                if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, vac_name.lower(), start_date, end_date, excluded_weekdays, only_second, only_third, dry_run, confirm):
                     return True
 
         return False
 
-    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, vac_name, start_date, end_date, only_second, only_third, dry_run=False, confirm=False):
+    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, vac_name, start_date, end_date, excluded_weekdays, only_second, only_third, dry_run=False, confirm=False):
         date = start_date.strftime('%Y-%m-%d')
         while date is not None:
             self.availabilities.go(
@@ -711,6 +715,8 @@ class Application:
                             help='first date on which you want to book the first slot (format should be DD/MM/YYYY)')
         parser.add_argument('--end-date', type=str, default=None,
                             help='last date on which you want to book the first slot (format should be DD/MM/YYYY)')
+        parser.add_argument('--weekdays-exclude', '-e', nargs='*', type=str, default=[],
+                            help='Exclude specific weekdays, e.g. "tuesday Wednesday FRIDAY"')
         parser.add_argument('--dry-run', action='store_true',
                             help='do not really book the slot')
         parser.add_argument('--confirm', action='store_true',
@@ -836,8 +842,18 @@ class Application:
                     return 1
             else:
                 end_date = start_date + relativedelta(days=args.time_window)
+
+            _day_names = dict((name.title(), k) for k, name in enumerate(calendar.day_name))
+            try:
+                excluded_weekdays = set(sorted([_day_names[d.title()] for d in args.weekdays_exclude]))
+            except ValueError as e:
+                print('Invalid element value for --excluded-weekdays: %s' % e)
+                return 1
+
             log('Starting to look for vaccine slots for %s %s between %s and %s...',
                 docto.patient['first_name'], docto.patient['last_name'], start_date, end_date)
+            if len(excluded_weekdays) != 0:
+                log('Excluded weekdays: %s', ', '.join([calendar.day_name[d] for d in excluded_weekdays]))
             log('Vaccines: %s', ', '.join(vaccine_list))
             log('Country: %s ', args.country)
             log('This may take a few minutes/hours, be patient!')
@@ -892,7 +908,7 @@ class Application:
 
                         log('Center %(name_with_title)s (%(city)s):' % center)
 
-                        if docto.try_to_book(center, vaccine_list, start_date, end_date, args.only_second, args.only_third, args.dry_run, args.confirm):
+                        if docto.try_to_book(center, vaccine_list, start_date, end_date, excluded_weekdays, args.only_second, args.only_third, args.dry_run, args.confirm):
                             log('')
                             log('💉 %s Congratulations.' %
                                 colored('Booked!', 'green', attrs=('bold',)))

@@ -61,6 +61,8 @@ Further optional arguments:
 --start-date START_DATE
                       first date on which you want to book the first slot (format should be DD/MM/YYYY)
 --end-date END_DATE   last date on which you want to book the first slot (format should be DD/MM/YYYY)
+--weekdays-exclude, -e
+                      exclude weekdays, e.g. "tuesday Wednesday FRIDAY"
 --dry-run             do not really book the slot
 --code CODE           2FA code
 --confirm             prompt to confirm before booking
