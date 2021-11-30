@@ -366,7 +366,13 @@ class Doctolib(LoginBrowser, StatesMixin):
         return normalized.lower()
 
     def try_to_book(self, center, vaccine_list, start_date, end_date, only_second, only_third, dry_run=False):
-        self.open(center['url'])
+        try:
+            self.open(center['url'])
+        except ClientError as e:
+            # Sometimes there are referenced centers which are not available anymore (410 Gone)
+            log('Error: %s', e, color='red')
+            return False
+
         p = urlparse(center['url'])
         center_id = p.path.split('/')[-1]
 
@@ -381,8 +387,8 @@ class Doctolib(LoginBrowser, StatesMixin):
         motives_id = dict((k, v)
                           for k, v in motives_id.items() if v is not None)
         if len(motives_id.values()) == 0:
-            log('Unable to find requested vaccines in motives')
-            log('Motives: %s', ', '.join(self.page.get_motives()))
+            log('Unable to find requested vaccines in motives', color='red')
+            log('Motives: %s', ', '.join(self.page.get_motives()), color='red')
             return False
 
         for place in self.page.get_places():
