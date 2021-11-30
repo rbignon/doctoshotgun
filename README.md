@@ -48,6 +48,8 @@ Further optional arguments:
                       set how many next days the script look for slots (default = 7)
 --center CENTER, -c CENTER
                       filter centers
+--zipcode CODE
+                      filter centers by zipcode
 --center-regex CENTER_REGEX
                       filter centers by regex
 --center-exclude CENTER_EXCLUDE, -x CENTER_EXCLUDE
