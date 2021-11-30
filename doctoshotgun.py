@@ -690,6 +690,8 @@ class Application:
                             help='set how many next days the script look for slots (default = 7)')
         parser.add_argument(
             '--center', '-c', action='append', help='filter centers')
+        parser.add_argument(
+            '--zipcode', action='append', help='filter centers by zipcode (e.g. 76012)', type=str)
         parser.add_argument('--center-regex',
                             action='append', help='filter centers by regex')
         parser.add_argument('--center-exclude', '-x',
@@ -836,10 +838,21 @@ class Application:
                 log_ts()
                 try:
                     for center in docto.find_centers(cities, motives):
+                        if not args.include_neighbor_city and not docto.normalize(center['city']).startswith(tuple(cities)):
+                            logging.debug("Skipping city '%(city)s' %(name_with_title)s" % center)
+                            continue
                         if args.center:
                             if center['name_with_title'] not in args.center:
                                 logging.debug("Skipping center '%s'" %
                                               center['name_with_title'])
+                                continue
+                        if args.zipcode:
+                            center_matched = False
+                            for zipcode in args.zipcode:
+                                if center['zipcode'] == zipcode:
+                                    center_matched = True
+                            if not center_matched:
+                                logging.debug("Skipping center '%(name_with_title)s' ['%(zipcode)s']" % center)
                                 continue
                         if args.center_regex:
                             center_matched = False
@@ -865,10 +878,6 @@ class Application:
                                     center_excluded = True
                             if center_excluded:
                                 continue
-                        if not args.include_neighbor_city and not docto.normalize(center['city']).startswith(tuple(cities)):
-                            logging.debug(
-                                "Skipping city '%(city)s' %(name_with_title)s" % center)
-                            continue
 
                         log('')
 
