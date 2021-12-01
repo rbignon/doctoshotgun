@@ -710,6 +710,8 @@ class Application:
         parser.add_argument('username', help='Doctolib username')
         parser.add_argument('password', nargs='?', help='Doctolib password')
         parser.add_argument('--code', type=str, default=None, help='2FA code')
+        parser.add_argument('--proxy', '-P', type=str, default=None,
+                            help='define a proxy to use')
         args = parser.parse_args(cli_args if cli_args else sys.argv[1:])
 
         if args.debug:
@@ -724,6 +726,10 @@ class Application:
 
         docto = doctolib_map[args.country](
             args.username, args.password, responses_dirname=responses_dirname)
+
+        if args.proxy:
+            docto.PROXIES = {'https': args.proxy}
+
         docto.load_state(self.load_state())
 
         try:
