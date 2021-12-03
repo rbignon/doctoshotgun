@@ -365,7 +365,7 @@ class Doctolib(LoginBrowser, StatesMixin):
         normalized = re.sub(r'\W', '-', normalized)
         return normalized.lower()
 
-    def try_to_book(self, center, vaccine_list, start_date, end_date, only_second, only_third, dry_run=False):
+    def try_to_book(self, center, vaccine_list, start_date, end_date, only_second, only_third, dry_run=False, confirm=False):
         try:
             self.open(center['url'])
         except ClientError as e:
@@ -402,12 +402,12 @@ class Doctolib(LoginBrowser, StatesMixin):
                     # do not filter to give a chance
                     agenda_ids = center_page.get_agenda_ids(motive_id)
 
-                if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, vac_name.lower(), start_date, end_date, only_second, only_third, dry_run):
+                if self.try_to_book_place(profile_id, motive_id, practice_id, agenda_ids, vac_name.lower(), start_date, end_date, only_second, only_third, dry_run, confirm):
                     return True
 
         return False
 
-    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, vac_name, start_date, end_date, only_second, only_third, dry_run=False):
+    def try_to_book_place(self, profile_id, motive_id, practice_id, agenda_ids, vac_name, start_date, end_date, only_second, only_third, dry_run=False, confirm=False):
         date = start_date.strftime('%Y-%m-%d')
         while date is not None:
             self.availabilities.go(
@@ -545,6 +545,12 @@ class Doctolib(LoginBrowser, StatesMixin):
         if dry_run:
             log('  └╴ Booking status: %s', 'fake')
             return True
+
+        if confirm:
+            print('  ├╴ Do you want to book it? (y/N)', end=' ', flush=True)
+            if sys.stdin.readline().strip().lower() != 'y':
+                log('  └╴ Skipped')
+                return False
 
         data = {'appointment': {'custom_fields_values': custom_fields,
                                 'new_patient': True,
@@ -706,6 +712,8 @@ class Application:
                             help='last date on which you want to book the first slot (format should be DD/MM/YYYY)')
         parser.add_argument('--dry-run', action='store_true',
                             help='do not really book the slot')
+        parser.add_argument('--confirm', action='store_true',
+                            help='prompt to confirm before booking')
         parser.add_argument(
             'country', help='country where to book', choices=list(doctolib_map.keys()))
         parser.add_argument('city', help='city where to book')
@@ -883,7 +891,7 @@ class Application:
 
                         log('Center %(name_with_title)s (%(city)s):' % center)
 
-                        if docto.try_to_book(center, vaccine_list, start_date, end_date, args.only_second, args.only_third, args.dry_run):
+                        if docto.try_to_book(center, vaccine_list, start_date, end_date, args.only_second, args.only_third, args.dry_run, args.confirm):
                             log('')
                             log('💉 %s Congratulations.' %
                                 colored('Booked!', 'green', attrs=('bold',)))
