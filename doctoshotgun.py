@@ -28,6 +28,7 @@ from woob.browser.browsers import LoginBrowser, StatesMixin
 from woob.browser.url import URL
 from woob.browser.pages import JsonPage, HTMLPage
 from woob.tools.log import createColoredFormatter
+from woob.tools.misc import get_backtrace
 
 SLEEP_INTERVAL_AFTER_CONNECTION_ERROR = 5
 SLEEP_INTERVAL_AFTER_LOGIN_ERROR = 10
@@ -918,6 +919,8 @@ class Application:
                     template = "An unexpected exception of type {0} occurred. Arguments:\n{1!r}"
                     message = template.format(type(e).__name__, e.args)
                     print(message)
+                    if args.debug:
+                        print(get_backtrace())
                     return 1
             return 0
         finally:
