@@ -715,7 +715,7 @@ class Application:
                             help='first date on which you want to book the first slot (format should be DD/MM/YYYY)')
         parser.add_argument('--end-date', type=str, default=None,
                             help='last date on which you want to book the first slot (format should be DD/MM/YYYY)')
-        parser.add_argument('--weekdays-exclude', '-e', nargs='*', type=str, default=[],
+        parser.add_argument('--weekday-exclude', '-w', nargs='*', type=str, default=[], action='append',
                             help='Exclude specific weekdays, e.g. "tuesday Wednesday FRIDAY"')
         parser.add_argument('--dry-run', action='store_true',
                             help='do not really book the slot')
@@ -843,11 +843,12 @@ class Application:
             else:
                 end_date = start_date + relativedelta(days=args.time_window)
 
-            _day_names = dict((name.title(), k) for k, name in enumerate(calendar.day_name))
+            _day_names = dict((name.lower(), k) for k, name in enumerate(calendar.day_name))
             try:
-                excluded_weekdays = set(sorted([_day_names[d.title()] for d in args.weekdays_exclude]))
-            except ValueError as e:
-                print('Invalid element value for --excluded-weekdays: %s' % e)
+                excluded_weekdays = [d for days in args.weekday_exclude for d in days]
+                excluded_weekdays = set(sorted([_day_names[d.lower()] for d in excluded_weekdays]))
+            except KeyError as e:
+                print('Invalid element value for --excluded-weekday: %s' % e)
                 return 1
 
             log('Starting to look for vaccine slots for %s %s between %s and %s...',
