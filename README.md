@@ -68,6 +68,25 @@ Further optional arguments:
 --confirm             prompt to confirm before booking
 ```
 
+For easier reuse, it is possible to provide the arguments in a config file containing each parameter in a separate line.
+
+```
+./doctoshotgun.py @filename
+```
+
+> Beware: argument name and value need to go to separate lines, values have no quotes
+
+Example `docto.config`:
+```
+fr
+paris
+roger.philibert@gmail.com
+--center
+Centre de Vaccination Covid 19 - Ville de Paris
+--center
+Centre de Vaccination du 7eme arrondissement de Paris - Gymnase Camou
+```
+
 ### With Docker
 
 Build the image:

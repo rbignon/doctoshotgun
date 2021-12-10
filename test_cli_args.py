@@ -63,6 +63,23 @@ def test_center_exclude_arg_should_filter_excluded_centers(MockDoctolibDE, tmp_p
         assert call_args_list.args[0]['city'] == city
 
 
+@responses.activate
+@patch('doctoshotgun.DoctolibDE')
+def test_config_file_should_be_used(MockDoctolibDE, tmp_path):
+    """
+    Check that config file is used corrrectly
+    """
+    # prepare
+    mock_doctolib_de = get_mocked_doctolib(MockDoctolibDE)
+
+    # call
+    call_application_without_default_args(
+        cli_args=['@test_fixtures/docto.config'])
+
+    # assert
+    assert mock_doctolib_de.try_to_book.called
+
+
 def get_mocked_doctolib(MockDoctolibDE):
     mock_doctolib_de = MagicMock(wraps=DoctolibDE)
     MockDoctolibDE.return_value = mock_doctolib_de
@@ -91,4 +108,11 @@ def call_application(city, cli_args=[]):
     assert 0 == Application.main(
         Application(),
         cli_args=["de", city, "roger.phillibert@gmail.com", "1234"] + cli_args
+    )
+
+
+def call_application_without_default_args(cli_args):
+    assert 0 == Application.main(
+        Application(),
+        cli_args=cli_args
     )
