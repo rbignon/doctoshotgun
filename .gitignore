@@ -3,3 +3,6 @@ __pycache__
 
 .vscode
 .devcontainer
+doctoshotgun.egg-info/
+build
+dist
