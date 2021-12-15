@@ -362,6 +362,12 @@ class Doctolib(LoginBrowser, StatesMixin):
 
         return self.page.get_patients()
 
+    def get_patient_age(self):
+        birthdate = datetime.datetime.strptime(
+                        self.patient['birthdate'], '%Y-%m-%d').date()
+        today = datetime.date.today()
+        return today.year - birthdate.year - ((today.month, today.day) < (birthdate.month, birthdate.day))
+
     @classmethod
     def normalize(cls, string):
         nfkd = unicodedata.normalize('NFKD', string)
@@ -821,6 +827,17 @@ class Application:
                     return 1
                 else:
                     motives.append(docto.KEY_ASTRAZENECA)
+
+            if docto.get_patient_age() < 18:
+                # Removing moderna based on eligibility rules
+                log('Including only Pfizer vaccines as patient is under 18', color='yellow')
+                inclusions = (docto.KEY_PFIZER_SECOND, docto.KEY_PFIZER, docto.KEY_PFIZER_THIRD)
+                motives = [motive for motive in motives if motive in inclusions]
+            elif docto.get_patient_age() < 30:
+                # Removing moderna based on eligibility rules
+                log('Excluding Moderna vaccine as patient is under 30', color='yellow')
+                exclusions = (docto.KEY_MODERNA_SECOND, docto.KEY_MODERNA, docto.KEY_MODERNA_THIRD)
+                motives = [motive for motive in motives if motive not in exclusions]
 
             vaccine_list = [docto.vaccine_motives[motive] for motive in motives]
 
