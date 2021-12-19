@@ -1,16 +1,17 @@
+import datetime
+import json
+from pathlib import Path
+from html import escape
 import pytest
 from requests.adapters import Response
 import responses
-from html import escape
-import lxml.html as html
-import json
-import datetime
+from lxml import html
 from woob.browser.browsers import Browser
 from woob.browser.exceptions import ServerError
-from doctoshotgun import CentersPage, DoctolibDE, DoctolibFR, CenterBookingPage
+from doctoshotgun.doctolib import CentersPage, DoctolibDE, DoctolibFR, CenterBookingPage
 
 # globals
-FIXTURES_FOLDER = "test_fixtures"
+FIXTURES_FOLDER = Path(__file__).parent / 'fixtures'
 
 # URL to be mocked using responses
 SEARCH_URL_FOR_KOLN = (
@@ -190,7 +191,7 @@ def test_get_next_page_fr_should_return_3_on_page_2(tmp_path):
     Check that get_next_page returns 3 when we are on page 2 and next page is available
     """
 
-    """ 
+    """
     Previous (data-u decoded): /vaccination-covid-19-autres-professions-prioritaires/france?ref_visit_motive_ids%5B%5D=6970&ref_visit_motive_ids%5B%5D=7005
     Next (data-u decoded): /vaccination-covid-19-autres-professions-prioritaires/france?page=3&ref_visit_motive_ids%5B%5D=6970&ref_visit_motive_ids%5B%5D=7005
     """
@@ -234,7 +235,7 @@ def test_get_next_page_fr_should_return_4_on_page_3(tmp_path):
 
     """
     Previous (data-u decoded): /vaccination-covid-19-autres-professions-prioritaires/france?page=2&ref_visit_motive_ids%5B%5D=6970&ref_visit_motive_ids%5B%5D=7005
-    Next (data-u decoded): /vaccination-covid-19-autres-professions-prioritaires/france?page=4&ref_visit_motive_ids%5B%5D=6970&ref_visit_motive_ids%5B%5D=7005    
+    Next (data-u decoded): /vaccination-covid-19-autres-professions-prioritaires/france?page=4&ref_visit_motive_ids%5B%5D=6970&ref_visit_motive_ids%5B%5D=7005
     """
 
     htmlString = """
@@ -274,7 +275,7 @@ def test_get_next_page_fr_should_return_None_on_last_page(tmp_path):
     """
     """
     Previous (data-u decoded): /vaccination-covid-19-autres-professions-prioritaires/france?page=7&ref_visit_motive_ids%5B%5D=6970&ref_visit_motive_ids%5B%5D=7005
-    """    
+    """
 
     htmlString = """
         <div class="next-previous-links">
@@ -304,7 +305,7 @@ vlmcw1ycu9WazNXZm9mcw1yclJHd1FWL5ETLklmdvNWLu9Wa0FmbpN2YhZ3L">
     next_page = centers_page.get_next_page()
     assert next_page == None
 
-    
+
 @responses.activate
 def test_get_next_page_de_should_return_2_on_page_1(tmp_path):
     """
@@ -475,7 +476,7 @@ def test_book_slots_should_succeed(tmp_path):
             dataProps=mock_search_result_id_escaped_json)
     )
 
-    with open(FIXTURES_FOLDER + '/search_result.json') as json_file:
+    with open(FIXTURES_FOLDER / 'search_result.json') as json_file:
         mock_search_result = json.load(json_file)
 
         responses.add(
@@ -485,7 +486,7 @@ def test_book_slots_should_succeed(tmp_path):
             body=json.dumps(mock_search_result)
         )
 
-    with open(FIXTURES_FOLDER + '/doctor_response.json') as json_file:
+    with open(FIXTURES_FOLDER / 'doctor_response.json') as json_file:
         mock_doctor_response = json.load(json_file)
 
         responses.add(
@@ -502,7 +503,7 @@ def test_book_slots_should_succeed(tmp_path):
         body=json.dumps(mock_doctor_response)
     )
 
-    with open(FIXTURES_FOLDER + '/availabilities.json') as json_file:
+    with open(FIXTURES_FOLDER / 'availabilities.json') as json_file:
         mock_availabilities = json.load(json_file)
 
         responses.add(
@@ -578,7 +579,7 @@ def test_book_slots_should_succeed(tmp_path):
         center = result['search_result']
 
         # single shot vaccination
-        assert docto.try_to_book(center=center,
+        for a in docto.find_appointments(center=center,
                                  vaccine_list=["Janssen"],
                                  start_date=datetime.date(
                                      year=2021, month=6, day=1),
@@ -586,12 +587,12 @@ def test_book_slots_should_succeed(tmp_path):
                                      year=2021, month=6, day=14),
                                  excluded_weekdays=[],
                                  only_second=False,
-                                 only_third=False,
-                                 dry_run=False)
+                                 only_third=False):
+            assert docto.book_appointment(a, {})
         assert len(responses.calls) == 10
 
         # two shot vaccination
-        assert docto.try_to_book(center=center,
+        for a in docto.find_appointments(center=center,
                                  vaccine_list=["Pfizer"],
                                  start_date=datetime.date(
                                      year=2021, month=6, day=1),
@@ -599,10 +600,9 @@ def test_book_slots_should_succeed(tmp_path):
                                      year=2021, month=6, day=14),
                                  excluded_weekdays=[],
                                  only_second=False,
-                                 only_third=False,
-                                 dry_run=False)
+                                 only_third=False):
+            assert docto.book_appointment(a, {})
         assert len(responses.calls) == 20
-        pass
 
     assert result_handled
 
@@ -613,7 +613,7 @@ def test_find_motive_should_ignore_second_shot(tmp_path):
     Check that find_motive ignores second shot motives
     """
 
-    with open(FIXTURES_FOLDER + '/doctor_response.json') as json_file:
+    with open(FIXTURES_FOLDER / 'doctor_response.json') as json_file:
         mock_doctor_response = json.load(json_file)
 
     response = Response()

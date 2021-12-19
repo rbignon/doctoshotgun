@@ -42,6 +42,11 @@
         "places": [
             {
                 "name": "Praxis Prof. Dr. med. Dre",
+                "address": "20 Somewhere Street",
+                "zipcode": "75011",
+                "city": "Paris",
+                "latitude": 48.8535392,
+                "longitude": 2.3893112,
                 "practice_ids": [
                     234567
                 ]

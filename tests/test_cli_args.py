@@ -1,7 +1,8 @@
 import responses
 from unittest.mock import patch, MagicMock
 
-from doctoshotgun import Application, DoctolibDE, DoctolibFR, MasterPatientPage
+from doctoshotgun.cli import Application
+from doctoshotgun.doctolib import DoctolibDE, DoctolibFR, MasterPatientPage, Appointment
 
 CENTERS = [
     {
@@ -20,7 +21,7 @@ CENTERS = [
 
 
 @responses.activate
-@patch('doctoshotgun.DoctolibDE')
+@patch('doctoshotgun.doctolib.DoctolibDE')
 def test_center_arg_should_filter_centers(MockDoctolibDE, tmp_path):
     """
     Check that booking is performed in correct city
@@ -35,14 +36,15 @@ def test_center_arg_should_filter_centers(MockDoctolibDE, tmp_path):
 
     # assert
     assert mock_doctolib_de.get_patients.called
-    assert mock_doctolib_de.try_to_book.called
-    for call_args_list in mock_doctolib_de.try_to_book.call_args_list:
+    assert mock_doctolib_de.find_appointments.called
+    assert mock_doctolib_de.book_appointment.called
+    for call_args_list in mock_doctolib_de.find_appointments.call_args_list:
         assert call_args_list.args[0]['name_with_title'] == center
         assert call_args_list.args[0]['city'] == city
 
 
 @responses.activate
-@patch('doctoshotgun.DoctolibDE')
+@patch('doctoshotgun.doctolib.DoctolibDE')
 def test_center_exclude_arg_should_filter_excluded_centers(MockDoctolibDE, tmp_path):
     """
     Check that booking is performed in correct city
@@ -57,8 +59,8 @@ def test_center_exclude_arg_should_filter_excluded_centers(MockDoctolibDE, tmp_p
 
     # assert
     assert mock_doctolib_de.get_patients.called
-    assert mock_doctolib_de.try_to_book.called
-    for call_args_list in mock_doctolib_de.try_to_book.call_args_list:
+    assert mock_doctolib_de.find_appointments.called
+    for call_args_list in mock_doctolib_de.find_appointments.call_args_list:
         assert call_args_list.args[0]['name_with_title'] != excluded_center
         assert call_args_list.args[0]['city'] == city
 
@@ -79,7 +81,8 @@ def get_mocked_doctolib(MockDoctolibDE):
 
     mock_doctolib_de.find_centers.return_value = CENTERS
 
-    mock_doctolib_de.try_to_book.return_value = True
+    mock_doctolib_de.find_appointments.return_value = [Appointment()]
+    mock_doctolib_de.book_appointment.return_value = True
 
     mock_doctolib_de.load_state.return_value = None
     mock_doctolib_de.dump_state.return_value = {}
